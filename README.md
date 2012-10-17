@@ -2,28 +2,42 @@
 
 TODO: Write a gem description
 
-## Installation
-
-Add this line to your application's Gemfile:
-
-    gem 'sanford'
-
-And then execute:
-
-    $ bundle
-
-Or install it yourself as:
-
-    $ gem install sanford
-
 ## Usage
 
-TODO: Write usage instructions here
+### Defininig Service Hosts
 
-## Contributing
+TODO
 
-1. Fork it
-2. Create your feature branch (`git checkout -b my-new-feature`)
-3. Commit your changes (`git commit -am 'Add some feature'`)
-4. Push to the branch (`git push origin my-new-feature`)
-5. Create new Pull Request
+* When defining a service host, give it a name (or use the class name, like we do in I-Resque)
+
+### Rake Tasks
+
+`Sanford` comes with rake tasks for starting and stopping a service host. These can be installed by requiring it's rake tasks into your `Rakefile`:
+
+```ruby
+require 'sanford/rake'
+```
+
+This will provide 3 tasks: starting, stopping and running. Replace `<service_host_name>` with the name of your service hosts you defined in your configuration file:
+
+* `rake sanford:start` - Start the service host server as a daemon. This will spin up a background process running the server.
+* `rake sanford:stop` - Stop the service host server that was started using the previous task. This will shutdown the background process gracefully.
+* `rake sanford:restart` - Restart the service host server. Essentially runs the stop and then the start tasks.
+* `rake sanford:run` - Run the service host server in the current ruby process. This starts the server, but doesn't daemonize it. This is convenient when using the server in a development environment.
+
+## Advanced
+
+### Daemonizing
+
+`Sanford` uses the [daemons](https://github.com/ghazel/daemons) gem to daemonize it's server process. This is done using the daemons gem's `run_proc` method and starting the server in it:
+
+```ruby
+task :start do
+  ::Daemons.run_proc(service_host.name, { :ARGV => [ 'start' ] }) do
+    server.start
+  end
+end
+```
+
+Using daemons' `run_proc` and specifying `ARGV` runs daemons different actions: starting, stopping, running, etc. With this, `Sanford` provides rake tasks that wrap this behavior for easily managing your service hosts.
+
