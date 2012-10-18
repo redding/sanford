@@ -33,11 +33,39 @@ This will provide 3 tasks: starting, stopping and running. Replace `<service_hos
 
 ```ruby
 task :start do
-  ::Daemons.run_proc(service_host.name, { :ARGV => [ 'start' ] }) do
+  ::Daemons.run_proc(host.name, { :ARGV => [ 'start' ] }) do
     server.start
   end
 end
 ```
 
-Using daemons' `run_proc` and specifying `ARGV` runs daemons different actions: starting, stopping, running, etc. With this, `Sanford` provides rake tasks that wrap this behavior for easily managing your service hosts.
+Using daemons' `run_proc` and specifying `ARGV` runs daemons different actions: starting, stopping, running, etc. With this, `Sanford` provides rake tasks that wrap this behavior for easily managing your hosts.
+
+### Registering Hosts
+
+`Sanford` registers all classes that include it's `Host` mixin. For example:
+
+```ruby
+class MyHost
+  include Sanford::Host
+
+  name 'my_host'
+end
+```
+
+With this, `Sanford` stores your class for reference later. The class `Sanford::Hosts` keeps track of all the registered hosts. They can be viewed by calling the `set` on the hosts class:
+
+```ruby
+Sanford::Hosts.set # => #<Set: {MyHost}>
+```
+
+The host name (`'my_host'` in the example) can be used with the rake tasks to manage a specific host:
+
+```bash
+rake sanford:start[my_host]
+rake sanford:restart[my_host]
+rake sanford:stop[my_host]
+```
+
+With this, multiple hosts can be defined and managed independently.
 
