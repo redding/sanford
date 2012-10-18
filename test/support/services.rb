@@ -1,9 +1,12 @@
 class TestHost
-  include Sanford
+  include Sanford::Host
 
-  # TODO - replace all this with configuration stuff later
-  def self.pid_dir
-    File.join(ROOT, 'tmp')
+  name 'test'
+
+  configure do
+    bind 'localhost:8000'
+    pid_dir File.join(ROOT, 'tmp')
+    logging false
   end
 
 end

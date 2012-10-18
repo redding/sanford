@@ -4,11 +4,33 @@ TODO: Write a gem description
 
 ## Usage
 
-### Defininig Service Hosts
+### Defininig Hosts
 
-TODO
+To define a `Sanford` host, include the module `Sanford::Host` on a class. You can then use the `name` and `configure` methods to define it:
 
-* When defining a service host, give it a name (or use the class name, like we do in I-Resque)
+```ruby
+class MyHost
+  include Sanford::Host
+
+  name 'my_host'
+
+  configure do
+    port 8000
+    pid_dir '/path/to/pids'
+  end
+end
+```
+
+The name method is optional, but can be used to set a string name for your host. This can be used with the rake tasks and is also used when writing the PID file. If a name is not set, then `Sanford` will stringify the class name and use it.
+
+Within the `configure` block, a few of options can be set:
+
+* `host`      - (string) The hostname or IP address for the server to bind to. This defaults to `'127.0.0.1'`.
+* `port`      - (integer) The port number for the server to bind to. This isn't defaulted and must be provided.
+* `bind`      - (string) This is a convenience option for specifying both the host and port together in a string. Expects the format `'127.0.0.1:8000'`.
+* `pid_dir`   - (string) File path to where you want the pid file to be written. The pid file is named after the host's name: '<host.name>.pid'. This defaults to the current working directory (`Dir.pwd`).
+* `logging`   - (boolean) Whether or not you want the server to log output about receiving connections. Defaults to `true`.
+* `logger`    - (logger) A logger for Sanford to use when handling requests. This should have a similar interface as ruby's standard logger. Defaults to an instance of ruby's logger.
 
 ### Rake Tasks
 
@@ -53,7 +75,7 @@ class MyHost
 end
 ```
 
-With this, `Sanford` stores your class for reference later. The class `Sanford::Hosts` keeps track of all the registered hosts. They can be viewed by calling the `set` on the hosts class:
+With this, `Sanford` stores your class for reference later in `Sanford::Hosts`. They can be viewed by calling the `set` on the hosts class:
 
 ```ruby
 Sanford::Hosts.set # => #<Set: {MyHost}>

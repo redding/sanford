@@ -1,17 +1,15 @@
 require 'assert'
-require 'ostruct'
 
 class Sanford::Hosts
 
   class BaseTest < Assert::Context
     desc "Sanford::Hosts"
     setup do
-      @previous_hosts = Sanford::Hosts.set.dup
-      Sanford::Hosts.clear
+      TestHelper.preserve_and_clear_hosts
       @hosts = Sanford::Hosts
     end
     teardown do
-      Sanford::Hosts.instance_variable_set("@set", @previous_hosts)
+      TestHelper.restore_hosts
     end
     subject{ @hosts }
 
@@ -33,14 +31,14 @@ class Sanford::Hosts
     should have_instance_methods :set, :add, :find, :first
 
     should "register a host with #add" do
-      dummy_host = OpenStruct.new({ :name => 'dummy_host' })
+      dummy_host = FakeHost.new({ :name => 'dummy_host' })
       subject.add(dummy_host)
 
       assert_includes dummy_host, subject.set
     end
 
     should "return the first service host and it's registeterd name with #first" do
-      dummy_host = OpenStruct.new({ :name => 'dummy_host' })
+      dummy_host = FakeHost.new({ :name => 'dummy_host' })
 
       assert_nil subject.first
 
@@ -50,7 +48,7 @@ class Sanford::Hosts
     end
 
     should "return the matching service host and it's registeterd name with #find" do
-      dummy_host = OpenStruct.new({ :name => 'dummy_host' })
+      dummy_host = FakeHost.new({ :name => 'dummy_host' })
       subject.add(dummy_host)
 
       assert_equal dummy_host, subject.find('dummy_host')

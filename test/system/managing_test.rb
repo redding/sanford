@@ -1,5 +1,4 @@
 require 'assert'
-require 'ostruct'
 
 class ManagingTest < Assert::Context
   desc "Using Sanford's manager"
@@ -8,21 +7,21 @@ class ManagingTest < Assert::Context
   # manipulate it
   class PreserveServiceHosts < ManagingTest
     setup do
-      @previous_hosts = Sanford::Hosts.set.dup
+      TestHelper.preserve_and_clear_hosts
     end
     teardown do
-      Sanford::Hosts.instance_variable_set("@set", @previous_hosts)
+      TestHelper.restore_hosts
     end
   end
 
   class CallTest < ManagingTest
     desc "to run a service host"
     setup do
-      @host = OpenStruct.new({ :name => 'fake_host', :pid_dir => 'pid_dir' })
+      @host = FakeHost.new
       Sanford::Hosts.add(@host)
       options = {
         :ARGV     => [ 'run' ],
-        :dir      => @host.pid_dir,
+        :dir      => @host.config.pid_dir,
         :dir_mode => :normal
       }
       ::Daemons.expects(:run_proc).with(@host.name, options)

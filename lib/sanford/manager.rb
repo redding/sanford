@@ -10,6 +10,7 @@
 require 'daemons'
 
 require 'sanford/hosts'
+require 'sanford/server'
 
 module Sanford
 
@@ -35,12 +36,12 @@ module Sanford
       @process_name = host.name
     end
 
-    # TODO - replace this with the server
-    # Sanford::Server.new(stuff).start
     def call(action)
       options = self.default_options.merge({ :ARGV => [ action.to_s ] })
       ::Daemons.run_proc(self.process_name, options) do
-        loop{ sleep(1) }
+        server = Sanford::Server.new(self.host)
+        server.start
+        server.join_thread
       end
     end
 
@@ -48,7 +49,7 @@ module Sanford
 
     def default_options
       { :dir_mode   => :normal,
-        :dir        => self.host.pid_dir
+        :dir        => self.host.config.pid_dir
       }
     end
 
