@@ -1,0 +1,10 @@
+Running benchmark report...
+
+Hitting "v1/simple" service with {}, 10000 times
+....................................................................................................
+Total Time:   8431.6474ms
+Average Time:    0.8431ms
+Min Time:        0.6129ms
+Max Time:       47.1599ms
+
+Done running benchmark report

@@ -7,3 +7,7 @@ gem 'threaded_server', :git => "https://github.reelfx.com/credding/threaded_serv
 
 gem 'bson_ext', '~>1.7'
 gem 'rake',     '~>0.9.2'
+
+group :benchmark do
+  gem 'whysoslow',  :require => false
+end
