@@ -18,12 +18,12 @@ module Sanford
       @set = Set.new
     end
 
-    def add(host)
-      @set << host
+    def add(host_class)
+      @set << host_class
     end
 
     def find(name)
-      self.set.detect{|host| host.name == name }
+      self.set.detect{|host_class| host_class.name == name }
     end
 
     def first

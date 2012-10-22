@@ -6,7 +6,7 @@ class Sanford::Manager
   class BaseTest < Assert::Context
     desc "Sanford::Manager"
     setup do
-      @fake_host = OpenStruct.new({ :name => 'fake_host', :pid_dir => 'pid_dir' })
+      @fake_host = FakeHost
       @manager = Sanford::Manager.new(@fake_host)
     end
     subject{ @manager }

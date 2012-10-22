@@ -1,14 +1,11 @@
-require 'ostruct'
+class FakeHost
+  include Sanford::Host
 
-module FakeHost
-
-  def self.new(options = {})
-    options[:name] ||= 'fake_host'
-
-    config = OpenStruct.new({ :pid_dir => 'pid_dir' })
-    OpenStruct.new({ :name => options[:name], :config => config })
+  configure do
+    host    'fake.local'
+    port    8000
+    pid_dir '/path/to/pids'
   end
-
 end
 
 

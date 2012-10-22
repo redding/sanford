@@ -10,17 +10,14 @@ module Sanford
 
     def initialize(service_host)
       @service_host = service_host
-      # TODO - raise exception if no host/port
-      service_host.config.tap do |config|
-        super(config.host, config.port, {
-          :logging  => !!config.logging,
-          :logger   => config.logger
-        })
-      end
+      super(self.service_host.hostname, self.service_host.port, {
+        :logging => !!self.service_host.logging,
+        :logger  => self.service_host.logger
+      })
     end
 
     def name
-      self.service_host.to_s
+      self.service_host.name
     end
 
     def serve(client_socket)

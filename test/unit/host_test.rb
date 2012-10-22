@@ -6,62 +6,69 @@ module Sanford::Host
     desc "Sanford::Host"
     setup do
       TestHelper.preserve_and_clear_hosts
-      @host = Class.new do
+      @host_class = Class.new do
         include Sanford::Host
-
         name 'anonymous_host'
+        configure do
+          host 'anonymous.local'
+        end
       end
+      @host = @host_class.new({ :port => 12345 })
     end
     teardown do
       TestHelper.restore_hosts
     end
     subject{ @host }
 
-    should have_instance_methods :name, :host_name_for
+    should have_instance_methods :name, :config
+
+    should "set name to it's class #name" do
+      assert_equal subject.class.name, subject.name
+    end
+    should "proxy missing methods to it's config" do
+      assert_equal subject.config.port, subject.port
+      assert subject.respond_to?(:pid_dir)
+    end
+    should "default it's configuration from the class and overwrite with values passed to new" do
+      assert_equal 'anonymous.local', subject.config.host
+      assert_equal 12345, subject.config.port
+    end
+  end
+
+  class ConfigTest < BaseTest
+    desc "config"
+    setup do
+      @config = @host.config
+    end
+    subject{ @config }
+
+    should have_instance_methods :hostname, :port, :pid_dir, :logging, :logger
+  end
+
+  class ClassMethodsTest < BaseTest
+    desc "class methods"
+    subject{ @host_class }
+
+    should have_instance_methods :name, :config, :configure
 
     should "have registered the class with sanford's known hosts" do
       assert_includes subject, Sanford::Hosts.set
     end
-    should "be a singleton" do
-      assert_includes Singleton, subject.included_modules
-    end
-    should "proxy methods to it's instance" do
-      assert_equal subject.instance.name, subject.name
-      assert subject.respond_to?(:configure)
-    end
-    should "generate a simplfied host name from a class name with #host_name_for" do
-      assert_equal "my_host", subject.host_name_for("MyHost")
-      assert_equal "apihost", subject.host_name_for("APIHost") # this is a known limitation
-    end
   end
 
-  class InstanceTest < BaseTest
-    desc "instance"
+  class InvalidTest < BaseTest
+    desc "invalid configuration"
     setup do
-      @instance = @host.instance
+      @host_class = Class.new do
+        include Sanford::Host
+        name 'invalid_host'
+      end
     end
-    subject{ @instance }
 
-    should have_instance_methods :name, :config, :configure
-
-    should "return an instance of Sanford::Host::Configuration with #config" do
-      assert_instance_of Sanford::Host::Configuration, subject.config
-    end
-    should "allow reading and writing the name variable with #name" do
-      assert_equal 'anonymous_host', subject.name
-
-      subject.name('changed_name')
-
-      assert_equal 'changed_name', subject.name
-    end
-    should "yield the config with #configure" do
-      yielded = nil
-      subject.configure{ yielded = self }
-      assert_equal subject.config.host, yielded.host
-
-      yielded = nil
-      subject.configure{|c| yielded = c }
-      assert_equal subject.config.port, yielded.port
+    should "raise a custom exception" do
+      assert_raises(Sanford::InvalidHost) do
+        @host_class.new
+      end
     end
   end
 

@@ -1,11 +1,8 @@
-# The Manager class is responsible for managing sanford's server process. It
-# uses the daemons gem to do this. Given a host and optional process name,
-# the manager can start or stop the host. Daemons' `run_proc` method is used
-# along with the action (start, stop, run, restart) to provide this
-# functionality. The Manager's provides a class method `call` for convenience,
-# primarily used by the rake tasks. They allow passing a host name which will
-# look up a host from it (see Sanford::Hosts). The host is then used to
-# create an instance of a Manager, then the action is called on the manager.
+# The Manager class is responsible for managing sanford's server process. Given
+# a host, it can start and stop the host's server process. This is done using
+# the Daemons gem and `run_proc`. The class provides a convenience method on the
+# class called `call`, which will find a host, build a new manager and call the
+# relevant action (this is what the rake tasks use).
 #
 require 'daemons'
 
@@ -17,10 +14,15 @@ module Sanford
   class Manager
     attr_reader :host, :process_name
 
-    def self.call(host_name, action)
-      host = host_name ? Sanford::Hosts.find(host_name) : Sanford::Hosts.first
-      raise(Sanford::NoServiceHost.new(host_name)) if !host
-      self.new(host).call(action)
+    def self.call(action, options = nil)
+      options ||= {}
+      registered_name = options.delete(:name) || ENV['SANFORD_NAME']
+      options[:hostname] ||= ENV['SANFORD_HOSTNAME']
+      options[:port] ||= ENV['SANFORD_PORT']
+
+      host_class = registered_name ? Sanford::Hosts.find(registered_name) : Sanford::Hosts.first
+      raise(Sanford::NoHost.new(registered_name)) if !host_class
+      self.new(host_class, options).call(action)
     end
 
     def self.load_configuration
@@ -31,9 +33,9 @@ module Sanford
       end
     end
 
-    def initialize(host)
-      @host = host
-      @process_name = host.name
+    def initialize(host_class, options = {})
+      @host = host_class.new(options)
+      @process_name = [ self.host.hostname, self.host.port, self.host.name ].join('_')
     end
 
     def call(action)
@@ -49,7 +51,7 @@ module Sanford
 
     def default_options
       { :dir_mode   => :normal,
-        :dir        => self.host.config.pid_dir
+        :dir        => self.host.pid_dir
       }
     end
 

@@ -31,14 +31,14 @@ class Sanford::Hosts
     should have_instance_methods :set, :add, :find, :first
 
     should "register a host with #add" do
-      dummy_host = FakeHost.new({ :name => 'dummy_host' })
+      dummy_host = OpenStruct.new({ :name => 'dummy_host' })
       subject.add(dummy_host)
 
       assert_includes dummy_host, subject.set
     end
 
     should "return the first service host and it's registeterd name with #first" do
-      dummy_host = FakeHost.new({ :name => 'dummy_host' })
+      dummy_host = OpenStruct.new({ :name => 'dummy_host' })
 
       assert_nil subject.first
 
@@ -48,7 +48,7 @@ class Sanford::Hosts
     end
 
     should "return the matching service host and it's registeterd name with #find" do
-      dummy_host = FakeHost.new({ :name => 'dummy_host' })
+      dummy_host = OpenStruct.new({ :name => 'dummy_host' })
       subject.add(dummy_host)
 
       assert_equal dummy_host, subject.find('dummy_host')
