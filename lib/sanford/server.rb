@@ -1,9 +1,12 @@
 # TODO - this is not in a done state by any stretch is just a quick implementation
 # to get something working.
-require 'bson'
 require 'threaded_server'
 
+require 'sanford/request'
+require 'sanford/response'
+
 module Sanford
+
 
   class Server < ThreadedServer
     attr_reader :service_host
@@ -21,25 +24,24 @@ module Sanford
     end
 
     def serve(client_socket)
-      # TODO - this will change as I modify the protocol
-      serialized_size = client_socket.read(4)
-      size = serialized_size.unpack('N').first
-      serialized_request = client_socket.read(size)
-      request = BSON.deserialize(serialized_request)
+      serialized_size = client_socket.read(Sanford::Message.number_size_bytes)
+      request_size = Sanford::Request.deserialize_size(serialized_size)
+      serialized_version = client_socket.read(Sanford::Message.number_version_bytes)
+      serialized_request = client_socket.read(request_size)
+      request = Sanford::Request.parse(serialized_request)
       # TODO - this will change when we configure services
-      path, data = [*request].first
-      response_data = case(path)
+      params = request.params.first
+      data = case(request.service_name)
         when 'v1/simple'
           { :string => 'test', :int => 1, :float => 2.1, :boolean => true,
             :hash => { :something => 'else' }, :array => [ 1, 2, 3 ],
-            :request_number => data['request_number']
+            :request_number => params['request_number']
           }
       end
-      response = { :body => response_data }
-      # TODO - this will change as I modify the protocol
-      serialized_response = BSON.serialize(response)
-      serialized_size = [ serialized_response.size ].pack('N')
-      client_socket.write(serialized_size + serialized_response.to_s)
+      status = Sanford::Response::Status.new(Sanford::Response::SUCCESS)
+      # end TODO
+      response = Sanford::Response.new(status, data)
+      client_socket.write(response.serialize)
     end
 
   end

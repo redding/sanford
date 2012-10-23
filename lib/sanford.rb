@@ -2,6 +2,8 @@ require 'sanford/config'
 require 'sanford/manager'
 require 'sanford/host'
 require 'sanford/hosts'
+require 'sanford/request'
+require 'sanford/response'
 require 'sanford/version'
 
 module Sanford

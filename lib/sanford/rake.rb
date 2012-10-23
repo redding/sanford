@@ -28,7 +28,6 @@ module Sanford::Rake
 
         desc "Run a Sanford server (not daemonized)"
         task :run, [ :name, :port, :hostname ]  => :load_manager do |t, args|
-          puts args.inspect
           Sanford::Manager.call(:run, args)
         end
 

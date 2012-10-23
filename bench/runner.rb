@@ -70,6 +70,7 @@ module Bench
           response = client.call(path, params)
         rescue Exception => exception
           puts "FAILED -> #{exception.class}: #{exception.message}"
+          puts exception.backtrace.join("\n")
         end
       end
     end
