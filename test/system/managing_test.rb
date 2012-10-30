@@ -17,8 +17,8 @@ class ManagingTest < Assert::Context
   class CallTest < ManagingTest
     desc "to run a service host"
     setup do
-      @host = FakeHost
-      Sanford::Hosts.add(@host)
+      @host = DummyHost
+      Sanford.config.hosts.add(@host)
       options = {
         :ARGV     => [ 'run' ],
         :dir      => @host.config.pid_dir,
@@ -33,7 +33,7 @@ class ManagingTest < Assert::Context
 
     should "find a service host, build a manager and call the action on it" do
       assert_nothing_raised do
-        Sanford::Manager.call(:run, :name => 'FakeHost', :port => 12345)
+        Sanford::Manager.call(:run, :name => 'DummyHost', :port => 12345)
         Mocha::Mockery.instance.verify
       end
     end
@@ -41,6 +41,10 @@ class ManagingTest < Assert::Context
 
   class BadHostTest < ManagingTest
     desc "with a bad host name"
+    setup do
+      Sanford.config.hosts.clear
+      Sanford.config.hosts.add(Class.new)
+    end
 
     should "raise an exception when a service host can't be found" do
       assert_raises(Sanford::NoHost) do
@@ -52,7 +56,7 @@ class ManagingTest < Assert::Context
   class NoHostsTest < ManagingTest
     desc "with no hosts"
     setup do
-      Sanford::Hosts.clear
+      Sanford.config.hosts.clear
     end
 
     should "raise an exception when there aren't any service hosts" do

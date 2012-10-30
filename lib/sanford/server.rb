@@ -1,22 +1,23 @@
-# TODO - this is not in a done state by any stretch is just a quick implementation
-# to get something working.
-require 'threaded_server'
+# Sanford's server uses DatTCP for a TCP Server. When a client connects, the
+# `serve` method is called. Sanford creates a new instance of a connection
+# handler and hands it the service host and client socket. This is because the
+# `serve` method can be accessed by multiple threads, so we essentially create a
+# new connection handler per thread.
+#
+require 'dat-tcp'
 
-require 'sanford/request'
-require 'sanford/response'
+require 'sanford/server/connection_handler'
 
 module Sanford
 
+  class Server
+    include DatTCP::Server
 
-  class Server < ThreadedServer
     attr_reader :service_host
 
-    def initialize(service_host)
+    def initialize(service_host, options = {})
       @service_host = service_host
-      super(self.service_host.hostname, self.service_host.port, {
-        :logging => !!self.service_host.logging,
-        :logger  => self.service_host.logger
-      })
+      super(self.service_host.hostname, self.service_host.port, options)
     end
 
     def name
@@ -24,24 +25,8 @@ module Sanford
     end
 
     def serve(client_socket)
-      serialized_size = client_socket.read(Sanford::Message.number_size_bytes)
-      request_size = Sanford::Request.deserialize_size(serialized_size)
-      serialized_version = client_socket.read(Sanford::Message.number_version_bytes)
-      serialized_request = client_socket.read(request_size)
-      request = Sanford::Request.parse(serialized_request)
-      # TODO - this will change when we configure services
-      params = request.params.first
-      data = case(request.service_name)
-        when 'v1/simple'
-          { :string => 'test', :int => 1, :float => 2.1, :boolean => true,
-            :hash => { :something => 'else' }, :array => [ 1, 2, 3 ],
-            :request_number => params['request_number']
-          }
-      end
-      status = Sanford::Response::Status.new(Sanford::Response::SUCCESS)
-      # end TODO
-      response = Sanford::Response.new(status, data)
-      client_socket.write(response.serialize)
+      handler = Sanford::Server::ConnectionHandler.new(self.service_host, client_socket)
+      client_socket.write(handler.serialized_response)
     end
 
   end

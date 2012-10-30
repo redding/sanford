@@ -1,30 +1,24 @@
 # Sanford's Host mixin is used to define service hosts. When mixed into a class
-# it provides the interface for defnining the service host. A service host can
-# be given a name and has a number of options that can be set using it's
-# `configure` method. These options modify how to connect to the service host
-# (hostname and port) and how the service host process runs (pid_dir and
-# logging).
-#
-# TODO - incomplete until service interface is added
+# it provides the interface for configuring the service host and for adding
+# versioned services. It also contains the logic for routing a request to a
+# a service handler.
 #
 # Options:
 # * `hostname`  - The string for the hostname that the TCP Server should bind
-#                 to. This defaults to '127.0.0.1'.
+#                 to. This defaults to '0.0.0.0'.
 # * `port`      - The integer for the port that the TCP Server should bind to.
 #                 This isn't defaulted and must be provided.
 # * `pid_dir`   - The directory to write the PID file to. This is defaulted to
 #                 Dir.pwd.
-# * `logging`   - Boolean for whether or not the Sanford server should log.
-#                 Defaults to true.
 # * `logger`    - The logger to use if the Sanford server logs messages. This is
 #                 defaulted to an instance of Ruby's Logger.
 #
-require 'singleton'
 require 'logger'
 require 'ns-options'
 require 'pathname'
 
-require 'sanford/hosts'
+require 'sanford/config'
+require 'sanford/service_handler'
 
 module Sanford
 
@@ -40,14 +34,15 @@ module Sanford
         extend Sanford::Host::ClassMethods
 
         options :config do
-          option :hostname, String,   :default => '127.0.0.1'
+          option :hostname, String,   :default => '0.0.0.0'
           option :port,     Integer
           option :pid_dir,  Pathname, :default => Dir.pwd
-          option :logging,            :default => true
           option :logger,             :default => nil
+
+          option :versioned_services, Hash, :default => {}
         end
       end
-      Sanford::Hosts.add(host_class)
+      Sanford.config.hosts.add(host_class)
     end
 
     attr_reader :name
@@ -64,12 +59,31 @@ module Sanford
       raise(Sanford::InvalidHost.new(self.class)) if !self.port
     end
 
-    def method_missing(method, *args, &block)
-      self.config.send(method, *args, &block)
+    [ :hostname, :port, :pid_dir, :logger ].each do |name|
+
+      define_method(name) do
+        self.config.send(name)
+      end
+
     end
 
-    def respond_to?(method)
-      super || self.config.respond_to?(method)
+    # Notes:
+    # * We catch :halt here so that the service handler helper method `halt` can
+    #   throw it and have the code jump here. If the `halt` method isn't used,
+    #   the block wraps the return value of the handler's `run` method to be the
+    #   expected [ status, result ] format.
+    def route(request)
+      services = self.config.versioned_services[request.service_version] || {}
+      handler_class_name = services[request.service_name]
+      raise Sanford::NotFound if !handler_class_name
+      handler_class = Sanford::ServiceHandler.constantize(handler_class_name)
+      raise Sanford::NoHandlerClass.new(self, handler_class_name) if !handler_class
+      handler = handler_class.new(self.logger, request)
+      catch(:halt) do
+        handler.init
+        returned_value = handler.run
+        [ :success, returned_value ]
+      end
     end
 
     protected
@@ -90,6 +104,30 @@ module Sanford
       def name(value = nil)
         @name = value if value
         @name || self.to_s
+      end
+
+      def version(name, &block)
+        version_group = Sanford::Host::VersionGroup.new(name, &block)
+        self.config.versioned_services.merge!(version_group.to_hash)
+      end
+
+    end
+
+    class VersionGroup
+      attr_reader :name, :services
+
+      def initialize(name, &definition_block)
+        @name = name
+        @services = {}
+        self.instance_eval(&definition_block)
+      end
+
+      def service(service_name, handler_class_name)
+        @services[service_name] = handler_class_name
+      end
+
+      def to_hash
+        { self.name => self.services }
       end
 
     end

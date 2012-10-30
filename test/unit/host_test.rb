@@ -20,15 +20,17 @@ module Sanford::Host
     end
     subject{ @host }
 
-    should have_instance_methods :name, :config
+    should have_instance_methods :name, :config, :route
 
     should "set name to it's class #name" do
       assert_equal subject.class.name, subject.name
     end
+
     should "proxy missing methods to it's config" do
       assert_equal subject.config.port, subject.port
       assert subject.respond_to?(:pid_dir)
     end
+
     should "default it's configuration from the class and overwrite with values passed to new" do
       assert_equal 'anonymous.local', subject.config.host
       assert_equal 12345, subject.config.port
@@ -42,17 +44,17 @@ module Sanford::Host
     end
     subject{ @config }
 
-    should have_instance_methods :hostname, :port, :pid_dir, :logging, :logger
+    should have_instance_methods :hostname, :port, :pid_dir, :logger
   end
 
   class ClassMethodsTest < BaseTest
     desc "class methods"
     subject{ @host_class }
 
-    should have_instance_methods :name, :config, :configure
+    should have_instance_methods :name, :config, :configure, :version
 
     should "have registered the class with sanford's known hosts" do
-      assert_includes subject, Sanford::Hosts.set
+      assert_includes subject, Sanford.config.hosts
     end
   end
 
@@ -68,6 +70,93 @@ module Sanford::Host
     should "raise a custom exception" do
       assert_raises(Sanford::InvalidHost) do
         @host_class.new
+      end
+    end
+  end
+
+  class VersionTest < BaseTest
+    desc "version class method"
+    setup do
+      @host_class.version('v1'){ }
+    end
+
+    should "have added a version hash to the versioned_services config" do
+      assert_equal({}, @host_class.config.versioned_services["v1"])
+    end
+  end
+
+  class RouteTest < BaseTest
+    desc "route method"
+    setup do
+      @host_class.version('v1') do
+        service 'test', 'DummyHost::Multiply'
+      end
+      @host = @host_class.new({ :port => 12000 })
+      @request = Sanford::Request.new('test', 'v1', { 'number' => 2 })
+      @returned = @host.route(@request)
+    end
+    subject{ @returned }
+
+    should "have returned the result of calling the `init` and `run` method of the handler" do
+      expected_status_name = :success
+      expected_result = 2 * @request.params['number']
+
+      assert_equal expected_status_name, subject.first
+      assert_equal expected_result, subject.last
+    end
+  end
+
+  class RouteThrowAndCatchTest < BaseTest
+    desc "route method with a handler that throws :halt"
+    setup do
+      @host_class.version('v1') do
+        service 'test', 'DummyHost::ThrowHalt'
+      end
+      @host = @host_class.new({ :port => 12000 })
+      @request = Sanford::Request.new('test', 'v1', { 'throw' => [ 654, 'check it' ] })
+      @returned = @host.route(@request)
+    end
+    subject{ @returned }
+
+    should "have returned whatever was halted in the service handler" do
+      expected_status_name = @request.params['throw'].first
+      expected_result = @request.params['throw'].last
+
+      assert_equal expected_status_name, subject.first
+      assert_equal expected_result, subject.last
+    end
+  end
+
+  class RouteNotFoundTest < BaseTest
+    desc "route method with a service and no matching service handler"
+    setup do
+      @host_class.version('v1') do
+        service 'test', 'DummyHost::Echo'
+      end
+      @host = @host_class.new({ :port => 12000 })
+      @request = Sanford::Request.new('what', 'v4', 'test')
+    end
+
+    should "raise a Sanford::NotFound exception" do
+      assert_raises(Sanford::NotFound) do
+        @host.route(@request)
+      end
+    end
+  end
+
+  class RouteNoHandlerClassTest < BaseTest
+    desc "route method with a service handler that doesn't exist"
+    setup do
+      @host_class.version('v1') do
+        service 'test', 'DoesntExist::AtAll'
+      end
+      @host = @host_class.new({ :port => 12000 })
+      @request = Sanford::Request.new('test', 'v1', 'test')
+    end
+
+    should "raise a Sanford::NoHandlerClass exception" do
+      assert_raises(Sanford::NoHandlerClass) do
+        @host.route(@request)
       end
     end
   end

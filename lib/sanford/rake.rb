@@ -8,7 +8,7 @@ module Sanford::Rake
 
         task :load_manager do
           require 'sanford'
-          Sanford::Manager.load_configuration
+          Sanford.init
         end
 
         desc "Start a Sanford server and daemonize the process"

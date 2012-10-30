@@ -12,11 +12,21 @@ module Sanford
     # Status Codes
     SUCCESS       = 200
     BAD_REQUEST   = 400
-    UNAUTHORIZED  = 401
     NOT_FOUND     = 404
     ERROR         = 500
 
-    Status = Struct.new(:code, :message)
+    class Status < Struct.new(:code, :message)
+
+      def initialize(code, message = nil)
+        number = code.kind_of?(Symbol) ? Sanford::Response.const_get(code.to_s.upcase) : code.to_i
+        super(number, message)
+      end
+
+      def to_s
+        [ self.code.to_s, (": #{self.message.inspect}" if self.message) ].join
+      end
+
+    end
 
     def self.parse(serialized_body)
       body = super(serialized_body)
@@ -41,7 +51,7 @@ module Sanford
       elsif status.kind_of?(Sanford::Response::Status)
         status
       else
-        Sanford::Response::Status.new(status.to_i, "")
+        Sanford::Response::Status.new(status)
       end
     end
 

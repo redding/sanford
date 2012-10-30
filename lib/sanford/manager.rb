@@ -6,7 +6,7 @@
 #
 require 'daemons'
 
-require 'sanford/hosts'
+require 'sanford/config'
 require 'sanford/server'
 
 module Sanford
@@ -20,17 +20,13 @@ module Sanford
       options[:hostname] ||= ENV['SANFORD_HOSTNAME']
       options[:port] ||= ENV['SANFORD_PORT']
 
-      host_class = registered_name ? Sanford::Hosts.find(registered_name) : Sanford::Hosts.first
+      host_class = if registered_name
+        Sanford.config.find_host(registered_name)
+      else
+        Sanford.config.hosts.first
+      end
       raise(Sanford::NoHost.new(registered_name)) if !host_class
       self.new(host_class, options).call(action)
-    end
-
-    def self.load_configuration
-      begin
-        require Sanford::Config.services_config
-      rescue LoadError
-        raise(Sanford::NoServicesConfigFile.new)
-      end
     end
 
     def initialize(host_class, options = {})

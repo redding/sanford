@@ -11,7 +11,7 @@ module Bench
     HOST_AND_PORT = [ '127.0.0.1', 12000 ]
 
     REQUESTS = [
-      [ 'v1/simple', {}, 10000 ],
+      [ 'simple', 'v1', {}, 10000 ],
       # [ 'v1/memory_check', {}, 10000 ] # TODO - check the server's memory with whysoslow
                                          # probably need a special method to collect the info
                                          # from the server, need to be able to configure
@@ -20,28 +20,30 @@ module Bench
 
     TIME_MODIFIER = 10 ** 4 # 4 decimal places
 
+    def initialize(options = {})
+      options[:output] ||= File.expand_path("../report.txt", __FILE__)
+
+      @file = File.open(options[:output], "w")
+    end
+
     def build_report
-      @file = File.open(File.expand_path("../report.txt", __FILE__), "w")
       output "Running benchmark report..."
 
-      REQUESTS.each do |path, params, times|
-        self.benchmark_service(path, params, times)
+      REQUESTS.each do |name, version, params, times|
+        self.benchmark_service(name, version, params, times, false)
       end
 
       output "Done running benchmark report"
-      @file.close
     end
 
-    def benchmark_service(path, params, times)
+    def benchmark_service(name, version, params, times, show_result = false)
       benchmarks = []
 
-      output "\nHitting #{path.inspect} service with #{params.inspect}, #{times} times"
+      output "\nHitting #{name.inspect} service with #{params.inspect}, #{times} times"
       [*(1..times)].each do |index|
-        benchmark = self.hit_service(path, params.merge({ :request_number => index }))
+        benchmark = self.hit_service(name, version, params.merge({ :request_number => index }), show_result)
         benchmarks << self.round_time(benchmark.real * 1000.to_f)
-        if ((index - 1) % 100 == 0)
-          output('.', false)
-        end
+        output('.', false) if ((index - 1) % 100 == 0) && !show_result
       end
       output("\n", false)
 
@@ -63,11 +65,16 @@ module Bench
 
     protected
 
-    def hit_service(path, params)
+    def hit_service(name, version, params, show_result)
       Benchmark.measure do
         begin
           client = Bench::Client.new(*HOST_AND_PORT)
-          response = client.call(path, params)
+          response = client.call(name, version, params)
+          if show_result
+            output "Got a response:"
+            output "  #{response.status}"
+            output "  #{response.result.inspect}"
+          end
         rescue Exception => exception
           puts "FAILED -> #{exception.class}: #{exception.message}"
           puts exception.backtrace.join("\n")
