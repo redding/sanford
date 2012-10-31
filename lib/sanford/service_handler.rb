@@ -1,9 +1,11 @@
+require 'sanford/response'
+
 module Sanford
 
   module ServiceHandler
 
     def self.constantize(class_name)
-      names = class_name.to_s.split('::')
+      names = class_name.to_s.split('::').reject{|name| name.empty? }
       klass = names.inject(Object) do |constant, name|
         constant.const_get(name)
       end
@@ -27,10 +29,23 @@ module Sanford
     end
 
     def run
-      # logging
-      # benchmarking
-      # timeout
-      self.run!
+      catch(:halt) do
+        self.init
+        returned_value = self.run!
+        [ :success, returned_value ]
+      end
+    end
+
+    def run!
+      raise NotImplementedError
+    end
+
+    protected
+
+    def halt(status, options = nil)
+      options ||= {}
+      status = Sanford::Response::Status.new(status, options[:message])
+      throw(:halt, [ status, options[:result] ])
     end
 
   end

@@ -18,7 +18,9 @@ require 'ns-options'
 require 'pathname'
 
 require 'sanford/config'
+require 'sanford/exceptions'
 require 'sanford/service_handler'
+require 'sanford/utilities'
 
 module Sanford
 
@@ -37,7 +39,7 @@ module Sanford
           option :hostname, String,   :default => '0.0.0.0'
           option :port,     Integer
           option :pid_dir,  Pathname, :default => Dir.pwd
-          option :logger,             :default => nil
+          option :logger,             :default => proc{ Sanford::NullLogger.new }
 
           option :versioned_services, Hash, :default => {}
         end
@@ -56,7 +58,7 @@ module Sanford
       config_options = self.class.config.to_hash.merge(options)
       @name = self.class.name
       self.config.apply(config_options)
-      raise(Sanford::InvalidHost.new(self.class)) if !self.port
+      raise(Sanford::InvalidHostError.new(self.class)) if !self.port
     end
 
     [ :hostname, :port, :pid_dir, :logger ].each do |name|
@@ -75,15 +77,12 @@ module Sanford
     def route(request)
       services = self.config.versioned_services[request.service_version] || {}
       handler_class_name = services[request.service_name]
-      raise Sanford::NotFound if !handler_class_name
+      raise Sanford::NotFoundError if !handler_class_name
+      self.logger.info("  Handler: #{handler_class_name.inspect}")
       handler_class = Sanford::ServiceHandler.constantize(handler_class_name)
-      raise Sanford::NoHandlerClass.new(self, handler_class_name) if !handler_class
+      raise Sanford::NoHandlerClassError.new(self, handler_class_name) if !handler_class
       handler = handler_class.new(self.logger, request)
-      catch(:halt) do
-        handler.init
-        returned_value = handler.run
-        [ :success, returned_value ]
-      end
+      handler.run
     end
 
     protected
@@ -122,7 +121,15 @@ module Sanford
         self.instance_eval(&definition_block)
       end
 
+      def service_handler_ns(value = nil)
+        @service_handler_ns = value if value
+        @service_handler_ns
+      end
+
       def service(service_name, handler_class_name)
+        if self.service_handler_ns && !(handler_class_name =~ /^::/)
+          handler_class_name = "#{self.service_handler_ns}::#{handler_class_name}"
+        end
         @services[service_name] = handler_class_name
       end
 

@@ -68,7 +68,7 @@ module Sanford::Host
     end
 
     should "raise a custom exception" do
-      assert_raises(Sanford::InvalidHost) do
+      assert_raises(Sanford::InvalidHostError) do
         @host_class.new
       end
     end
@@ -106,27 +106,6 @@ module Sanford::Host
     end
   end
 
-  class RouteThrowAndCatchTest < BaseTest
-    desc "route method with a handler that throws :halt"
-    setup do
-      @host_class.version('v1') do
-        service 'test', 'DummyHost::ThrowHalt'
-      end
-      @host = @host_class.new({ :port => 12000 })
-      @request = Sanford::Request.new('test', 'v1', { 'throw' => [ 654, 'check it' ] })
-      @returned = @host.route(@request)
-    end
-    subject{ @returned }
-
-    should "have returned whatever was halted in the service handler" do
-      expected_status_name = @request.params['throw'].first
-      expected_result = @request.params['throw'].last
-
-      assert_equal expected_status_name, subject.first
-      assert_equal expected_result, subject.last
-    end
-  end
-
   class RouteNotFoundTest < BaseTest
     desc "route method with a service and no matching service handler"
     setup do
@@ -138,7 +117,7 @@ module Sanford::Host
     end
 
     should "raise a Sanford::NotFound exception" do
-      assert_raises(Sanford::NotFound) do
+      assert_raises(Sanford::NotFoundError) do
         @host.route(@request)
       end
     end
@@ -155,7 +134,7 @@ module Sanford::Host
     end
 
     should "raise a Sanford::NoHandlerClass exception" do
-      assert_raises(Sanford::NoHandlerClass) do
+      assert_raises(Sanford::NoHandlerClassError) do
         @host.route(@request)
       end
     end

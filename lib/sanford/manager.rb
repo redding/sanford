@@ -7,6 +7,7 @@
 require 'daemons'
 
 require 'sanford/config'
+require 'sanford/exceptions'
 require 'sanford/server'
 
 module Sanford
@@ -25,7 +26,7 @@ module Sanford
       else
         Sanford.config.hosts.first
       end
-      raise(Sanford::NoHost.new(registered_name)) if !host_class
+      raise(Sanford::NoHostError.new(registered_name)) if !host_class
       self.new(host_class, options).call(action)
     end
 
@@ -36,6 +37,7 @@ module Sanford
 
     def call(action)
       options = self.default_options.merge({ :ARGV => [ action.to_s ] })
+      FileUtils.mkdir_p(options[:dir])
       ::Daemons.run_proc(self.process_name, options) do
         server = Sanford::Server.new(self.host)
         server.start

@@ -9,6 +9,9 @@
 #   The server creates a new instance of this class per connection, which means
 #   there is a separate connection handler per thread.
 #
+require 'benchmark'
+
+require 'sanford/exceptions'
 require 'sanford/request'
 require 'sanford/response'
 require 'sanford/server/exception_handler'
@@ -24,18 +27,30 @@ class Sanford::Server
       @client_socket = client_socket
       @logger = self.service_host.logger
 
-      begin
-        @request = self.parse_request
-        status, result = self.service_host.route(self.request)
-        @response = self.build_response(status, result)
-      rescue Exception => exception
-        handler = Sanford::Server::ExceptionHandler.new(exception)
-        @response = handler.response
-      end
+      self.process_connection
       @serialized_response = @response.serialize
     end
 
     protected
+
+    def process_connection
+      self.logger.info("Received request")
+      benchmark = Benchmark.measure do
+        begin
+          @request = self.parse_request
+          self.logger.info("  Service: #{@request.service_name.inspect}")
+          self.logger.info("  Version: #{@request.service_version.inspect}")
+          self.logger.info("  Parameters: #{@request.params.inspect}")
+          status, result = self.service_host.route(self.request)
+          @response = self.build_response(status, result)
+        rescue Exception => exception
+          handler = Sanford::Server::ExceptionHandler.new(exception, self.logger)
+          @response = handler.call
+        end
+      end
+      time_taken = self.round_time(benchmark.real)
+      self.logger.info("Completed in #{time_taken}ms #{self.response.status}\n")
+    end
 
     def parse_request
       size = self.parse_request_size
@@ -54,7 +69,7 @@ class Sanford::Server
       serialized_size = self.client_socket.read(Sanford::Request.number_size_bytes)
       Sanford::Request.deserialize_size(serialized_size)
     rescue Exception
-      raise Sanford::BadRequest, "The size couldn't be parsed."
+      raise Sanford::BadRequestError, "The size couldn't be parsed."
     end
 
     def parse_request_protocol_version
@@ -68,14 +83,14 @@ class Sanford::Server
       else
         "The protocol version couldn't be parsed."
       end
-      raise Sanford::BadRequest, message
+      raise Sanford::BadRequestError, message
     end
 
     def parse_request_body(size)
       serialized_request = self.client_socket.read(size)
       Sanford::Request.parse(serialized_request)
     rescue Exception
-      raise Sanford::BadRequest, "The request body couldn't be parsed."
+      raise Sanford::BadRequestError, "The request body couldn't be parsed."
     end
 
     def validate_request(request)
@@ -85,7 +100,11 @@ class Sanford::Server
         raise "The request doesn't contain a service version."
       end
     rescue Exception => exception
-      raise Sanford::BadRequest, exception.message
+      raise Sanford::BadRequestError, exception.message
+    end
+
+    def round_time(time_in_seconds)
+      ((time_in_seconds * 1000.to_f) + 0.5).to_i
     end
 
   end

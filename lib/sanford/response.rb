@@ -9,21 +9,26 @@ module Sanford
 
   class Response < Sanford::Message
 
-    # Status Codes
-    SUCCESS       = 200
-    BAD_REQUEST   = 400
-    NOT_FOUND     = 404
-    ERROR         = 500
-
     class Status < Struct.new(:code, :message)
 
+      CODES = {
+        :success      => 200,
+        :bad_request  => 400,
+        :not_found    => 404,
+        :error        => 500
+      }.freeze
+
       def initialize(code, message = nil)
-        number = code.kind_of?(Symbol) ? Sanford::Response.const_get(code.to_s.upcase) : code.to_i
+        number = CODES[code.to_sym] || code.to_i
         super(number, message)
       end
 
+      def name
+        CODES.index(self.code).to_s.upcase
+      end
+
       def to_s
-        [ self.code.to_s, (": #{self.message.inspect}" if self.message) ].join
+        "[#{[ self.code, self.name ].compact.join(', ')}]"
       end
 
     end

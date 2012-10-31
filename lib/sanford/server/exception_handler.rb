@@ -2,24 +2,32 @@
 # response. For certain exceptions, Sanford will use special response codes and
 # for all others it will classify them as generic error requests.
 #
+require 'sanford/exceptions'
+
 class Sanford::Server
 
   class ExceptionHandler
-    attr_reader :exception, :response
+    attr_reader :exception, :logger
 
-    def initialize(exception)
+    def initialize(exception, logger)
       @exception = exception
+      @logger = logger
+    end
+
+    def call
+      self.logger.error("#{exception.class}: #{exception.message}")
+      self.logger.error(exception.backtrace.join("\n"))
       status = Sanford::Response::Status.new(*self.determine_code_and_message)
-      @response = Sanford::Response.new(status)
+      Sanford::Response.new(status)
     end
 
     protected
 
     def determine_code_and_message
       case(self.exception)
-      when Sanford::BadRequest
+      when Sanford::BadRequestError
         [ :bad_request, self.exception.message ]
-      when Sanford::NotFound
+      when Sanford::NotFoundError
         [ :not_found ]
       when Exception
         [ :error, "An unexpected error occurred." ]

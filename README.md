@@ -60,7 +60,9 @@ When defining services, it's typical to organize them all similarly. Sanford pro
 class MyHost
   include Sanford::Host
 
-  version 'v1', 'MyHost::Services::V1' do
+  version 'v1' do
+    service_handler_ns 'MyHost::Services::V1'
+
     service 'get_user',     'GetUser'
     service 'get_article',  'GetArticle'
     service 'get_comments', '::MyHost::Services::GetComments'
@@ -100,11 +102,11 @@ class MyHost::Services::GetUser
     user = User.find(self.request.params['user_id'])
     # the `halt` method can be used to stop processing and return a result with
     # a status code and message
-    halt :success, "OK", user.attributes
+    halt :success, :result => user.attributes
   rescue NotFoundException => e
-    halt :not_found, e.message
+    halt :not_found, :message => e.message
   rescue Exception => e
-    halt :error, e.message
+    halt :error, :message => e.message
   end
 end
 ```

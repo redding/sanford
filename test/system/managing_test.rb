@@ -24,10 +24,12 @@ class ManagingTest < Assert::Context
         :dir      => @host.config.pid_dir,
         :dir_mode => :normal
       }
+      ::FileUtils.expects(:mkdir_p).with(options[:dir])
       process_name = [ @host.config.hostname, 12345, @host.name ].join('_')
       ::Daemons.expects(:run_proc).with(process_name, options)
     end
     teardown do
+      ::FileUtils.unstub(:mkdir_p)
       ::Daemons.unstub(:run_proc)
     end
 
@@ -47,7 +49,7 @@ class ManagingTest < Assert::Context
     end
 
     should "raise an exception when a service host can't be found" do
-      assert_raises(Sanford::NoHost) do
+      assert_raises(Sanford::NoHostError) do
         Sanford::Manager.call(:run, :name => 'not_a_real_host')
       end
     end
@@ -60,7 +62,7 @@ class ManagingTest < Assert::Context
     end
 
     should "raise an exception when there aren't any service hosts" do
-      assert_raises(Sanford::NoHost) do
+      assert_raises(Sanford::NoHostError) do
         Sanford::Manager.call(:run, :name => 'doesnt_matter')
       end
     end

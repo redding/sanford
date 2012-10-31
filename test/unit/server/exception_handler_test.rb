@@ -10,16 +10,19 @@ class Sanford::Server::ExceptionHandler
         raise "test"
       rescue Exception => @exception
       end
-      @exception_handler = Sanford::Server::ExceptionHandler.new(@exception)
+      @logger = Sanford::NullLogger.new
+      @exception_handler = Sanford::Server::ExceptionHandler.new(@exception, @logger)
     end
     subject{ @exception_handler }
 
-    should have_instance_methods :exception, :response
+    should have_instance_methods :exception
 
     should "have built a 500 Sanford::Response" do
-      assert_instance_of Sanford::Response, subject.response
-      assert_equal 500, subject.response.status.code
-      assert_equal "An unexpected error occurred.", subject.response.status.message
+      response = subject.call
+
+      assert_instance_of Sanford::Response, response
+      assert_equal 500, response.status.code
+      assert_equal "An unexpected error occurred.", response.status.message
     end
   end
 
@@ -28,16 +31,18 @@ class Sanford::Server::ExceptionHandler
     setup do
       @exception = nil
       begin
-        raise Sanford::BadRequest, "test"
+        raise Sanford::BadRequestError, "test"
       rescue Exception => @exception
       end
-      @exception_handler = Sanford::Server::ExceptionHandler.new(@exception)
+      @exception_handler = Sanford::Server::ExceptionHandler.new(@exception, @logger)
     end
 
     should "have built a 400 Sanford::Response" do
-      assert_instance_of Sanford::Response, subject.response
-      assert_equal 400, subject.response.status.code
-      assert_equal "test", subject.response.status.message
+      response = subject.call
+
+      assert_instance_of Sanford::Response, response
+      assert_equal 400, response.status.code
+      assert_equal "test", response.status.message
     end
   end
 
@@ -46,16 +51,18 @@ class Sanford::Server::ExceptionHandler
     setup do
       @exception = nil
       begin
-        raise Sanford::NotFound, "test"
+        raise Sanford::NotFoundError, "test"
       rescue Exception => @exception
       end
-      @exception_handler = Sanford::Server::ExceptionHandler.new(@exception)
+      @exception_handler = Sanford::Server::ExceptionHandler.new(@exception, @logger)
     end
 
     should "have built a 404 Sanford::Response" do
-      assert_instance_of Sanford::Response, subject.response
-      assert_equal 404, subject.response.status.code
-      assert_equal nil, subject.response.status.message
+      response = subject.call
+
+      assert_instance_of Sanford::Response, response
+      assert_equal 404, response.status.code
+      assert_equal nil, response.status.message
     end
   end
 

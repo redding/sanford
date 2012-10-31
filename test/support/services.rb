@@ -17,8 +17,12 @@ class DummyHost
   end
 
   version 'v1' do
-    service 'echo', 'DummyHost::Echo'
-    service 'bad',  'DummyHost::Bad'
+    service_handler_ns 'DummyHost'
+
+    service 'echo',       'Echo'
+    service 'bad',        'Bad'
+    service 'multiply',   'Multiply'
+    service 'halt_it',    '::DummyHost::HaltIt'
   end
 
   class Echo
@@ -50,12 +54,16 @@ class DummyHost
     end
   end
 
-  class ThrowHalt
+  class HaltIt
+
     include Sanford::ServiceHandler
 
     def run!
-      throw :halt, (self.request.params['throw'] || [])
+      halt 728, {
+        :message => "I do what I want",
+        :result => [ 1, true, 'yes' ]
+      }
     end
-
   end
+
 end
