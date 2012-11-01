@@ -24,11 +24,16 @@ module Sanford
       end
 
       def name
-        CODES.index(self.code).to_s.upcase
+        key = CODES.index(self.code)
+        key.to_s.upcase if key
       end
 
       def to_s
         "[#{[ self.code, self.name ].compact.join(', ')}]"
+      end
+
+      def inspect
+        [ self.code, self.name, (self.message if !self.message.empty?) ].compact.inspect
       end
 
     end
@@ -46,6 +51,11 @@ module Sanford
         'status'  => [ self.status.code, self.status.message ],
         'result'  => self.result
       })
+    end
+
+    def inspect
+      reference = '0x0%x' % (self.object_id << 1)
+      "#<#{self.class}:#{reference} @status=#{self.status.inspect} @result=#{self.result.inspect}>"
     end
 
     protected

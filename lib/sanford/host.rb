@@ -85,6 +85,12 @@ module Sanford
       handler.run
     end
 
+    def inspect
+      reference = '0x0%x' % (self.object_id << 1)
+      "#<#{self.class}:#{reference} hostname=#{self.config.hostname.inspect} " \
+      "port=#{self.config.port.inspect}>"
+    end
+
     protected
 
     def remove_nil_values(options)

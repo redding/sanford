@@ -25,6 +25,12 @@ module Sanford
       })
     end
 
+    def inspect
+      reference = '0x0%x' % (self.object_id << 1)
+      "#<#{self.class}:#{reference} @service_name=#{self.service_name.inspect} " \
+      "@service_version=#{self.service_version.inspect} @params=#{self.params.inspect}>"
+    end
+
   end
 
 end

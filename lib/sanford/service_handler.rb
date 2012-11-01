@@ -48,6 +48,11 @@ module Sanford
       throw(:halt, [ status, options[:result] ])
     end
 
+    def inspect
+      reference = '0x0%x' % (self.object_id << 1)
+      "#<#{self.class}:#{reference} @request=#{self.request.inspect}>"
+    end
+
   end
 
 end

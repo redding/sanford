@@ -29,6 +29,11 @@ module Sanford
       client_socket.write(handler.serialized_response)
     end
 
+    def inspect
+      reference = '0x0%x' % (self.object_id << 1)
+      "#<#{self.class}:#{reference} @service_host=#{self.service_host.inspect}>"
+    end
+
   end
 
 end
