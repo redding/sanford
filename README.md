@@ -159,6 +159,21 @@ SANFORD_NAME=AnotherHost SANFORD_PORT=13001 rake sanford:start # ENV vars work a
 
 The rake tasks optionally accept 3 arguments: name, port and hostname. In addition to allowing these arguments, they will also recognize these environment variables: `SANFORD_NAME`, `SANFORD_HOSTNAME`, and `SANFORD_PORT`.
 
+### Loading An Environment
+
+Typically, a Sanford host is part of a larger application and parts of the application need to be setup or loaded when you start your Sanford server. To handle this, Sanford provides a rake task that can be overwritten:
+
+```ruby
+# In your Rakefile
+namespace :sanford do
+  task :setup do
+    require 'config/environment'
+  end
+end
+```
+
+By defining the task `sanford:setup`, this is automatically called before running any of the Sanford rake tasks. This way a Sanford server can use application code.
+
 ## Protocol
 
 Sanford converts all requests and responses into a similar binary format. Every message is made up of 3 parts: the size, the protocol version and the body.
