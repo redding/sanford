@@ -9,6 +9,7 @@ Sanford.configure do |config|
 end
 Sanford.init
 
+require 'test/support/factory'
 require 'test/support/fake_socket'
 require 'test/support/test_helper'
 

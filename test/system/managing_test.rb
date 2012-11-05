@@ -14,7 +14,7 @@ class ManagingTest < Assert::Context
     end
   end
 
-  class CallTest < ManagingTest
+  class CallTest < PreserveServiceHosts
     desc "to run a service host"
     setup do
       @host = DummyHost
@@ -41,7 +41,7 @@ class ManagingTest < Assert::Context
     end
   end
 
-  class BadHostTest < ManagingTest
+  class BadHostTest < PreserveServiceHosts
     desc "with a bad host name"
     setup do
       Sanford.config.hosts.clear
@@ -55,7 +55,7 @@ class ManagingTest < Assert::Context
     end
   end
 
-  class NoHostsTest < ManagingTest
+  class NoHostsTest < PreserveServiceHosts
     desc "with no hosts"
     setup do
       Sanford.config.hosts.clear

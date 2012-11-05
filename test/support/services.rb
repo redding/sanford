@@ -23,6 +23,7 @@ class DummyHost
     service 'bad',        'Bad'
     service 'multiply',   'Multiply'
     service 'halt_it',    '::DummyHost::HaltIt'
+    service 'authorized', 'Authorized'
   end
 
   class Echo
@@ -55,7 +56,6 @@ class DummyHost
   end
 
   class HaltIt
-
     include Sanford::ServiceHandler
 
     def run!
@@ -64,6 +64,15 @@ class DummyHost
         :result => [ 1, true, 'yes' ]
       }
     end
+  end
+
+  class Authorized
+    include Sanford::ServiceHandler
+
+    def before_run
+      halt 401, :message => "Not authorized"
+    end
+
   end
 
 end

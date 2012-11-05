@@ -7,9 +7,7 @@ module Sanford::ServiceHandler
     setup do
       @logger = Sanford::NullLogger.new
       @request = Sanford::Request.new('something', 'v1', {})
-      @handler_class = Class.new do
-        include Sanford::ServiceHandler
-      end
+      @handler_class = Factory.service_handler(:with_flags => false)
       @handler = @handler_class.new(@logger, @request)
     end
     subject{ @handler }
@@ -17,80 +15,46 @@ module Sanford::ServiceHandler
     should have_instance_methods :logger, :request, :init, :init!, :run, :run!, :halt
   end
 
-  class InitTest < BaseTest
-    desc "init method"
+  class WithMethodFlagsTest < BaseTest
     setup do
-      @handler_class.class_eval do
-        attr_reader :init_bang_been_called
-        def initialize(*passed)
-          super
-          @init_bang_been_called = false
-        end
-        def init!
-          @init_bang_been_called = true
-        end
-      end
-      @handler = @handler_class.new(@logger, @request)
-      @handler.init
-    end
-
-    should "should call the `init!` method" do
-      assert_equal true, subject.init_bang_been_called
-    end
-  end
-
-  class RunTest < BaseTest
-    desc "run method"
-    setup do
-      @handler_class.class_eval do
-        attr_reader :init_been_called, :run_bang_been_called
-        def initialize(*passed)
-          super
-          @init_been_called = false
-          @run_bang_been_called = false
-        end
-        def init
-          @init_been_called = true
-        end
-        def run!
-          @run_bang_been_called = true
-        end
-      end
+      @handler_class = Factory.service_handler(:with_flags => true)
       @handler = @handler_class.new(@logger, @request)
     end
 
-    should "run the `init` and `run!` method" do
+    should "should call the `init!` method when `init` is called" do
+      subject.init
+
+      assert_equal true, subject.init_bang_called
+    end
+    should "run the `init` and `run!` method when `run` is called" do
       subject.run
 
-      assert_equal true, subject.init_been_called
-      assert_equal true, subject.run_bang_been_called
+      assert_equal true, subject.init_called
+      assert_equal true, subject.run_bang_called
+    end
+    should "run it's callbacks when `run` is called" do
+      subject.run
+
+      assert_equal true, subject.before_run_called
+      assert_equal true, subject.after_run_called
     end
   end
 
   class RunWithThrowTest < BaseTest
-    desc "run method"
+    desc "run method that throws `:halt`"
     setup do
-      @handler_class.class_eval do
-        attr_reader :run_bang_been_called
-        def initialize(*passed)
-          super
-          @run_bang_been_called = false
-        end
+      handler_class = Factory.service_handler(:with_flags => true) do
         def init
           throw(:halt, 'halted!')
         end
-        def run!
-          @run_bang_been_called = true
-        end
       end
-      @handler = @handler_class.new(@logger, @request)
+      @handler = handler_class.new(@logger, @request)
+      @result = @handler.run
     end
 
-    should "catch `:halt` if it is thrown" do
-      result = subject.run
-
-      assert_equal 'halted!', result
-      assert_equal false, subject.run_bang_been_called
+    should "catch `:halt` and return what was thrown" do
+      assert_equal 'halted!', @result
+      assert_equal false, subject.run_bang_called
     end
   end
 
@@ -107,34 +71,143 @@ module Sanford::ServiceHandler
   class HaltTest < BaseTest
     desc "halt method"
     setup do
-      @handler_class.class_eval do
+      @handler_class = Factory.service_handler(:with_flags => false) do
         def run!
           halt *self.request.params['halt_with']
         end
       end
     end
 
-    should "make `run` return a response status and result based on what is passed" do
-      halt_with = [ :success, { :message => "Just a test" } ]
-      request = Sanford::Request.new('something', 'v1', { 'halt_with' => halt_with })
-      handler = @handler_class.new(@logger, request)
-      result = handler.run
+  end
 
-      assert_instance_of Sanford::Response::Status, result.first
-      assert_equal Sanford::Response::Status::CODES[halt_with.first], result.first.code
-      assert_equal halt_with.last[:message], result.first.message
-      assert_equal nil, result.last
+  class WithAStatusNameAndMessageTest < HaltTest
+    desc "with a status name and a message"
+    setup do
+      @halt_with = [ :success, { :message => "Just a test" } ]
+      request = Sanford::Request.new('something', 'v1', { 'halt_with' => @halt_with })
+      @handler = @handler_class.new(@logger, request)
+      @result = @handler.run
     end
-    should "return a response status and result when passed a number and a result option" do
-      halt_with = [ 648, { :result => true } ]
-      request = Sanford::Request.new('something', 'v1', { 'halt_with' => halt_with })
-      handler = @handler_class.new(@logger, request)
-      result = handler.run
 
-      assert_equal halt_with.first, result.first.code
-      assert_equal nil, result.first.message
-      assert_equal halt_with.last[:result], result.last
+    should "return a response with the status passed to halt and a nil result" do
+      assert_instance_of Sanford::Response::Status, @result.first
+      assert_equal Sanford::Response::Status::CODES[@halt_with.first], @result.first.code
+      assert_equal @halt_with.last[:message], @result.first.message
+      assert_equal nil, @result.last
     end
   end
+
+  class WithAStatusCodeAndResultTest < HaltTest
+    desc "with a status code and result"
+    setup do
+      @halt_with = [ 648, { :result => true } ]
+      request = Sanford::Request.new('something', 'v1', { 'halt_with' => @halt_with })
+      handler = @handler_class.new(@logger, request)
+      @result = handler.run
+    end
+
+    should "return a response status and result when passed a number and a result option" do
+      assert_equal @halt_with.first, @result.first.code
+      assert_equal nil, @result.first.message
+      assert_equal @halt_with.last[:result], @result.last
+    end
+  end
+
+  class BeforeRunHaltsTest < BaseTest
+    desc "if 'before_run' halts"
+    setup do
+      handler_class = Factory.service_handler(:with_flags => true) do
+        def before_run
+          super
+          halt 601, :message => "before_run halted"
+        end
+      end
+      @handler = handler_class.new(@logger, @request)
+      @result = @handler.run
+    end
+
+    should "only call 'before_run' and 'after_run'" do
+      assert_equal true,  subject.before_run_called
+      assert_equal false, subject.init_called
+      assert_equal false, subject.init_bang_called
+      assert_equal false, subject.run_bang_called
+      assert_equal true,  subject.after_run_called
+    end
+
+    should "return the 'before_run' response" do
+      assert_equal 601,                 @result.first.code
+      assert_equal "before_run halted", @result.first.message
+      assert_equal nil,                 @result.last
+    end
+  end
+
+  class AfterRunHaltsTest < BaseTest
+    desc "if 'after_run' halts"
+    setup do
+      @handler_class = Factory.service_handler(:with_flags => true) do
+        def after_run
+          super
+          halt 801, :message => "after_run halted"
+        end
+      end
+    end
+
+  end
+
+  class AndBeforeRunHaltsTest < AfterRunHaltsTest
+      desc "and 'before_run' halts"
+      setup do
+        @handler_class.class_eval do
+          def before_run
+            super
+            halt 601, :message => "before_run halted"
+          end
+        end
+        @handler = @handler_class.new(@logger, @request)
+        @result = @handler.run
+      end
+
+      should "only call 'before_run' and 'after_run'" do
+        assert_equal true,  subject.before_run_called
+        assert_equal false, subject.init_called
+        assert_equal false, subject.init_bang_called
+        assert_equal false, subject.run_bang_called
+        assert_equal true,  subject.after_run_called
+      end
+
+      should "return the 'after_run' response" do
+        assert_equal 801,                 @result.first.code
+        assert_equal "after_run halted",  @result.first.message
+        assert_equal nil,                 @result.last
+      end
+    end
+
+    class AndRunBangHaltsTest < AfterRunHaltsTest
+      desc "and 'before_run' halts"
+      setup do
+        @handler_class.class_eval do
+          def run!
+            super
+            halt 601, :message => "run! halted"
+          end
+        end
+        @handler = @handler_class.new(@logger, @request)
+        @result = @handler.run
+      end
+
+      should "call 'init!', 'run!' and the callbacks" do
+        assert_equal true,  subject.before_run_called
+        assert_equal true,  subject.init_called
+        assert_equal true,  subject.init_bang_called
+        assert_equal true,  subject.run_bang_called
+        assert_equal true,  subject.after_run_called
+      end
+
+      should "return the 'after_run' response" do
+        assert_equal 801,                 @result.first.code
+        assert_equal "after_run halted",  @result.first.message
+        assert_equal nil,                 @result.last
+      end
+    end
 
 end

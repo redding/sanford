@@ -33,7 +33,8 @@ module Sanford
       end
 
       def inspect
-        [ self.code, self.name, (self.message if !self.message.empty?) ].compact.inspect
+        msg = self.message if self.message && !self.message.empty?
+        [ self.code, self.name, msg ].compact.inspect
       end
 
     end

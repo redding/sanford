@@ -29,15 +29,30 @@ module Sanford
     end
 
     def run
-      catch(:halt) do
+      result = self.run_callback 'before_run'
+      result ||= catch(:halt) do
         self.init
         returned_value = self.run!
         [ :success, returned_value ]
       end
+      after_result = self.run_callback 'after_run'
+      (result = after_result) if after_result
+      result
     end
 
     def run!
       raise NotImplementedError
+    end
+
+    def before_run
+    end
+
+    def after_run
+    end
+
+    def inspect
+      reference = '0x0%x' % (self.object_id << 1)
+      "#<#{self.class}:#{reference} @request=#{self.request.inspect}>"
     end
 
     protected
@@ -48,9 +63,15 @@ module Sanford
       throw(:halt, [ status, options[:result] ])
     end
 
-    def inspect
-      reference = '0x0%x' % (self.object_id << 1)
-      "#<#{self.class}:#{reference} @request=#{self.request.inspect}>"
+    # Notes:
+    # * Callbacks need to catch :halt incase the halt method is called. They
+    #   also need to be sure to return nil if nothing is thrown, so that it
+    #   is not considered as a response.
+    def run_callback(name)
+      catch(:halt) do
+        self.send(name.to_s)
+        nil
+      end
     end
 
   end

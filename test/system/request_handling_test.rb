@@ -184,4 +184,22 @@ class RequestHandlingTest < Assert::Context
     end
   end
 
+  class AuthorizeRequestTest < RequestHandlingTest
+    desc "when sent a request that halts in a callback"
+    setup do
+      @fake_socket.request('authorized', 'v1', {})
+      @server.serve(@fake_socket)
+    end
+
+    should "return the response that was halted" do
+      bytes = @fake_socket.write_stream.first
+      response, size, serialized_version = parse_response(bytes)
+
+      assert_equal Sanford::Response.serialized_protocol_version, serialized_version
+      assert_equal 401, response.status.code
+      assert_equal "Not authorized", response.status.message
+      assert_equal nil, response.result
+    end
+  end
+
 end
