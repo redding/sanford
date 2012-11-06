@@ -18,6 +18,7 @@ require 'ns-options'
 require 'pathname'
 
 require 'sanford/config'
+require 'sanford/exception_handler'
 require 'sanford/exceptions'
 require 'sanford/service_handler'
 require 'sanford/utilities'
@@ -41,6 +42,7 @@ module Sanford
           option :pid_dir,  Pathname, :default => Dir.pwd
           option :logger,             :default => proc{ Sanford::NullLogger.new }
 
+          option :exception_handler,        :default => Sanford::ExceptionHandler
           option :versioned_services, Hash, :default => {}
         end
       end
@@ -61,7 +63,7 @@ module Sanford
       raise(Sanford::InvalidHostError.new(self.class)) if !self.port
     end
 
-    [ :hostname, :port, :pid_dir, :logger ].each do |name|
+    [ :hostname, :port, :pid_dir, :logger, :exception_handler ].each do |name|
 
       define_method(name) do
         self.config.send(name)

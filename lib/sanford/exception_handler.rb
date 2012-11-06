@@ -4,7 +4,7 @@
 #
 require 'sanford/exceptions'
 
-class Sanford::Server
+module Sanford
 
   class ExceptionHandler
     attr_reader :exception, :logger
@@ -14,7 +14,7 @@ class Sanford::Server
       @logger = logger
     end
 
-    def call
+    def response
       self.logger.error("#{exception.class}: #{exception.message}")
       self.logger.error(exception.backtrace.join("\n"))
       status = Sanford::Response::Status.new(*self.determine_code_and_message)

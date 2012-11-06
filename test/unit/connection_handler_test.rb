@@ -1,13 +1,13 @@
 require 'assert'
 
-class Sanford::Server::ConnectionHandler
+class Sanford::ConnectionHandler
 
   class BaseTest < Assert::Context
     desc "Sanford::Server::ConnectionHandler"
     setup do
       @fake_socket = FakeSocket.new
       @fake_socket.request('echo', 'v1', 'test')
-      @connection_handler = Sanford::Server::ConnectionHandler.new(DummyHost.new, @fake_socket)
+      @connection_handler = Sanford::ConnectionHandler.new(DummyHost.new, @fake_socket)
     end
     subject{ @connection_handler }
 
@@ -35,7 +35,7 @@ class Sanford::Server::ConnectionHandler
     setup do
       @fake_socket = FakeSocket.new
       @fake_socket.request('bad', 'v1', 'test')
-      @connection_handler = Sanford::Server::ConnectionHandler.new(DummyHost.new, @fake_socket)
+      @connection_handler = Sanford::ConnectionHandler.new(DummyHost.new, @fake_socket)
     end
 
     should "set it's response attribute to an instance of Sanford::Response" do

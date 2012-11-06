@@ -14,9 +14,8 @@ require 'benchmark'
 require 'sanford/exceptions'
 require 'sanford/request'
 require 'sanford/response'
-require 'sanford/server/exception_handler'
 
-class Sanford::Server
+module Sanford
 
   class ConnectionHandler
     attr_reader :client_socket, :service_host, :logger, :request, :response,
@@ -44,8 +43,8 @@ class Sanford::Server
           status, result = self.service_host.route(self.request)
           @response = self.build_response(status, result)
         rescue Exception => exception
-          handler = Sanford::Server::ExceptionHandler.new(exception, self.logger)
-          @response = handler.call
+          handler = self.service_host.exception_handler.new(exception, self.logger)
+          @response = handler.response
         end
       end
       time_taken = self.round_time(benchmark.real)
