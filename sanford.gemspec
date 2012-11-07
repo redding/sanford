@@ -8,8 +8,8 @@ Gem::Specification.new do |gem|
   gem.version       = Sanford::VERSION
   gem.authors       = ["Collin Redding"]
   gem.email         = ["collin.redding@me.com"]
-  gem.description   = %q{TODO: Write a gem description}
-  gem.summary       = %q{TODO: Write a gem summary}
+  gem.description   = "A framework for defining versioned service hosts."
+  gem.summary       = "A framework for defining versioned service hosts."
   gem.homepage      = ""
 
   gem.files         = `git ls-files`.split($/)

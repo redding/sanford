@@ -1,6 +1,6 @@
 # Sanford
 
-Sanford is a framework for defining versioned APIs. This is done by defining a service host and specifying the services it supports. Services are configured with a service handler class. This is built and run whenever the server receives a call to the matching service. In addition to defining services and their hosts, Sanford provides tools for starting and stopping the server as a daemon.
+Sanford is a framework for defining versioned service hosts. This is done by defining a service host and specifying the services it supports. Services are configured with a service handler class. This is built and run whenever the server receives a call to the matching service. In addition to defining services and their hosts, Sanford provides tools for starting and stopping the server as a daemon.
 
 ## Usage
 
