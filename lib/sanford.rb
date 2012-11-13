@@ -18,4 +18,13 @@ module Sanford
     require self.config.services_config
   end
 
+  class NullLogger
+    require 'logger'
+
+    Logger::Severity.constants.each do |name|
+      define_method(name.downcase){|*args| } # no-op
+    end
+
+  end
+
 end

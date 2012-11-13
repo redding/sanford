@@ -1,3 +1,5 @@
+ENV['SANFORD_PROTOCOL_DEBUG'] = 'yes'
+
 require 'ostruct'
 
 ROOT = File.expand_path('../..', __FILE__)
@@ -9,8 +11,7 @@ Sanford.configure do |config|
 end
 Sanford.init
 
-require 'test/support/factory'
-require 'test/support/fake_socket'
+require 'test/support/service_handlers'
 require 'test/support/test_helper'
 
 if defined?(Assert)

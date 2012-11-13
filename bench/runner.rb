@@ -40,7 +40,7 @@ module Bench
       benchmarks = []
 
       output "\nHitting #{name.inspect} service with #{params.inspect}, #{times} times"
-      [*(1..times)].each do |index|
+      [*(1..times.to_i)].each do |index|
         benchmark = self.hit_service(name, version, params.merge({ :request_number => index }), show_result)
         benchmarks << self.round_time(benchmark.real * 1000.to_f)
         output('.', false) if ((index - 1) % 100 == 0) && !show_result

@@ -4,69 +4,72 @@
 #
 require 'assert'
 
-require 'sanford/test/helpers'
+require 'sanford-protocol/test/helpers'
 
 class RequestHandlingTest < Assert::Context
-  include Sanford::Test::Helpers
+  include Sanford::Protocol::Test::Helpers
 
   desc "Sanford's handling of requests"
   setup do
     @service_host = DummyHost.new
     @server = Sanford::Server.new(@service_host)
-    @fake_socket = FakeSocket.new
   end
 
   # Simple service test that echos back the params sent to it
   class EchoTest < RequestHandlingTest
     desc "when hitting an echo service"
     setup do
-      @fake_socket.request('echo', 'v1', "test")
-      @server.serve(@fake_socket)
+      @socket = self.fake_socket_with_request('v1', 'echo', 'test')
+      @server.serve(@socket)
     end
 
     should "return a successful response and echo the params sent to it" do
-      bytes = @fake_socket.write_stream.first
-      response, size, serialized_version = parse_response(bytes)
+      response = self.read_response_from_fake_socket(@socket)
 
-      assert_equal Sanford::Response.serialized_protocol_version, serialized_version
       assert_equal 200, response.status.code
       assert_equal nil, response.status.message
       assert_equal 'test', response.result
     end
   end
 
+  class ErroringRequestTest < RequestHandlingTest
+    setup do
+      @env_sanford_protocol_debug = ENV['SANFORD_PROTOCOL_DEBUG']
+      ENV.delete('SANFORD_PROTOCOL_DEBUG')
+    end
+    teardown do
+      ENV['SANFORD_PROTOCOL_DEBUG'] = @env_sanford_protocol_debug
+    end
+  end
+
   # Sending the server a completely wrong stream of bytes
-  class BadMessageTest < RequestHandlingTest
+  class BadMessageTest < ErroringRequestTest
     desc "when sent a invalid request stream"
     setup do
-      @fake_socket.read_stream << "H"
-      @server.serve(@fake_socket)
+      @socket = self.fake_socket_with("H")
+      @server.serve(@socket)
     end
 
     should "return a bad request response with an error message" do
-      bytes = @fake_socket.write_stream.first
-      response, size, serialized_version = parse_response(bytes)
+      response = self.read_response_from_fake_socket(@socket)
 
-      assert_equal Sanford::Response.serialized_protocol_version, serialized_version
       assert_equal 400, response.status.code
-      assert_equal "The size couldn't be parsed.", response.status.message
+      assert_equal "The size couldn't be read.", response.status.message
       assert_equal nil, response.result
     end
   end
 
   # Sending the server a protocol version that doesn't match it's version
-  class WrongProtocolVersionTest < RequestHandlingTest
+  class WrongProtocolVersionTest < ErroringRequestTest
     desc "when sent a request with a wrong protocol version"
     setup do
-      @fake_socket.request('echo', 'v1', "test", { :protocol_version => 145 })
-      @server.serve(@fake_socket)
+      @socket = self.fake_socket_with_message({}, "\000")
+      @server.serve(@socket)
     end
 
     should "return a bad request response with an error message" do
-      bytes = @fake_socket.write_stream.first
-      response, size, serialized_version = parse_response(bytes)
+      response = self.read_response_from_fake_socket(@socket)
 
-      assert_equal Sanford::Response.serialized_protocol_version, serialized_version
       assert_equal 400, response.status.code
       assert_equal "The protocol version didn't match the servers.", response.status.message
       assert_equal nil, response.result
@@ -74,73 +77,65 @@ class RequestHandlingTest < Assert::Context
   end
 
   # Sending the server a body that it can't parse
-  class BadBodyTest < RequestHandlingTest
+  class BadBodyTest < ErroringRequestTest
     desc "when sent a request with an invalid body"
     setup do
-      @fake_socket.request({ :serialized_body => 'Hello World!' })
-      @server.serve(@fake_socket)
+      @socket = self.fake_socket_with_encoded_message("\000\001\010\011" * 2)
+      @server.serve(@socket)
     end
 
     should "return a bad request response with an error message" do
-      bytes = @fake_socket.write_stream.first
-      response, size, serialized_version = parse_response(bytes)
+      response = self.read_response_from_fake_socket(@socket)
 
-      assert_equal Sanford::Response.serialized_protocol_version, serialized_version
       assert_equal 400, response.status.code
-      assert_equal "The request body couldn't be parsed.", response.status.message
+      assert_equal "The message couldn't be read.", response.status.message
       assert_equal nil, response.result
     end
   end
 
-  class MissingServiceNameTest < RequestHandlingTest
+  class MissingServiceNameTest < ErroringRequestTest
     desc "when sent a request with no service name"
     setup do
-      @fake_socket.request(nil, 'v1', {})
-      @server.serve(@fake_socket)
+      @socket = self.fake_socket_with_request('v1', nil, {})
+      @server.serve(@socket)
     end
 
     should "return a bad request response" do
-      bytes = @fake_socket.write_stream.first
-      response, size, serialized_version = parse_response(bytes)
+      response = self.read_response_from_fake_socket(@socket)
 
-      assert_equal Sanford::Response.serialized_protocol_version, serialized_version
       assert_equal 400, response.status.code
-      assert_equal "The request doesn't contain a service name.", response.status.message
+      assert_equal "The request doesn't contain a name.", response.status.message
       assert_equal nil, response.result
     end
   end
 
-  class MissingServiceVersionTest < RequestHandlingTest
+  class MissingServiceVersionTest < ErroringRequestTest
     desc "when sent a request with no service version"
     setup do
-      @fake_socket.request('what', nil, {})
-      @server.serve(@fake_socket)
+      @socket = self.fake_socket_with_request(nil, 'what', {})
+      @server.serve(@socket)
     end
 
     should "return a bad request response" do
-      bytes = @fake_socket.write_stream.first
-      response, size, serialized_version = parse_response(bytes)
+      response = self.read_response_from_fake_socket(@socket)
 
-      assert_equal Sanford::Response.serialized_protocol_version, serialized_version
       assert_equal 400, response.status.code
-      assert_equal "The request doesn't contain a service version.", response.status.message
+      assert_equal "The request doesn't contain a version.", response.status.message
       assert_equal nil, response.result
     end
   end
 
   # Requesting a service that is not defined
-  class NotFoundServiceTest < RequestHandlingTest
+  class NotFoundServiceTest < ErroringRequestTest
     desc "when sent a request with no matching service name"
     setup do
-      @fake_socket.request('what', 'v1', {})
-      @server.serve(@fake_socket)
+      @socket = self.fake_socket_with_request('v1', 'what', {})
+      @server.serve(@socket)
     end
 
     should "return a bad request response" do
-      bytes = @fake_socket.write_stream.first
-      response, size, serialized_version = parse_response(bytes)
+      response = self.read_response_from_fake_socket(@socket)
 
-      assert_equal Sanford::Response.serialized_protocol_version, serialized_version
       assert_equal 404, response.status.code
       assert_equal nil, response.status.message
       assert_equal nil, response.result
@@ -148,18 +143,16 @@ class RequestHandlingTest < Assert::Context
   end
 
   # Hitting a service that throws an exception
-  class ErrorServiceTest < RequestHandlingTest
+  class ErrorServiceTest < ErroringRequestTest
     desc "when sent a request that errors on the server"
     setup do
-      @fake_socket.request('bad', 'v1', {})
-      @server.serve(@fake_socket)
+      @socket = self.fake_socket_with_request('v1', 'bad', {})
+      @server.serve(@socket)
     end
 
     should "return a bad request response" do
-      bytes = @fake_socket.write_stream.first
-      response, size, serialized_version = parse_response(bytes)
+      response = self.read_response_from_fake_socket(@socket)
 
-      assert_equal Sanford::Response.serialized_protocol_version, serialized_version
       assert_equal 500, response.status.code
       assert_equal "An unexpected error occurred.", response.status.message
       assert_equal nil, response.result
@@ -169,15 +162,13 @@ class RequestHandlingTest < Assert::Context
   class HaltTest < RequestHandlingTest
     desc "when sent a request that halts"
     setup do
-      @fake_socket.request('halt_it', 'v1', {})
-      @server.serve(@fake_socket)
+      @socket = self.fake_socket_with_request('v1', 'halt_it', {})
+      @server.serve(@socket)
     end
 
     should "return the response that was halted" do
-      bytes = @fake_socket.write_stream.first
-      response, size, serialized_version = parse_response(bytes)
+      response = self.read_response_from_fake_socket(@socket)
 
-      assert_equal Sanford::Response.serialized_protocol_version, serialized_version
       assert_equal 728, response.status.code
       assert_equal "I do what I want", response.status.message
       assert_equal [ 1, true, 'yes' ], response.result
@@ -187,15 +178,13 @@ class RequestHandlingTest < Assert::Context
   class AuthorizeRequestTest < RequestHandlingTest
     desc "when sent a request that halts in a callback"
     setup do
-      @fake_socket.request('authorized', 'v1', {})
-      @server.serve(@fake_socket)
+      @socket = self.fake_socket_with_request('v1', 'authorized', {})
+      @server.serve(@socket)
     end
 
     should "return the response that was halted" do
-      bytes = @fake_socket.write_stream.first
-      response, size, serialized_version = parse_response(bytes)
+      response = self.read_response_from_fake_socket(@socket)
 
-      assert_equal Sanford::Response.serialized_protocol_version, serialized_version
       assert_equal 401, response.status.code
       assert_equal "Not authorized", response.status.message
       assert_equal nil, response.result

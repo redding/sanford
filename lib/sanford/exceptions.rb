@@ -2,7 +2,6 @@ module Sanford
 
   class BaseError < RuntimeError; end
 
-  class BadRequestError < BaseError; end
   class NotFoundError < BaseError; end
 
   class NoHostError < BaseError

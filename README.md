@@ -2,6 +2,10 @@
 
 Sanford is a framework for defining versioned service hosts. This is done by defining a service host and specifying the services it supports. Services are configured with a service handler class. This is built and run whenever the server receives a call to the matching service. In addition to defining services and their hosts, Sanford provides tools for starting and stopping the server as a daemon.
 
+## Communication Protocol
+
+See the gem `sanford-protocol` for more information on the communication protocol that `Sanford` uses. This gem is a server implementation that uses the protocol.
+
 ## Usage
 
 ### Defining Hosts
@@ -173,58 +177,6 @@ end
 ```
 
 By defining the task `sanford:setup`, this is automatically called before running any of the Sanford rake tasks. This way a Sanford server can use application code.
-
-## Protocol
-
-Sanford converts all requests and responses into a similar binary format. Every message is made up of 3 parts: the size, the protocol version and the body.
-
-* **size** - (4 bytes, integer) The size of the message body in bytes. This should be read first and if it is not present or valid, the message should be rejected.
-* **protocol version** - (1 byte, integer) The version number of the protocol. This is to ensure that a client and server are communicating under the same assumptions. If this value doesn't match the server's then the message is rejected.
-* **body** - (variable bytes, BSON) The body of the message, serialized using [BSON](http://bsonspec.org/). This contains either request or response information.
-
-### Request
-
-A request is made up of 3 parts: the service name, the service version and the params.
-
-* **service name** - (string) The service that the request is calling. This is used with the service version to find a matching service handler. If one isn't found, then the request is rejected.
-* **service version** - (string) The version of the service that the request is calling. This is used with the service name to find a matching service handler. If one isn't found, then the request is rejected.
-* **params** - Parameters to call the service with. This can be any BSON serializable object.
-
-The service name, version and params are always required. A BSON request should look like:
-
-```ruby
-{ 'name':     'some_service',
-  'version':  'v1'
-  'params':   'something'
-}
-```
-
-### Response
-
-A response is made up of 2 parts: the status and the result.
-
-* **status** - (tuple) A number that determines whether the request was successful or not and a message that includes details about the status. See the "Protocol - Status Codes" section further down for a list of all the possible values.
-* **result** - Result of running the service. This can be any BSON serializable object and won't be set if the request wasn't successful.
-
-A response should always contain a status, but the result is optional. A BSON response should look like:
-
-```ruby
-{ 'status': [ 200, 'The request was successful.' ]
-  'result': true
-}
-```
-
-#### Status Codes
-
-This is the list of predefined status codes. In addition to using these, a service can return custom status codes, but they should use a number greater than or equal to 600 to avoid collisions with Sanford's defined status codes. The list contains both the integer value and the name of the status code along with a description of what each code is intended for:
-
-* `200` - `success` - The request was successful.
-* `400` - `bad_request` - The request couldn't be read. This is usually because it was not formed correctly. This can mean a number of things, check the response message for details:
-  * The message size couldn't be read or was invalid.
-  * The protocol version couldn't be read or didn't match the servers.
-  * The message body couldn't be deserialized.
-* `404` - `not_found` - The service name didn't match a configured service.
-* `500` - `error` - An error occurred when calling the service. The message attribute of the response should be used to get more details.
 
 ## Advanced
 

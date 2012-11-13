@@ -20,7 +20,7 @@ class Sanford::ExceptionHandler
     should "have built a 500 Sanford::Response" do
       response = subject.response
 
-      assert_instance_of Sanford::Response, response
+      assert_instance_of Sanford::Protocol::Response, response
       assert_equal 500, response.status.code
       assert_equal "An unexpected error occurred.", response.status.message
     end
@@ -31,7 +31,7 @@ class Sanford::ExceptionHandler
     setup do
       @exception = nil
       begin
-        raise Sanford::BadRequestError, "test"
+        raise Sanford::Protocol::BadMessageError, "test"
       rescue Exception => @exception
       end
       @exception_handler = Sanford::ExceptionHandler.new(@exception, @logger)
@@ -40,7 +40,7 @@ class Sanford::ExceptionHandler
     should "have built a 400 Sanford::Response" do
       response = subject.response
 
-      assert_instance_of Sanford::Response, response
+      assert_instance_of Sanford::Protocol::Response, response
       assert_equal 400, response.status.code
       assert_equal "test", response.status.message
     end
@@ -60,7 +60,7 @@ class Sanford::ExceptionHandler
     should "have built a 404 Sanford::Response" do
       response = subject.response
 
-      assert_instance_of Sanford::Response, response
+      assert_instance_of Sanford::Protocol::Response, response
       assert_equal 404, response.status.code
       assert_equal nil, response.status.message
     end

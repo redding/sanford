@@ -1,31 +1,26 @@
 require 'socket'
 
-require 'sanford'
+require 'sanford/io'
+require 'sanford/request'
+require 'sanford/response'
 
 module Bench
 
   class Client
 
     def initialize(host, port)
-      addr = Socket.pack_sockaddr_in(port, host)
       @host, @port = [ host, port ]
     end
 
     def call(name, version, params)
       socket = TCPSocket.open(@host, @port)
       socket.setsockopt(Socket::IPPROTO_TCP, Socket::TCP_NODELAY, true) # TODO - explain
+      io = Sanford::IO.new(socket)
       request = Sanford::Request.new(name, version, params)
-      socket.send(request.serialize, 0)
+      io.write(request.to_message)
       if IO.select([ socket ], nil, nil, 10)
-        serialized_size = socket.recvfrom(Sanford::Response.number_size_bytes).first
-        response_size = Sanford::Response.deserialize_size(serialized_size)
-        serialized_version = socket.recvfrom(Sanford::Response.number_version_bytes).first
-        if response_size
-          serialized_response = socket.recvfrom(response_size).first
-          Sanford::Response.parse(serialized_response)
-        else
-          raise "No response size!"
-        end
+        message = io.read
+        Sanford::Response.parse(message)
       else
         raise "Timed out!"
       end

@@ -1,4 +1,4 @@
-require 'sanford/response'
+require 'sanford-protocol'
 
 module Sanford
 
@@ -59,8 +59,8 @@ module Sanford
 
     def halt(status, options = nil)
       options ||= {}
-      status = Sanford::Response::Status.new(status, options[:message])
-      throw(:halt, [ status, options[:result] ])
+      response_status = [ status, options[:message] ]
+      throw(:halt, [ response_status, options[:result] ])
     end
 
     # Notes:

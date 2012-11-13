@@ -17,9 +17,9 @@ Gem::Specification.new do |gem|
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.require_paths = ["lib"]
 
-  gem.add_dependency("bson",        ["~>1.7"])
-  gem.add_dependency("daemons",     ["~>1.1"])
-  gem.add_dependency("ns-options",  ["~>0.4"])
+  gem.add_dependency("sanford-protocol",  ["~>0.0"])
+  gem.add_dependency("daemons",           ["~>1.1"])
+  gem.add_dependency("ns-options",        ["~>0.4"])
 
   gem.add_development_dependency("assert",        ["~> 0.8"])
   gem.add_development_dependency("assert-mocha",  ["~> 0.1"])

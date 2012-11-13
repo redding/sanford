@@ -21,7 +21,6 @@ require 'sanford/config'
 require 'sanford/exception_handler'
 require 'sanford/exceptions'
 require 'sanford/service_handler'
-require 'sanford/utilities'
 
 module Sanford
 
@@ -77,8 +76,8 @@ module Sanford
     #   the block wraps the return value of the handler's `run` method to be the
     #   expected [ status, result ] format.
     def route(request)
-      services = self.config.versioned_services[request.service_version] || {}
-      handler_class_name = services[request.service_name]
+      services = self.config.versioned_services[request.version] || {}
+      handler_class_name = services[request.name]
       raise Sanford::NotFoundError if !handler_class_name
       self.logger.info("  Handler: #{handler_class_name.inspect}")
       handler_class = Sanford::ServiceHandler.constantize(handler_class_name)

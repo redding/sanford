@@ -6,7 +6,7 @@
 #
 require 'dat-tcp'
 
-require 'sanford/connection_handler'
+require 'sanford/connection'
 
 module Sanford
 
@@ -24,9 +24,9 @@ module Sanford
       self.service_host.name
     end
 
-    def serve(client_socket)
-      handler = Sanford::ConnectionHandler.new(self.service_host, client_socket)
-      client_socket.write(handler.serialized_response)
+    def serve(wrapped_socket)
+      connection = Sanford::Connection.new(self.service_host, wrapped_socket.socket)
+      connection.process
     end
 
     def inspect
