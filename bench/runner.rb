@@ -11,7 +11,7 @@ module Bench
     HOST_AND_PORT = [ '127.0.0.1', 12000 ]
 
     REQUESTS = [
-      [ 'simple', 'v1', {}, 10000 ],
+      [ 'v1', 'simple', {}, 10000 ],
       # [ 'v1/memory_check', {}, 10000 ] # TODO - check the server's memory with whysoslow
                                          # probably need a special method to collect the info
                                          # from the server, need to be able to configure
@@ -29,14 +29,14 @@ module Bench
     def build_report
       output "Running benchmark report..."
 
-      REQUESTS.each do |name, version, params, times|
-        self.benchmark_service(name, version, params, times, false)
+      REQUESTS.each do |version, name, params, times|
+        self.benchmark_service(version, name, params, times, false)
       end
 
       output "Done running benchmark report"
     end
 
-    def benchmark_service(name, version, params, times, show_result = false)
+    def benchmark_service(version, name, params, times, show_result = false)
       benchmarks = []
 
       output "\nHitting #{name.inspect} service with #{params.inspect}, #{times} times"
@@ -65,7 +65,7 @@ module Bench
 
     protected
 
-    def hit_service(name, version, params, show_result)
+    def hit_service(version, name, params, show_result)
       Benchmark.measure do
         begin
           client = Bench::Client.new(*HOST_AND_PORT)

@@ -12,7 +12,7 @@ namespace :bench do
   desc "Run Benchmark requests against the 'simple' service"
   task :simple, [ :times ] => :load do |t, args|
     runner = Bench::Runner.new(:output => '/dev/null')
-    runner.benchmark_service('simple', 'v1', {}, args[:times] || 1, true)
+    runner.benchmark_service('v1', 'simple', {}, args[:times] || 1, true)
   end
 
 end
