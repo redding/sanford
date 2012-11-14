@@ -98,10 +98,10 @@ module Sanford::Host
     subject{ @returned }
 
     should "have returned the result of calling the `init` and `run` method of the handler" do
-      expected_status_name = :success
+      expected_status_code = 200
       expected_result = 2 * @request.params['number']
 
-      assert_equal expected_status_name, subject.first
+      assert_equal expected_status_code, subject.first
       assert_equal expected_result, subject.last
     end
   end

@@ -32,7 +32,7 @@ module Sanford
           self.validate!(request)
           self.log_request(request)
           status, result = self.route(request)
-          response = Sanford::Protocol::Response.new((status || :success), result)
+          response = Sanford::Protocol::Response.new(status, result)
         rescue Exception => exception
           handler = self.exception_handler.new(exception, self.logger)
           response = handler.response

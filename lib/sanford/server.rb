@@ -24,8 +24,8 @@ module Sanford
       self.service_host.name
     end
 
-    def serve(wrapped_socket)
-      connection = Sanford::Connection.new(self.service_host, wrapped_socket.socket)
+    def serve(socket)
+      connection = Sanford::Connection.new(self.service_host, socket)
       connection.process
     end
 

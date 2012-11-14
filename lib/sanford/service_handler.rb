@@ -33,7 +33,7 @@ module Sanford
       result ||= catch(:halt) do
         self.init
         returned_value = self.run!
-        [ :success, returned_value ]
+        [ 200, returned_value ]
       end
       after_result = self.run_callback 'after_run'
       (result = after_result) if after_result

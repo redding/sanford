@@ -24,11 +24,11 @@ class RequestHandlingTest < Assert::Context
     end
 
     should "return a successful response and echo the params sent to it" do
-      response = self.read_response_from_fake_socket(@socket)
+      response = self.read_written_response_from_fake_socket(@socket)
 
-      assert_equal 200, response.status.code
-      assert_equal nil, response.status.message
-      assert_equal 'test', response.result
+      assert_equal 200,     response.status.code
+      assert_equal nil,     response.status.message
+      assert_equal 'test',  response.result
     end
   end
 
@@ -46,16 +46,16 @@ class RequestHandlingTest < Assert::Context
   class BadMessageTest < ErroringRequestTest
     desc "when sent a invalid request stream"
     setup do
-      @socket = self.fake_socket_with("H")
+      @socket = self.fake_socket_with(Sanford::Protocol.msg_version, "\000")
       @server.serve(@socket)
     end
 
     should "return a bad request response with an error message" do
-      response = self.read_response_from_fake_socket(@socket)
+      response = self.read_written_response_from_fake_socket(@socket)
 
-      assert_equal 400, response.status.code
-      assert_equal "The size couldn't be read.", response.status.message
-      assert_equal nil, response.result
+      assert_equal 400,     response.status.code
+      assert_match "size",  response.status.message
+      assert_equal nil,     response.result
     end
   end
 
@@ -63,16 +63,16 @@ class RequestHandlingTest < Assert::Context
   class WrongProtocolVersionTest < ErroringRequestTest
     desc "when sent a request with a wrong protocol version"
     setup do
-      @socket = self.fake_socket_with_message({}, "\000")
+      @socket = self.fake_socket_with_msg_body({}, nil, "\000")
       @server.serve(@socket)
     end
 
     should "return a bad request response with an error message" do
-      response = self.read_response_from_fake_socket(@socket)
+      response = self.read_written_response_from_fake_socket(@socket)
 
-      assert_equal 400, response.status.code
-      assert_equal "The protocol version didn't match the servers.", response.status.message
-      assert_equal nil, response.result
+      assert_equal 400,                 response.status.code
+      assert_match "Protocol version",  response.status.message
+      assert_equal nil,                 response.result
     end
   end
 
@@ -80,16 +80,16 @@ class RequestHandlingTest < Assert::Context
   class BadBodyTest < ErroringRequestTest
     desc "when sent a request with an invalid body"
     setup do
-      @socket = self.fake_socket_with_encoded_message("\000\001\010\011" * 2)
+      @socket = self.fake_socket_with_encoded_msg_body("\000\001\010\011" * 2)
       @server.serve(@socket)
     end
 
     should "return a bad request response with an error message" do
-      response = self.read_response_from_fake_socket(@socket)
+      response = self.read_written_response_from_fake_socket(@socket)
 
-      assert_equal 400, response.status.code
-      assert_equal "The message couldn't be read.", response.status.message
-      assert_equal nil, response.result
+      assert_equal 400,     response.status.code
+      assert_match "body",  response.status.message
+      assert_equal nil,     response.result
     end
   end
 
@@ -101,11 +101,12 @@ class RequestHandlingTest < Assert::Context
     end
 
     should "return a bad request response" do
-      response = self.read_response_from_fake_socket(@socket)
+      response = self.read_written_response_from_fake_socket(@socket)
 
-      assert_equal 400, response.status.code
-      assert_equal "The request doesn't contain a name.", response.status.message
-      assert_equal nil, response.result
+      assert_equal 400,       response.status.code
+      assert_match "request", response.status.message
+      assert_match "name",    response.status.message
+      assert_equal nil,       response.result
     end
   end
 
@@ -117,11 +118,12 @@ class RequestHandlingTest < Assert::Context
     end
 
     should "return a bad request response" do
-      response = self.read_response_from_fake_socket(@socket)
+      response = self.read_written_response_from_fake_socket(@socket)
 
-      assert_equal 400, response.status.code
-      assert_equal "The request doesn't contain a version.", response.status.message
-      assert_equal nil, response.result
+      assert_equal 400,       response.status.code
+      assert_match "request", response.status.message
+      assert_match "version", response.status.message
+      assert_equal nil,       response.result
     end
   end
 
@@ -134,7 +136,7 @@ class RequestHandlingTest < Assert::Context
     end
 
     should "return a bad request response" do
-      response = self.read_response_from_fake_socket(@socket)
+      response = self.read_written_response_from_fake_socket(@socket)
 
       assert_equal 404, response.status.code
       assert_equal nil, response.status.message
@@ -151,11 +153,11 @@ class RequestHandlingTest < Assert::Context
     end
 
     should "return a bad request response" do
-      response = self.read_response_from_fake_socket(@socket)
+      response = self.read_written_response_from_fake_socket(@socket)
 
-      assert_equal 500, response.status.code
-      assert_equal "An unexpected error occurred.", response.status.message
-      assert_equal nil, response.result
+      assert_equal 500,     response.status.code
+      assert_match "error", response.status.message
+      assert_equal nil,     response.result
     end
   end
 
@@ -167,11 +169,11 @@ class RequestHandlingTest < Assert::Context
     end
 
     should "return the response that was halted" do
-      response = self.read_response_from_fake_socket(@socket)
+      response = self.read_written_response_from_fake_socket(@socket)
 
-      assert_equal 728, response.status.code
-      assert_equal "I do what I want", response.status.message
-      assert_equal [ 1, true, 'yes' ], response.result
+      assert_equal 728,                 response.status.code
+      assert_equal "I do what I want",  response.status.message
+      assert_equal [ 1, true, 'yes' ],  response.result
     end
   end
 
@@ -183,11 +185,11 @@ class RequestHandlingTest < Assert::Context
     end
 
     should "return the response that was halted" do
-      response = self.read_response_from_fake_socket(@socket)
+      response = self.read_written_response_from_fake_socket(@socket)
 
-      assert_equal 401, response.status.code
-      assert_equal "Not authorized", response.status.message
-      assert_equal nil, response.result
+      assert_equal 401,               response.status.code
+      assert_equal "Not authorized",  response.status.message
+      assert_equal nil,               response.result
     end
   end
 
