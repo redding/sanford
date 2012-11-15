@@ -1,3 +1,5 @@
+module Sanford; end
+
 require 'sanford/config'
 require 'sanford/manager'
 require 'sanford/host'

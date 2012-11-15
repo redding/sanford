@@ -1,9 +1,13 @@
-# TODO
+# Sanford's connection class is an extesion of the connection class provided by
+# Sanford-Protocol. It provides the main process of reading a request, routing
+# it and writing a response. All requests are benchmarked and logged. The
+# connection's `process` method should always try to return a response, so that
+# clients do not have to timeout.
 #
 # Notes:
 # * This class is separated from `Sanford::Server` to help with thread safety.
 #   The server creates a new instance of this class per connection, which means
-#   there is a separate connection handler per thread.
+#   there is a separate connection per thread.
 #
 require 'benchmark'
 require 'sanford-protocol'

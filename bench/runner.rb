@@ -1,6 +1,5 @@
 Bundler.setup(:benchmark)
 require 'benchmark'
-require 'whysoslow'
 
 require 'bench/client'
 
@@ -11,11 +10,7 @@ module Bench
     HOST_AND_PORT = [ '127.0.0.1', 12000 ]
 
     REQUESTS = [
-      [ 'v1', 'simple', {}, 10000 ],
-      # [ 'v1/memory_check', {}, 10000 ] # TODO - check the server's memory with whysoslow
-                                         # probably need a special method to collect the info
-                                         # from the server, need to be able to configure
-                                         # services before I can do this
+      [ 'v1', 'simple',       {}, 10000 ]
     ]
 
     TIME_MODIFIER = 10 ** 4 # 4 decimal places
@@ -73,7 +68,7 @@ module Bench
           if show_result
             output "Got a response:"
             output "  #{response.status}"
-            output "  #{response.result.inspect}"
+            output "  #{response.data.inspect}"
           end
         rescue Exception => exception
           puts "FAILED -> #{exception.class}: #{exception.message}"
