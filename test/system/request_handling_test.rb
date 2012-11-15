@@ -28,7 +28,7 @@ class RequestHandlingTest < Assert::Context
 
       assert_equal 200,     response.status.code
       assert_equal nil,     response.status.message
-      assert_equal 'test',  response.result
+      assert_equal 'test',  response.data
     end
   end
 
@@ -55,7 +55,7 @@ class RequestHandlingTest < Assert::Context
 
       assert_equal 400,     response.status.code
       assert_match "size",  response.status.message
-      assert_equal nil,     response.result
+      assert_equal nil,     response.data
     end
   end
 
@@ -72,7 +72,7 @@ class RequestHandlingTest < Assert::Context
 
       assert_equal 400,                 response.status.code
       assert_match "Protocol version",  response.status.message
-      assert_equal nil,                 response.result
+      assert_equal nil,                 response.data
     end
   end
 
@@ -89,7 +89,7 @@ class RequestHandlingTest < Assert::Context
 
       assert_equal 400,     response.status.code
       assert_match "body",  response.status.message
-      assert_equal nil,     response.result
+      assert_equal nil,     response.data
     end
   end
 
@@ -106,7 +106,7 @@ class RequestHandlingTest < Assert::Context
       assert_equal 400,       response.status.code
       assert_match "request", response.status.message
       assert_match "name",    response.status.message
-      assert_equal nil,       response.result
+      assert_equal nil,       response.data
     end
   end
 
@@ -123,7 +123,7 @@ class RequestHandlingTest < Assert::Context
       assert_equal 400,       response.status.code
       assert_match "request", response.status.message
       assert_match "version", response.status.message
-      assert_equal nil,       response.result
+      assert_equal nil,       response.data
     end
   end
 
@@ -140,7 +140,7 @@ class RequestHandlingTest < Assert::Context
 
       assert_equal 404, response.status.code
       assert_equal nil, response.status.message
-      assert_equal nil, response.result
+      assert_equal nil, response.data
     end
   end
 
@@ -157,7 +157,7 @@ class RequestHandlingTest < Assert::Context
 
       assert_equal 500,     response.status.code
       assert_match "error", response.status.message
-      assert_equal nil,     response.result
+      assert_equal nil,     response.data
     end
   end
 
@@ -173,7 +173,7 @@ class RequestHandlingTest < Assert::Context
 
       assert_equal 728,                 response.status.code
       assert_equal "I do what I want",  response.status.message
-      assert_equal [ 1, true, 'yes' ],  response.result
+      assert_equal [ 1, true, 'yes' ],  response.data
     end
   end
 
@@ -189,7 +189,7 @@ class RequestHandlingTest < Assert::Context
 
       assert_equal 401,               response.status.code
       assert_equal "Not authorized",  response.status.message
-      assert_equal nil,               response.result
+      assert_equal nil,               response.data
     end
   end
 
