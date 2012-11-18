@@ -1,161 +1,145 @@
 # Sanford
 
-Sanford is a framework for defining versioned service hosts. This is done by defining a service host and specifying the services it supports. Services are configured with a service handler class. This is built and run whenever the server receives a call to the matching service. In addition to defining services and their hosts, Sanford provides tools for starting and stopping the server as a daemon.
+Sanford: simple hosts for Sanford services.  Define hosts for versioned services.  Setup handlers for the services.  Run the host as a daemon.
 
-## Communication Protocol
-
-See the gem `sanford-protocol` for more information on the communication protocol that `Sanford` uses. This gem is a server implementation that uses the protocol.
+Sanford uses [Sanford::Protocol](https://github.com/redding/sanford-protocol) to communicate with clients.
 
 ## Usage
 
-### Defining Hosts
-
-To define a Sanford host, include the mixin `Sanford::Host` on a class. You can then use the `name` and `configure` methods to define it:
-
 ```ruby
+# define a host
 class MyHost
   include Sanford::Host
-
-  name 'my_host'
 
   configure do
     port 8000
     pid_dir '/path/to/pids'
   end
+
+  # define some services
+  version 'v1' do
+    service 'get_user', 'MyHost::V1Services::GetUser'
+  end
+
 end
+
+# define handlers for the services
+class MyHost::V1Services::GetUser
+  include Sanford::ServiceHandler
+
+  def run!
+    # process the service call and generate a result
+    # the return value of this method will be used as the response data
+  end
+end
+
 ```
 
-The `name` method is optional, but can be used to set a string name for your host. This can be used with the rake tasks (see "Usage - Rake Tasks" further down) and is also used when writing the PID file. If a name is not set, then Sanford will use the class name.
+## Hosts
+
+To define a Sanford host, include the mixin `Sanford::Host` on a class and use the DSL to configure it.
+
 
 Within the `configure` block, a few options can be set:
 
-* `hostname` - (string) The hostname or IP address for the server to bind to. This defaults to `'0.0.0.0'`.
-* `port` - (integer) The port number for the server to bind to. This isn't defaulted and must be provided.
-* `pid_dir` - (string) Path to the directory where you want the pid file to be written. The pid file is named after the Sanford host class's name: '<host.name>.pid'. This defaults to the current working directory (`Dir.pwd`).
-* `logger`- (logger) A logger for Sanford to use when handling requests. This should have a similar interface as ruby's standard logger. Defaults to an instance of ruby's logger.
+* `hostname` - (string) The hostname or IP address for the server to bind to; default: `'0.0.0.0'`.  # TODO: chang to `ip` to not conflict with naming host objects.
+* `port` - (integer) The port number for the server to bind to.
+* `pid_dir` - (string) Path to the directory where you want the pid file to be written; default: `Dir.pwd`.
+* `logger`- (logger) A logger for Sanford to use when handling requests; default: `Logger.new`.
 
-These values act as defaults for instances of the Sanford host, but can be overwritten when creating a new instance of a Sanford host. For example:
+Any values specified using the DSL act as defaults for instances of the host. You can overwritten when creating new instances:
 
 ```ruby
 host = MyHost.new({ :port => 12000 })
 ```
 
-This will overwrite the port value from `8000` to `12000`. This is useful when you want to run the same service host on multiple ports. Generally, there isn't a need to create an instance of a host directly, especially when using the rake tasks. In the case of the rake tasks, they allow setting ENV variables to overwrite a host's default configuration (again see "Usage - Rake Tasks" for more details).
-
-### Adding Services
-
-Once a Sanford host has been defined, you can specify the services it responds to. This is done using the `version` method to specify the version of the service and the `service` method to provide the name and service handler class for the service:
+## Services
 
 ```ruby
 class MyHost
   include Sanford::Host
 
   version 'v1' do
-    service 'get_user', 'MyHost::Services::GetUser'
+    service 'get_user', 'MyHost::ServicesV1::GetUser'
   end
 end
 ```
 
-The version and service name are used to find the service handler class when a matching request is received. The service handler class is 'constantized' and a new instance is built and run to handle the request.
+Services are defined on hosts by version.  Each named service maps to a 'service handler' class.  The version and service name are used to 'route' requests to handler classes.
 
-When defining services, it's typical to organize them all similarly. Sanford provides the ability to provide version namespaces:
+When defining services handlers, it's typical to organize them all under a common namespace. Use `service_handler_ns` to define a default namespace for all handler classes under the version:
 
 ```ruby
 class MyHost
   include Sanford::Host
 
   version 'v1' do
-    service_handler_ns 'MyHost::Services::V1'
+    service_handler_ns 'MyHost::ServicesV1'
 
     service 'get_user',     'GetUser'
     service 'get_article',  'GetArticle'
-    service 'get_comments', '::MyHost::Services::GetComments'
+    service 'get_comments', '::MyHost::OtherServices::GetComments'
   end
 end
 ```
 
-In this example, `get_user` and `get_article` both use the namespace so their service handler class names are `MyHost::Services::V1::GetUser` and `MyHost::Services::V1::GetArticle`. For `get_comments`, because it's service handler class name is prepended with 2 colons (`::`), it will ignore the namespace and the class name will be used as is (`MyHost::Services::GetComments`).
+## Service Handlers
 
-### Defining Service Handlers
-
-Once you've added some services, the handlers need to be defined. This can be done by mixing in `Sanford::ServiceHandler` on your class and defining a `run!` method:
+Define handlers by mixing in `Sanford::ServiceHandler` on a class and defining a `run!` method:
 
 ```ruby
 class MyHost::Services::GetUser
   include Sanford::ServiceHandler
 
   def run!
-    # process the service call and generate a result
-    # the return value of this method will be used as the result and sent to
-    # the client
+    # process the service call and generate a response
+    # the return value of this method will be used as
+    # the response data returned to the client
   end
 end
 ```
 
-This is the most basic way to define a service handler. In addition to this, the `init!` method can be overwritten. This will be called after an instance of the service handler is created. The `init!` method is intended as a hook to add initialization logic. The `initialize` method shouldn't be overwritten.
+This is the most basic way to define a service handler. In addition to this, the `init!` method can be overwritten. This will be called after an instance of the service handler is created. The `init!` method is intended as a hook to add constructor logic. The `initialize` method should not be overwritten.
 
 In addition to these, there are some helpers methods that can be used in your `run!` method:
 
+* `request`: returns the request object the host received
+* `params`: returns the params payload from the request object
+* `halt`: stop processing and return a result with a status code and message
+
 ```ruby
 class MyHost::Services::GetUser
   include Sanford::ServiceHandler
 
   def run!
-    # the `request` method will return a Sanford request object. The primary
-    # use of this is to access the params, NOTE, all hash keys will be strings
-    user = User.find(self.request.params['user_id'])
-    # the `halt` method can be used to stop processing and return a result with
-    # a status code and message
-    halt :success, :result => user.attributes
+    User.find(params['user_id']).attributes
   rescue NotFoundException => e
-    halt :not_found, :message => e.message
+    halt :not_found, :message => e.message, :data => request.params
   rescue Exception => e
     halt :error, :message => e.message
   end
 end
 ```
 
-As shown in the example, the `halt` method takes 3 arguments: a response status, message and the result of the service. This is used to build a valid response for clients (see "Protocol - Response"). The status indicates whether the request was successful or not and the message provides additional details. The result is the data to hand to the client. The call to `halt` passing it `:success` is not necessary and `user.attributes` could've simply been returned. Also, in the cases when an exception is thrown, no result is passed. Typically, when a request does not complete successfully, no result should be returned to the client. Finally, the `halt` method can also be given a specifc number instead of the name of a status (`halt 654`). This can be used to return your own custom status codes if desired.
+## Running Host Daemons
 
-### Rake Tasks
+Sanford comes with rake tasks for running hosts:
 
-Sanford comes with rake tasks for starting and stopping a service host. These can be installed by requiring it's rake tasks in your `Rakefile`:
+* `rake sanford:start` - spin up a background process running the host daemon.
+* `rake sanford:stop` - shutdown the background process running the host gracefully.
+* `rake sanford:restart` - runs the stop and then the start tasks.
+* `rake sanford:run` - starts the server, but don't daemonize it (runs in the current ruby process). Convenient when using the server in a development environment.
+
+These can be installed by requiring it's rake tasks in your `Rakefile`:
 
 ```ruby
 require 'sanford/rake'
 ```
 
-This will provide 4 tasks: starting, stopping, restarting and running.
-
-* `rake sanford:start` - Start the service host server as a daemon. This will spin up a background process running the server.
-* `rake sanford:stop` - Stop the service host server that was started using the previous task. This will shutdown the background process gracefully.
-* `rake sanford:restart` - Restart the service host server. Essentially runs the stop and then the start tasks.
-* `rake sanford:run` - Run the service host server in the current ruby process. This starts the server, but doesn't daemonize it. This is convenient when using the server in a development environment.
-
-The basic rake tasks are useful if your application only has one host defined and if you only want to run the host on a single port. In the case you have multiple hosts defined or want to run a single host on multiple ports, additional options can be passed. For example, given the following host definitions:
-
-```ruby
-class MyHost
-  include Sanford::Host
-
-  configure do
-    port 12000
-  end
-end
-
-class AnotherHost
-  include Sanford::Host
-
-  configure do
-    port 13000
-  end
-end
-```
-
-Then they can be managed using the rake tasks like so:
+The basic rake tasks are useful if your application only has one host defined and if you only want to run the host on a single port. In the case you have multiple hosts defined or you want to run a single host on multiple ports, use environment variables to set custom configurations.
 
 ```bash
-rake sanford:start # starts the first defined host `MyHost`
+rake sanford:start   # starts the first defined host
 rake sanford:start[AnotherHost] # starts `AnotherHost`
 rake sanford:start[MyHost,12001] # starts `MyHost` on port 12001
 SANFORD_NAME=AnotherHost SANFORD_PORT=13001 rake sanford:start # ENV vars work as well
@@ -163,9 +147,11 @@ SANFORD_NAME=AnotherHost SANFORD_PORT=13001 rake sanford:start # ENV vars work a
 
 The rake tasks optionally accept 3 arguments: name, port and hostname. In addition to allowing these arguments, they will also recognize these environment variables: `SANFORD_NAME`, `SANFORD_HOSTNAME`, and `SANFORD_PORT`.
 
-### Loading An Environment
+Define a `name` on a Host to set a string name for your host that can be used to reference a host when using the rake tasks.  If no name is set, Sanford will use the host's class name.
 
-Typically, a Sanford host is part of a larger application and parts of the application need to be setup or loaded when you start your Sanford server. To handle this, Sanford provides a rake task that can be overwritten:
+### Loading An Application
+
+Typically, a Sanford host is part of a larger application and parts of the application need to be setup or loaded when you start your Sanford server. The task `sanford:setup` is called before running any start, stop, or restart task; override it to hook in your application setup code:
 
 ```ruby
 # In your Rakefile
@@ -176,21 +162,10 @@ namespace :sanford do
 end
 ```
 
-By defining the task `sanford:setup`, this is automatically called before running any of the Sanford rake tasks. This way a Sanford server can use application code.
+## Contributing
 
-## Advanced
-
-### Daemonizing
-
-Sanford uses the [daemons](https://github.com/ghazel/daemons) gem to daemonize it's server process. This is done using the daemons gem's `run_proc` method and starting the server in it:
-
-```ruby
-task :start do
-  ::Daemons.run_proc(host.name, { :ARGV => [ 'start' ] }) do
-    server.start
-  end
-end
-```
-
-Using daemons' `run_proc` and specifying `ARGV` runs daemons different actions: starting, stopping, running, etc. With this, `Sanford` provides rake tasks that wrap this behavior for easily managing your hosts.
-
+1. Fork it
+2. Create your feature branch (`git checkout -b my-new-feature`)
+3. Commit your changes (`git commit -am 'Add some feature'`)
+4. Push to the branch (`git push origin my-new-feature`)
+5. Create new Pull Request
