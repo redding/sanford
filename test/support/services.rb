@@ -30,7 +30,7 @@ class DummyHost
     include Sanford::ServiceHandler
 
     def run!
-      self.request.params
+      params
     end
 
   end
@@ -47,7 +47,7 @@ class DummyHost
     include Sanford::ServiceHandler
 
     def init!
-      @number = self.request.params['number'] || 1
+      @number = params['number'] || 1
     end
 
     def run!
