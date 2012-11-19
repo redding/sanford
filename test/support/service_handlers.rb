@@ -32,7 +32,7 @@ class HaltWithServiceHandler < StaticServiceHandler
   end
 
   def run!
-    self.request.params['halt_with'].tap do |halt_with|
+    params['halt_with'].tap do |halt_with|
       halt(halt_with.delete(:code), halt_with)
     end
   end

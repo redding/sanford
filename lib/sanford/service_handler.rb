@@ -50,6 +50,10 @@ module Sanford
     def after_run
     end
 
+    def params
+      self.request.params
+    end
+
     def inspect
       reference = '0x0%x' % (self.object_id << 1)
       "#<#{self.class}:#{reference} @request=#{self.request.inspect}>"

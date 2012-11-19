@@ -9,10 +9,13 @@ module Sanford::ServiceHandler
     end
     subject{ @handler }
 
-    should have_instance_methods :logger, :request, :init, :init!, :run, :run!, :halt
+    should have_instance_methods :logger, :request, :init, :init!, :run, :run!, :halt, :params
 
     should "raise a NotImplementedError if run! is not overwritten" do
       assert_raises(NotImplementedError){ subject.run! }
+    end
+    should "return the request's params with #params" do
+      assert_equal subject.request.params, subject.params
     end
   end
 
