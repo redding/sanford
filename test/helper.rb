@@ -12,6 +12,7 @@ end
 Sanford.init
 
 require 'test/support/service_handlers'
+require 'test/support/simple_client'
 require 'test/support/test_helper'
 
 if defined?(Assert)
