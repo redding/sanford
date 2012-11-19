@@ -5,7 +5,7 @@
 require 'assert'
 
 class RequestHandlingTest < Assert::Context
-  include TestHelper
+  include Test::ForkServerHelper
 
   desc "Sanford's handling of requests"
   setup do

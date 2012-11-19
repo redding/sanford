@@ -16,23 +16,23 @@ module Sanford::Rake
         end
 
         desc "Start a Sanford server and daemonize the process"
-        task :start, [ :name, :port, :hostname ] => :load_manager do |t, args|
-          Sanford::Manager.call(:start, args)
+        task :start => :load_manager do
+          Sanford::Manager.call :start
         end
 
         desc "Stop a daemonized Sanford server process"
-        task :stop, [ :name, :port, :hostname ]  => :load_manager do |t, args|
-          Sanford::Manager.call(:stop, args)
+        task :stop => :load_manager do
+          Sanford::Manager.call :stop
         end
 
         desc "Restart a daemonized Sanford server process"
-        task :restart, [ :name, :port, :hostname ]  => :load_manager do |t, args|
-          Sanford::Manager.call(:restart, args)
+        task :restart => :load_manager do
+          Sanford::Manager.call :restart
         end
 
         desc "Run a Sanford server (not daemonized)"
-        task :run, [ :name, :port, :hostname ]  => :load_manager do |t, args|
-          Sanford::Manager.call(:run, args)
+        task :run => :load_manager do
+          Sanford::Manager.call :run
         end
 
       end

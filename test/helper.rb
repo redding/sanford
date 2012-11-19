@@ -13,7 +13,7 @@ Sanford.init
 
 require 'test/support/service_handlers'
 require 'test/support/simple_client'
-require 'test/support/test_helper'
+require 'test/support/helpers'
 
 if defined?(Assert)
   require 'assert-mocha'
