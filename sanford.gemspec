@@ -6,10 +6,10 @@ require 'sanford/version'
 Gem::Specification.new do |gem|
   gem.name          = "sanford"
   gem.version       = Sanford::VERSION
-  gem.authors       = ["Collin Redding"]
-  gem.email         = ["collin.redding@me.com"]
-  gem.description   = "A framework for defining versioned service hosts."
-  gem.summary       = "A framework for defining versioned service hosts."
+  gem.authors       = ["Collin Redding", "Kelly Redding"]
+  gem.email         = ["collin.redding@me.com", "kelly@kellyredding.com"]
+  gem.description   = "Simple hosts for Sanford services."
+  gem.summary       = "Simple hosts for Sanford services."
   gem.homepage      = "https://github.com/redding/sanford"
 
   gem.files         = `git ls-files`.split($/)
