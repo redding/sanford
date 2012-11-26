@@ -140,12 +140,10 @@ The basic rake tasks are useful if your application only has one host defined an
 
 ```bash
 rake sanford:start   # starts the first defined host
-rake sanford:start[AnotherHost] # starts `AnotherHost`
-rake sanford:start[MyHost,12001] # starts `MyHost` on port 12001
-SANFORD_NAME=AnotherHost SANFORD_PORT=13001 rake sanford:start # ENV vars work as well
+SANFORD_NAME=AnotherHost SANFORD_PORT=13001 rake sanford:start # choose a specific host and port to run on with ENV vars
 ```
 
-The rake tasks optionally accept 3 arguments: name, port and hostname. In addition to allowing these arguments, they will also recognize these environment variables: `SANFORD_NAME`, `SANFORD_HOSTNAME`, and `SANFORD_PORT`.
+The rake tasks allow using environment variables for specifying which host to run the command against and for overriding the host's configuration. They recognize the following environment variables: `SANFORD_NAME`, `SANFORD_HOSTNAME`, and `SANFORD_PORT`.
 
 Define a `name` on a Host to set a string name for your host that can be used to reference a host when using the rake tasks.  If no name is set, Sanford will use the host's class name.
 
