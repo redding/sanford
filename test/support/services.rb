@@ -10,9 +10,9 @@ class DummyHost
   end
 
   configure do
-    host    'fake.local'
+    host    'localhost'
     port    12000
-    pid_dir '/path/to/pids'
+    pid_dir File.expand_path('../../../tmp/', __FILE__)
     logger  LOGGER
   end
 

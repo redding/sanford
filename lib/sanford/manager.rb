@@ -17,11 +17,11 @@ module Sanford
 
     def self.call(action, options = nil)
       options ||= {}
-      registered_name = options.delete(:name) || ENV['SANFORD_NAME']
-      options[:hostname] ||= ENV['SANFORD_HOSTNAME']
-      options[:port] ||= ENV['SANFORD_PORT']
+      options[:name]      ||= ENV['SANFORD_HOST']
+      options[:hostname]  ||= ENV['SANFORD_IP']
+      options[:port]      ||= ENV['SANFORD_PORT']
 
-      host_class = if registered_name
+      host_class = if (registered_name = options.delete(:name))
         Sanford.config.find_host(registered_name)
       else
         Sanford.config.hosts.first

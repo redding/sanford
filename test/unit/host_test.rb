@@ -5,7 +5,7 @@ module Sanford::Host
   class BaseTest < Assert::Context
     desc "Sanford::Host"
     setup do
-      TestHelper.preserve_and_clear_hosts
+      Test::Environment.store_and_clear_hosts
       @host_class = Class.new do
         include Sanford::Host
         name 'anonymous_host'
@@ -16,7 +16,7 @@ module Sanford::Host
       @host = @host_class.new({ :port => 12345 })
     end
     teardown do
-      TestHelper.restore_hosts
+      Test::Environment.restore_hosts
     end
     subject{ @host }
 
