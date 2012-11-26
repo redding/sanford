@@ -19,7 +19,7 @@ class SimpleClient
   end
 
   def initialize(service_host)
-    @host, @port = service_host.hostname, service_host.port
+    @host, @port = service_host.ip, service_host.port
   end
 
   def call_with_request(*args)

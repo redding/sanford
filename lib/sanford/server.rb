@@ -17,7 +17,7 @@ module Sanford
 
     def initialize(service_host, options = {})
       @service_host = service_host
-      super(self.service_host.hostname, self.service_host.port, options)
+      super(self.service_host.ip, self.service_host.port, options)
     end
 
     def name

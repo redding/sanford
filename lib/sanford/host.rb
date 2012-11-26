@@ -4,14 +4,14 @@
 # a service handler.
 #
 # Options:
-# * `hostname`  - The string for the hostname that the TCP Server should bind
-#                 to. This defaults to '0.0.0.0'.
-# * `port`      - The integer for the port that the TCP Server should bind to.
-#                 This isn't defaulted and must be provided.
-# * `pid_dir`   - The directory to write the PID file to. This is defaulted to
-#                 Dir.pwd.
-# * `logger`    - The logger to use if the Sanford server logs messages. This is
-#                 defaulted to an instance of Ruby's Logger.
+# * `ip`      - The string for the ip that the TCP Server should bind to. This
+#               defaults to '0.0.0.0'.
+# * `port`    - The integer for the port that the TCP Server should bind to.
+#               This isn't defaulted and must be provided.
+# * `pid_dir` - The directory to write the PID file to. This is defaulted to
+#               Dir.pwd.
+# * `logger`  - The logger to use if the Sanford server logs messages. This is
+#               defaulted to an instance of Ruby's Logger.
 #
 require 'logger'
 require 'ns-options'
@@ -36,7 +36,7 @@ module Sanford
         extend Sanford::Host::ClassMethods
 
         options :config do
-          option :hostname, String,   :default => '0.0.0.0'
+          option :ip,       String,   :default => '0.0.0.0'
           option :port,     Integer
           option :pid_dir,  Pathname, :default => Dir.pwd
           option :logger,             :default => proc{ Sanford::NullLogger.new }
@@ -62,7 +62,7 @@ module Sanford
       raise(Sanford::InvalidHostError.new(self.class)) if !self.port
     end
 
-    [ :hostname, :port, :pid_dir, :logger, :exception_handler ].each do |name|
+    [ :ip, :port, :pid_dir, :logger, :exception_handler ].each do |name|
 
       define_method(name) do
         self.config.send(name)
@@ -88,7 +88,7 @@ module Sanford
 
     def inspect
       reference = '0x0%x' % (self.object_id << 1)
-      "#<#{self.class}:#{reference} hostname=#{self.config.hostname.inspect} " \
+      "#<#{self.class}:#{reference} ip=#{self.config.ip.inspect} " \
       "port=#{self.config.port.inspect}>"
     end
 
