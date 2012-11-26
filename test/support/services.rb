@@ -11,7 +11,7 @@ class DummyHost
 
   configure do
     host    'fake.local'
-    port    8000
+    port    12000
     pid_dir '/path/to/pids'
     logger  LOGGER
   end
