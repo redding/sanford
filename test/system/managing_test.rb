@@ -26,8 +26,8 @@ class ManagingTest < Assert::Context
       host = Sanford.config.hosts.first
 
       self.call_sanford_manager(:run) do
-        assert_nothing_raised{ self.open_socket(host.config.hostname, host.config.port) }
-        assert File.exists?(self.expected_pid_file(host, host.config.hostname, host.config.port))
+        assert_nothing_raised{ self.open_socket(host.config.ip, host.config.port) }
+        assert File.exists?(self.expected_pid_file(host, host.config.ip, host.config.port))
       end
     end
   end
@@ -44,8 +44,8 @@ class ManagingTest < Assert::Context
       host = Sanford.config.find_host('DummyHost')
 
       self.call_sanford_manager(:run, { :name => 'DummyHost', :port => 12345 }) do
-        assert_nothing_raised{ self.open_socket(host.config.hostname, 12345) }
-        assert File.exists?(self.expected_pid_file(host, host.config.hostname, 12345))
+        assert_nothing_raised{ self.open_socket(host.config.ip, 12345) }
+        assert File.exists?(self.expected_pid_file(host, host.config.ip, 12345))
       end
     end
   end

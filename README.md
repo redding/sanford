@@ -42,7 +42,7 @@ To define a Sanford host, include the mixin `Sanford::Host` on a class and use t
 
 Within the `configure` block, a few options can be set:
 
-* `hostname` - (string) The hostname or IP address for the server to bind to; default: `'0.0.0.0'`.  # TODO: chang to `ip` to not conflict with naming host objects.
+* `ip` - (string) A hostname or IP address for the server to bind to; default: `'0.0.0.0'`.
 * `port` - (integer) The port number for the server to bind to.
 * `pid_dir` - (string) Path to the directory where you want the pid file to be written; default: `Dir.pwd`.
 * `logger`- (logger) A logger for Sanford to use when handling requests; default: `Logger.new`.
@@ -143,7 +143,7 @@ rake sanford:start   # starts the first defined host
 SANFORD_NAME=AnotherHost SANFORD_PORT=13001 rake sanford:start # choose a specific host and port to run on with ENV vars
 ```
 
-The rake tasks allow using environment variables for specifying which host to run the command against and for overriding the host's configuration. They recognize the following environment variables: `SANFORD_NAME`, `SANFORD_HOSTNAME`, and `SANFORD_PORT`.
+The rake tasks allow using environment variables for specifying which host to run the command against and for overriding the host's configuration. They recognize the following environment variables: `SANFORD_NAME`, `SANFORD_IP`, and `SANFORD_PORT`.
 
 Define a `name` on a Host to set a string name for your host that can be used to reference a host when using the rake tasks.  If no name is set, Sanford will use the host's class name.
 

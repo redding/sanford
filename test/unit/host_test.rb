@@ -10,7 +10,7 @@ module Sanford::Host
         include Sanford::Host
         name 'anonymous_host'
         configure do
-          host 'anonymous.local'
+          ip 'anonymous.local'
         end
       end
       @host = @host_class.new({ :port => 12345 })
@@ -32,7 +32,7 @@ module Sanford::Host
     end
 
     should "default it's configuration from the class and overwrite with values passed to new" do
-      assert_equal 'anonymous.local', subject.config.host
+      assert_equal 'anonymous.local', subject.config.ip
       assert_equal 12345, subject.config.port
     end
   end
@@ -44,7 +44,7 @@ module Sanford::Host
     end
     subject{ @config }
 
-    should have_instance_methods :hostname, :port, :pid_dir, :logger
+    should have_instance_methods :ip, :port, :pid_dir, :logger
   end
 
   class ClassMethodsTest < BaseTest

@@ -17,9 +17,9 @@ module Sanford
 
     def self.call(action, options = nil)
       options ||= {}
-      options[:name]      ||= ENV['SANFORD_HOST']
-      options[:hostname]  ||= ENV['SANFORD_IP']
-      options[:port]      ||= ENV['SANFORD_PORT']
+      options[:name]  ||= ENV['SANFORD_HOST']
+      options[:ip]    ||= ENV['SANFORD_IP']
+      options[:port]  ||= ENV['SANFORD_PORT']
 
       host_class = if (registered_name = options.delete(:name))
         Sanford.config.find_host(registered_name)
@@ -32,7 +32,7 @@ module Sanford
 
     def initialize(host_class, options = {})
       @host = host_class.new(options)
-      @process_name = [ self.host.hostname, self.host.port, self.host.name ].join('_')
+      @process_name = [ self.host.ip, self.host.port, self.host.name ].join('_')
     end
 
     def call(action)

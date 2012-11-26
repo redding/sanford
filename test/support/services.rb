@@ -10,7 +10,7 @@ class DummyHost
   end
 
   configure do
-    host    'localhost'
+    ip    'localhost'
     port    12000
     pid_dir File.expand_path('../../../tmp/', __FILE__)
     logger  LOGGER
