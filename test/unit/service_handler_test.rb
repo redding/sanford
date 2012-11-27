@@ -60,28 +60,28 @@ module Sanford::ServiceHandler
     setup do
       @halt_with = { :code => :success, :message => "Just a test" }
       handler = HaltWithServiceHandler.new(@halt_with)
-      @response_status, @result = handler.run
+      @response_status, @data = handler.run
     end
 
-    should "return a response with the status passed to halt and a nil result" do
+    should "return a response with the status passed to halt and a nil data" do
       assert_equal @halt_with[:code],     @response_status.first
       assert_equal @halt_with[:message],  @response_status.last
-      assert_equal @halt_with[:result],   @result
+      assert_equal @halt_with[:data],     @data
     end
   end
 
-  class HaltWithAStatusCodeAndResultTest < BaseTest
-    desc "halt with a status code and result"
+  class HaltWithAStatusCodeAndDataTest < BaseTest
+    desc "halt with a status code and data"
     setup do
-      @halt_with = { :code => 648, :result => true }
+      @halt_with = { :code => 648, :data => true }
       handler = HaltWithServiceHandler.new(@halt_with)
-      @response_status, @result = handler.run
+      @response_status, @data = handler.run
     end
 
-    should "return a response status and result when passed a number and a result option" do
+    should "return a response status and data when passed a number and a data option" do
       assert_equal @halt_with[:code],     @response_status.first
       assert_equal @halt_with[:message],  @response_status.last
-      assert_equal @halt_with[:result],   @result
+      assert_equal @halt_with[:data],     @data
     end
   end
 
@@ -91,7 +91,7 @@ module Sanford::ServiceHandler
       @handler = ConfigurableServiceHandler.new({
         :before_run => proc{ halt 601, :message => "before_run halted" }
       })
-      @response_status, @result = @handler.run
+      @response_status, @data = @handler.run
     end
 
     should "only call 'before_run' and 'after_run'" do
@@ -105,7 +105,7 @@ module Sanford::ServiceHandler
     should "return the 'before_run' response" do
       assert_equal 601,                 @response_status.first
       assert_equal "before_run halted", @response_status.last
-      assert_equal nil,                 @result
+      assert_equal nil,                 @data
     end
   end
 
@@ -124,7 +124,7 @@ module Sanford::ServiceHandler
           :before_run => proc{ halt 601, :message => "before_run halted" },
           :after_run  => @after_run
         })
-        @response_status, @result = @handler.run
+        @response_status, @data = @handler.run
       end
 
       should "only call 'before_run' and 'after_run'" do
@@ -138,7 +138,7 @@ module Sanford::ServiceHandler
       should "return the 'after_run' response" do
         assert_equal 801,                 @response_status.first
         assert_equal "after_run halted",  @response_status.last
-        assert_equal nil,                 @result
+        assert_equal nil,                 @data
       end
     end
 
@@ -149,7 +149,7 @@ module Sanford::ServiceHandler
           :run!       => proc{ halt 601, :message => "run! halted" },
           :after_run  => @after_run
         })
-        @response_status, @result = @handler.run
+        @response_status, @data = @handler.run
       end
 
       should "call 'init!', 'run!' and the callbacks" do
@@ -163,7 +163,7 @@ module Sanford::ServiceHandler
       should "return the 'after_run' response" do
         assert_equal 801,                 @response_status.first
         assert_equal "after_run halted",  @response_status.last
-        assert_equal nil,                 @result
+        assert_equal nil,                 @data
       end
     end
 

@@ -28,16 +28,25 @@ module Sanford
     def init!
     end
 
+    # This method has very specific handling when before/after callbacks halt.
+    # It should always return a response tuple: `[ status, data ]`
+    # * If `before_run` halts, then the handler is not 'run' (it's `init` and
+    #   `run` methods are not called) and it's response tuple is returned.
+    # * If `after_run` halts, then it's response tuple is returned, even if
+    #   calling `before_run` or 'running' the handler generated a response
+    #   tuple.
+    # * If `before_run` and `after_run` do not halt, then the response tuple
+    #   from 'running' is used.
     def run
-      result = self.run_callback 'before_run'
-      result ||= catch(:halt) do
+      response_tuple = self.run_callback 'before_run'
+      response_tuple ||= catch(:halt) do
         self.init
-        returned_value = self.run!
-        [ 200, returned_value ]
+        data = self.run!
+        [ 200, data ]
       end
-      after_result = self.run_callback 'after_run'
-      (result = after_result) if after_result
-      result
+      after_response_tuple = self.run_callback 'after_run'
+      (response_tuple = after_response_tuple) if after_response_tuple
+      response_tuple
     end
 
     def run!
@@ -64,7 +73,7 @@ module Sanford
     def halt(status, options = nil)
       options ||= {}
       response_status = [ status, options[:message] ]
-      throw(:halt, [ response_status, options[:result] ])
+      throw(:halt, [ response_status, options[:data] ])
     end
 
     # Notes:

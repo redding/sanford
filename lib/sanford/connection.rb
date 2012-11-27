@@ -35,8 +35,8 @@ module Sanford
           request = Sanford::Protocol::Request.parse(self.read)
           self.validate!(request)
           self.log_request(request)
-          status, result = self.route(request)
-          response = Sanford::Protocol::Response.new(status, result)
+          status, data = self.route(request)
+          response = Sanford::Protocol::Response.new(status, data)
         rescue Exception => exception
           handler = self.exception_handler.new(exception, self.logger)
           response = handler.response

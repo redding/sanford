@@ -28,7 +28,7 @@ class MyHost::V1Services::GetUser
   include Sanford::ServiceHandler
 
   def run!
-    # process the service call and generate a result
+    # process the service call and build a response
     # the return value of this method will be used as the response data
   end
 end
@@ -105,7 +105,7 @@ In addition to these, there are some helpers methods that can be used in your `r
 
 * `request`: returns the request object the host received
 * `params`: returns the params payload from the request object
-* `halt`: stop processing and return a result with a status code and message
+* `halt`: stop processing and return response data with a status code and message
 
 ```ruby
 class MyHost::Services::GetUser
