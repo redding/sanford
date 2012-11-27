@@ -2,9 +2,9 @@ Running benchmark report...
 
 Hitting "simple" service with {}, 10000 times
 ....................................................................................................
-Total Time:   8846.5275ms
-Average Time:    0.8846ms
-Min Time:        0.6220ms
-Max Time:       74.2781ms
+Total Time:   12733.9619ms
+Average Time:     1.2733ms
+Min Time:         0.8168ms
+Max Time:        60.1289ms
 
 Done running benchmark report

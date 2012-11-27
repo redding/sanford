@@ -74,7 +74,7 @@ module Sanford
     # * We catch :halt here so that the service handler helper method `halt` can
     #   throw it and have the code jump here. If the `halt` method isn't used,
     #   the block wraps the return value of the handler's `run` method to be the
-    #   expected [ status, result ] format.
+    #   expected [ status, data ] format.
     def route(request)
       services = self.config.versioned_services[request.version] || {}
       handler_class_name = services[request.name]

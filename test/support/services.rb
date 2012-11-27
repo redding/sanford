@@ -60,8 +60,8 @@ class DummyHost
 
     def run!
       halt 728, {
-        :message => "I do what I want",
-        :result => [ 1, true, 'yes' ]
+        :message  => "I do what I want",
+        :data     => [ 1, true, 'yes' ]
       }
     end
   end
