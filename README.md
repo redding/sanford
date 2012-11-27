@@ -11,10 +11,8 @@ Sanford uses [Sanford::Protocol](https://github.com/redding/sanford-protocol) to
 class MyHost
   include Sanford::Host
 
-  configure do
-    port 8000
-    pid_dir '/path/to/pids'
-  end
+  port 8000
+  pid_dir '/path/to/pids'
 
   # define some services
   version 'v1' do
@@ -37,10 +35,7 @@ end
 
 ## Hosts
 
-To define a Sanford host, include the mixin `Sanford::Host` on a class and use the DSL to configure it.
-
-
-Within the `configure` block, a few options can be set:
+To define a Sanford host, include the mixin `Sanford::Host` on a class and use the DSL to configure it. A few options can be set:
 
 * `ip` - (string) A hostname or IP address for the server to bind to; default: `'0.0.0.0'`.
 * `port` - (integer) The port number for the server to bind to.

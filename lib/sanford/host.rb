@@ -4,6 +4,9 @@
 # a service handler.
 #
 # Options:
+# * `name`    - A string for naming this host. This can be used when specifying
+#               a host with the rake tasks and will be used to name the PID
+#               file. Defaults to the class's name.
 # * `ip`      - The string for the ip that the TCP Server should bind to. This
 #               defaults to '0.0.0.0'.
 # * `port`    - The integer for the port that the TCP Server should bind to.
@@ -23,7 +26,6 @@ require 'sanford/exceptions'
 require 'sanford/service_handler'
 
 module Sanford
-
   module Host
 
     # Notes:
@@ -33,9 +35,10 @@ module Sanford
     def self.included(host_class)
       host_class.class_eval do
         include NsOptions
-        extend Sanford::Host::ClassMethods
+        extend Sanford::Host::Interface
 
         options :config do
+          option :name,     String,   :default => host_class.to_s
           option :ip,       String,   :default => '0.0.0.0'
           option :port,     Integer
           option :pid_dir,  Pathname, :default => Dir.pwd
@@ -48,7 +51,7 @@ module Sanford
       Sanford.config.hosts.add(host_class)
     end
 
-    attr_reader :name
+    INTERFACE_OPTIONS = [ :name, :ip, :port, :pid_dir, :logger, :exception_handler ]
 
     # Notes:
     # * The `initialize` takes the values configured on the class and merges
@@ -57,12 +60,11 @@ module Sanford
     def initialize(options = nil)
       options = self.remove_nil_values(options)
       config_options = self.class.config.to_hash.merge(options)
-      @name = self.class.name
       self.config.apply(config_options)
       raise(Sanford::InvalidHostError.new(self.class)) if !self.port
     end
 
-    [ :ip, :port, :pid_dir, :logger, :exception_handler ].each do |name|
+    INTERFACE_OPTIONS.each do |name|
 
       define_method(name) do
         self.config.send(name)
@@ -101,15 +103,19 @@ module Sanford
       end
     end
 
-    module ClassMethods
+    module Interface
 
-      def configure(&block)
-        self.config.define(&block)
-      end
+      INTERFACE_OPTIONS.each do |name|
 
-      def name(value = nil)
-        @name = value if value
-        @name || self.to_s
+        define_method(name) do |*args|
+          self.config.send("#{name}=", *args) if !args.empty?
+          self.config.send(name)
+        end
+
+        define_method("#{name}=") do |new_value|
+          self.config.send("#{name}=", new_value)
+        end
+
       end
 
       def version(name, &block)
@@ -147,5 +153,4 @@ module Sanford
     end
 
   end
-
 end

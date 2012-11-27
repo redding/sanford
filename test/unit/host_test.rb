@@ -8,10 +8,8 @@ module Sanford::Host
       Test::Environment.store_and_clear_hosts
       @host_class = Class.new do
         include Sanford::Host
-        name 'anonymous_host'
-        configure do
-          ip 'anonymous.local'
-        end
+        name  'anonymous_host'
+        ip    'anonymous.local'
       end
       @host = @host_class.new({ :port => 12345 })
     end
@@ -44,14 +42,15 @@ module Sanford::Host
     end
     subject{ @config }
 
-    should have_instance_methods :ip, :port, :pid_dir, :logger
+    should have_instance_methods :name, :ip, :port, :pid_dir, :logger
   end
 
   class ClassMethodsTest < BaseTest
     desc "class methods"
     subject{ @host_class }
 
-    should have_instance_methods :name, :config, :configure, :version
+    should have_instance_methods :config, :version
+    should have_instance_methods :name, :ip, :port, :pid_dir, :logger
 
     should "have registered the class with sanford's known hosts" do
       assert_includes subject, Sanford.config.hosts
