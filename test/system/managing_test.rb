@@ -43,7 +43,7 @@ class ManagingTest < Assert::Context
            "use the passed options to override it's configuration" do
       host = Sanford.config.find_host('DummyHost')
 
-      self.call_sanford_manager(:run, { :name => 'DummyHost', :port => 12345 }) do
+      self.call_sanford_manager(:run, { :host => 'DummyHost', :port => 12345 }) do
         assert_nothing_raised{ self.open_socket(host.config.ip, 12345) }
         assert File.exists?(self.expected_pid_file(host, host.config.ip, 12345))
       end
@@ -84,7 +84,7 @@ class ManagingTest < Assert::Context
 
     should "raise an exception when a service host can't be found" do
       assert_raises(Sanford::NoHostError) do
-        Sanford::Manager.call(:run, :name => 'not_a_real_host')
+        Sanford::Manager.call(:run, :host => 'not_a_real_host')
       end
     end
   end
