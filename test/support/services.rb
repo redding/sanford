@@ -24,7 +24,7 @@ class DummyHost
     include Sanford::ServiceHandler
 
     def run!
-      params
+      params['message']
     end
 
   end

@@ -19,7 +19,9 @@ class RequestHandlingTest < Assert::Context
 
     should "return a successful response and echo the params sent to it" do
       self.start_server(@server) do
-        response = SimpleClient.call_with_request(@service_host, 'v1', 'echo', 'test')
+        response = SimpleClient.call_with_request(@service_host, 'v1', 'echo', {
+          :message => 'test'
+        })
 
         assert_equal 200,     response.status.code
         assert_equal nil,     response.status.message
