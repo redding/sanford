@@ -1,3 +1,4 @@
+require 'ostruct'
 require 'sanford-protocol'
 
 module Sanford
@@ -71,9 +72,9 @@ module Sanford
     protected
 
     def halt(status, options = nil)
-      options ||= {}
-      response_status = [ status, options[:message] ]
-      throw(:halt, [ response_status, options[:data] ])
+      options = OpenStruct.new(options || {})
+      response_status = [ status, options.message ]
+      throw(:halt, [ response_status, options.data ])
     end
 
     # Notes:
