@@ -18,7 +18,7 @@ module Sanford::Host
     end
     subject{ @host }
 
-    should have_instance_methods :name, :config, :route
+    should have_instance_methods :name, :config, :run
 
     should "set name to it's class #name" do
       assert_equal subject.class.name, subject.name
@@ -84,15 +84,15 @@ module Sanford::Host
     end
   end
 
-  class RouteTest < BaseTest
-    desc "route method"
+  class RunTest < BaseTest
+    desc "run method"
     setup do
       @host_class.version('v1') do
         service 'test', 'DummyHost::Multiply'
       end
       @host = @host_class.new({ :port => 12000 })
       @request = Sanford::Protocol::Request.new('v1', 'test', { 'number' => 2 })
-      @returned = @host.route(@request)
+      @returned = @host.run(@request)
     end
     subject{ @returned }
 
@@ -105,8 +105,8 @@ module Sanford::Host
     end
   end
 
-  class RouteNotFoundTest < BaseTest
-    desc "route method with a service and no matching service handler"
+  class RunNotFoundTest < BaseTest
+    desc "run method with a service and no matching service handler"
     setup do
       @host_class.version('v1') do
         service 'test', 'DummyHost::Echo'
@@ -117,13 +117,13 @@ module Sanford::Host
 
     should "raise a Sanford::NotFound exception" do
       assert_raises(Sanford::NotFoundError) do
-        @host.route(@request)
+        @host.run(@request)
       end
     end
   end
 
-  class RouteNoHandlerClassTest < BaseTest
-    desc "route method with a service handler that doesn't exist"
+  class RunNoHandlerClassTest < BaseTest
+    desc "run method with a service handler that doesn't exist"
     setup do
       @host_class.version('v1') do
         service 'test', 'DoesntExist::AtAll'
@@ -134,7 +134,7 @@ module Sanford::Host
 
     should "raise a Sanford::NoHandlerClass exception" do
       assert_raises(Sanford::NoHandlerClassError) do
-        @host.route(@request)
+        @host.run(@request)
       end
     end
   end

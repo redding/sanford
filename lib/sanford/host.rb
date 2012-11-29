@@ -72,20 +72,8 @@ module Sanford
 
     end
 
-    # Notes:
-    # * We catch :halt here so that the service handler helper method `halt` can
-    #   throw it and have the code jump here. If the `halt` method isn't used,
-    #   the block wraps the return value of the handler's `run` method to be the
-    #   expected [ status, data ] format.
-    def route(request)
-      services = self.config.versioned_services[request.version] || {}
-      handler_class_name = services[request.name]
-      raise Sanford::NotFoundError if !handler_class_name
-      self.logger.info("  Handler: #{handler_class_name.inspect}")
-      handler_class = Sanford::ServiceHandler.constantize(handler_class_name)
-      raise Sanford::NoHandlerClassError.new(self, handler_class_name) if !handler_class
-      handler = handler_class.new(self.logger, request)
-      handler.run
+    def run(request)
+      request_handler(request).run
     end
 
     def inspect
@@ -95,6 +83,24 @@ module Sanford
     end
 
     protected
+
+    def request_handler(request)
+      handler_class(get_handler_class_name(request)).new(self.logger, request)
+    end
+
+    def handler_class(class_name_str)
+      self.logger.info("  Handler: #{class_name_str.inspect}")
+      Sanford::ServiceHandler.constantize(class_name_str).tap do |handler_class|
+        raise Sanford::NoHandlerClassError.new(self, class_name_str) if !handler_class
+      end
+    end
+
+    def get_handler_class_name(request)
+      services = self.config.versioned_services[request.version] || {}
+      services[request.name].tap do |name|
+        raise Sanford::NotFoundError if !name
+      end
+    end
 
     def remove_nil_values(options)
       (options || {}).inject({}) do |hash, (k, v)|
