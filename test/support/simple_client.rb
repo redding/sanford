@@ -18,8 +18,9 @@ class SimpleClient
     self.new(service_host).call(bytes)
   end
 
-  def initialize(service_host)
+  def initialize(service_host, options = {})
     @host, @port = service_host.ip, service_host.port
+    @delay = options[:with_delay]
   end
 
   def call_with_request(*args)
@@ -38,6 +39,7 @@ class SimpleClient
     socket = TCPSocket.new(@host, @port)
     socket.setsockopt(::Socket::IPPROTO_TCP, ::Socket::TCP_NODELAY, true)
     connection = Sanford::Protocol::Connection.new(socket)
+    sleep(@delay) if @delay
     socket.send(bytes, 0)
     Sanford::Protocol::Response.parse(connection.read)
   ensure

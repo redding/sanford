@@ -174,4 +174,25 @@ class RequestHandlingTest < Assert::Context
     end
   end
 
+  class HangingRequestTest < ErroringRequestTest
+    desc "when a client connects but doesn't send anything"
+    setup do
+      ENV['SANFORD_TIMEOUT'] = '0.1'
+    end
+    teardown do
+      ENV.delete('SANFORD_TIMEOUT')
+    end
+
+    should "timeout" do
+      self.start_server(@server) do
+        client = SimpleClient.new(@service_host, :with_delay => 0.2)
+        response = client.call_with_request('v1', 'echo', { :message => 'test' })
+
+        assert_equal 408,   response.status.code
+        assert_equal nil,   response.status.message
+        assert_equal nil,   response.data
+      end
+    end
+  end
+
 end

@@ -31,6 +31,8 @@ module Sanford
         [ :bad_request, self.exception.message ]
       when Sanford::NotFoundError
         [ :not_found ]
+      when Sanford::Protocol::TimeoutError
+        [ :timeout ]
       when Exception
         [ :error, "An unexpected error occurred." ]
       end
