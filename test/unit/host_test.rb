@@ -112,7 +112,7 @@ module Sanford::Host
         service 'test', 'DummyHost::Echo'
       end
       @host = @host_class.new({ :port => 12000 })
-      @request = Sanford::Protocol::Request.new('v4', 'what', 'test')
+      @request = Sanford::Protocol::Request.new('v4', 'what', {})
     end
 
     should "raise a Sanford::NotFound exception" do
@@ -129,7 +129,7 @@ module Sanford::Host
         service 'test', 'DoesntExist::AtAll'
       end
       @host = @host_class.new({ :port => 12000 })
-      @request = Sanford::Protocol::Request.new('v1', 'test', 'test')
+      @request = Sanford::Protocol::Request.new('v1', 'test', {})
     end
 
     should "raise a Sanford::NoHandlerClass exception" do
