@@ -14,7 +14,7 @@ class Sanford::Connection
     end
     subject{ @connection }
 
-    should have_instance_methods :service_host, :exception_handler, :logger, :process
+    should have_instance_methods :service_host, :exception_handler, :logger, :process, :timeout
   end
 
   # The system test `test/system/request_handling_test.rb`, covers all the

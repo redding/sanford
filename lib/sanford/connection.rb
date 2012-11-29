@@ -18,12 +18,15 @@ module Sanford
 
   class Connection < Sanford::Protocol::Connection
 
-    attr_reader :service_host, :logger, :exception_handler
+    DEFAULT_TIMEOUT = 1
+
+    attr_reader :service_host, :logger, :exception_handler, :timeout
 
     def initialize(service_host, client_socket)
       @service_host = service_host
       @exception_handler  = self.service_host.exception_handler
       @logger             = self.service_host.logger
+      @timeout            = (ENV['SANFORD_TIMEOUT'] || DEFAULT_TIMEOUT).to_f
       super(client_socket)
     end
 
@@ -32,7 +35,7 @@ module Sanford
       self.logger.info("Received request")
       benchmark = Benchmark.measure do
         begin
-          request = Sanford::Protocol::Request.parse(self.read)
+          request = Sanford::Protocol::Request.parse(self.read(self.timeout))
           self.validate!(request)
           self.log_request(request)
           status, data = self.route(request)
