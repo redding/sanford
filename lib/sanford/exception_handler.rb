@@ -27,7 +27,7 @@ module Sanford
 
     def determine_code_and_message
       case(self.exception)
-      when Sanford::Protocol::BadMessageError
+      when Sanford::Protocol::BadMessageError, Sanford::Protocol::BadRequestError
         [ :bad_request, self.exception.message ]
       when Sanford::NotFoundError
         [ :not_found ]

@@ -9,7 +9,7 @@ class Sanford::Connection
 
     desc "Sanford::Connection"
     setup do
-      @fake_socket = self.fake_socket_with_request('v1', 'echo', 'test')
+      @fake_socket = self.fake_socket_with_request('v1', 'echo', { :message => 'test' })
       @connection = Sanford::Connection.new(DummyHost.new, @fake_socket)
     end
     subject{ @connection }

@@ -36,7 +36,6 @@ module Sanford
       benchmark = Benchmark.measure do
         begin
           request = Sanford::Protocol::Request.parse(self.read(self.timeout))
-          self.validate!(request)
           self.log_request(request)
           status, data = self.route(request)
           response = Sanford::Protocol::Response.new(status, data)
@@ -61,11 +60,6 @@ module Sanford
       self.logger.info("  Version: #{request.version.inspect}")
       self.logger.info("  Service: #{request.name.inspect}")
       self.logger.info("  Parameters: #{request.params.inspect}")
-    end
-
-    def validate!(request)
-      valid, reason = request.valid?
-      raise(Sanford::Protocol::BadMessageError, reason) if !valid
     end
 
     def round_time(time_in_seconds)

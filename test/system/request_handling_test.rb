@@ -91,7 +91,9 @@ class RequestHandlingTest < Assert::Context
 
     should "return a bad request response" do
       self.start_server(@server) do
-        response = SimpleClient.call_with_request(@service_host, 'v1', nil, {})
+        request_hash = Sanford::Protocol::Request.new('v1', 'what', {}).to_hash
+        request_hash.delete('name')
+        response = SimpleClient.call_with_msg_body(@service_host, request_hash)
 
         assert_equal 400,       response.status.code
         assert_match "request", response.status.message
@@ -106,7 +108,9 @@ class RequestHandlingTest < Assert::Context
 
     should "return a bad request response" do
       self.start_server(@server) do
-        response = SimpleClient.call_with_request(@service_host, nil, 'what', {})
+        request_hash = Sanford::Protocol::Request.new('v1', 'what', {}).to_hash
+        request_hash.delete('version')
+        response = SimpleClient.call_with_msg_body(@service_host, request_hash)
 
         assert_equal 400,       response.status.code
         assert_match "request", response.status.message
