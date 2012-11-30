@@ -37,8 +37,7 @@ module Sanford
         begin
           request = Sanford::Protocol::Request.parse(self.read(self.timeout))
           self.log_request(request)
-          status, data = self.route(request)
-          response = Sanford::Protocol::Response.new(status, data)
+          response = Sanford::Protocol::Response.new(*self.run(request))
         rescue Exception => exception
           handler = self.exception_handler.new(exception, self.logger)
           response = handler.response
@@ -52,8 +51,8 @@ module Sanford
 
     protected
 
-    def route(request)
-      self.service_host.route(request)
+    def run(request)
+      self.service_host.run(request)
     end
 
     def log_request(request)

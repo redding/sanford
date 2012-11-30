@@ -19,8 +19,8 @@ Gem::Specification.new do |gem|
 
   gem.add_dependency("daemons",           ["~>1.1"])
   gem.add_dependency("dat-tcp",           ["~>0.1"])
-  gem.add_dependency("ns-options",        ["~>1.0.0.rc2"])
-  gem.add_dependency("sanford-protocol",  ["~>0.4"])
+  gem.add_dependency("ns-options",        ["~>1.0.0.rc3"])
+  gem.add_dependency("sanford-protocol",  ["~>0.5"])
 
   gem.add_development_dependency("assert",        ["~>1.0"])
   gem.add_development_dependency("assert-mocha",  ["~>1.0"])

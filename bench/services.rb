@@ -1,8 +1,8 @@
 class BenchHost
   include Sanford::Host
 
-  port     = 12000
-  pid_dir  = File.expand_path("../../tmp", __FILE__)
+  self.port     = 12000
+  self.pid_dir  = File.expand_path("../../tmp", __FILE__)
 
   version 'v1' do
     service 'simple', 'BenchHost::Simple'
