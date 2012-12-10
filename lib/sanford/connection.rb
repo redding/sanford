@@ -31,8 +31,8 @@ module Sanford
     end
 
     def process
-      response = nil
-      self.logger.info("Received request")
+      request, response = nil, nil
+      self.logger.verbose.info("Received request")
       benchmark = Benchmark.measure do
         begin
           request = Sanford::Protocol::Request.parse(self.read(self.timeout))
@@ -46,7 +46,8 @@ module Sanford
         end
       end
       time_taken = self.round_time(benchmark.real)
-      self.logger.info("Completed in #{time_taken}ms #{response.status}\n")
+      self.logger.verbose.info("Completed in #{time_taken}ms #{response.status}\n")
+      self.log_summary(request, response, time_taken)
     end
 
     protected
@@ -56,13 +57,27 @@ module Sanford
     end
 
     def log_request(request)
-      self.logger.info("  Version: #{request.version.inspect}")
-      self.logger.info("  Service: #{request.name.inspect}")
-      self.logger.info("  Parameters: #{request.params.inspect}")
+      self.logger.verbose.info("  Version: #{request.version.inspect}")
+      self.logger.verbose.info("  Service: #{request.name.inspect}")
+      self.logger.verbose.info("  Params:  #{request.params.inspect}")
     end
 
+    def log_summary(request, response, time_taken)
+      key_values = []
+      if request
+        key_values.push "version=#{request.version}"
+        key_values.push "name=#{request.name}"
+      end
+      key_values.push("status=#{response.status.code}") if response
+      key_values.push("duration=#{time_taken}")
+      key_values.push "params=#{request.params.inspect}" if request
+      self.logger.summary.info(key_values.join(" "))
+    end
+
+    ROUND_PRECISION = 2
+    ROUND_MODIFIER = 10 ** ROUND_PRECISION
     def round_time(time_in_seconds)
-      ((time_in_seconds * 1000.to_f) + 0.5).to_i
+      (time_in_seconds * 1000 * ROUND_MODIFIER).to_i / ROUND_MODIFIER.to_f
     end
 
   end
