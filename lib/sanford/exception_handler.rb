@@ -17,8 +17,8 @@ module Sanford
     end
 
     def response
-      self.logger.error("#{exception.class}: #{exception.message}")
-      self.logger.error(exception.backtrace.join("\n"))
+      self.logger.verbose.error("#{exception.class}: #{exception.message}")
+      self.logger.verbose.error(exception.backtrace.join("\n"))
       status = Sanford::Protocol::ResponseStatus.new(*self.determine_code_and_message)
       Sanford::Protocol::Response.new(status)
     end

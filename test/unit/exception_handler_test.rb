@@ -10,7 +10,7 @@ class Sanford::ExceptionHandler
         raise "test"
       rescue Exception => @exception
       end
-      @logger = Sanford::NullLogger.new
+      @logger = Sanford::Logger.new(Sanford::NullLogger.new)
       @exception_handler = Sanford::ExceptionHandler.new(@exception, @logger)
     end
     subject{ @exception_handler }

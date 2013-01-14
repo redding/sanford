@@ -7,8 +7,10 @@ class DummyHost
   port    12000
   pid_dir File.expand_path('../../../tmp/', __FILE__)
 
-  logger = Logger.new(File.expand_path("../../../log/test.log", __FILE__))
-  logger.level = Logger::DEBUG
+  logger(Logger.new(File.expand_path("../../../log/test.log", __FILE__)).tap do |logger|
+    logger.level = Logger::DEBUG
+  end)
+  verbose_logging false
 
   version 'v1' do
     service_handler_ns 'DummyHost'

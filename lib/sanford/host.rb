@@ -23,6 +23,7 @@ require 'pathname'
 require 'sanford/config'
 require 'sanford/exception_handler'
 require 'sanford/exceptions'
+require 'sanford/logger'
 require 'sanford/service_handler'
 
 module Sanford
@@ -38,11 +39,12 @@ module Sanford
         extend Sanford::Host::Interface
 
         options :config do
-          option :name,     String,   :default => host_class.to_s
-          option :ip,       String,   :default => '0.0.0.0'
-          option :port,     Integer
-          option :pid_dir,  Pathname, :default => Dir.pwd
-          option :logger,             :default => proc{ Sanford::NullLogger.new }
+          option :name,             String,   :default => host_class.to_s
+          option :ip,               String,   :default => '0.0.0.0'
+          option :port,             Integer
+          option :pid_dir,          Pathname, :default => Dir.pwd
+          option :logger,                     :default => proc{ Sanford::NullLogger.new }
+          option :verbose_logging,            :default => true
 
           option :exception_handler,        :default => Sanford::ExceptionHandler
           option :versioned_services, Hash, :default => {}
@@ -51,7 +53,10 @@ module Sanford
       Sanford.config.hosts.add(host_class)
     end
 
-    INTERFACE_OPTIONS = [ :name, :ip, :port, :pid_dir, :logger, :exception_handler ]
+    INTERFACE_OPTIONS = [ :name, :ip, :port, :pid_dir, :logger, :verbose_logging,
+      :exception_handler ]
+
+    attr_reader :logger
 
     # Notes:
     # * The `initialize` takes the values configured on the class and merges
@@ -61,10 +66,11 @@ module Sanford
       options = self.remove_nil_values(options)
       config_options = self.class.config.to_hash.merge(options)
       self.config.apply(config_options)
+      @logger = Sanford::Logger.new(self.config.logger, self.config.verbose_logging)
       raise(Sanford::InvalidHostError.new(self.class)) if !self.port
     end
 
-    INTERFACE_OPTIONS.each do |name|
+    [ :name, :ip, :port, :pid_dir, :exception_handler ].each do |name|
 
       define_method(name) do
         self.config.send(name)
@@ -85,11 +91,11 @@ module Sanford
     protected
 
     def request_handler(request)
-      handler_class(get_handler_class_name(request)).new(self.logger, request)
+      handler_class(get_handler_class_name(request)).new(self.config.logger, request)
     end
 
     def handler_class(class_name_str)
-      self.logger.info("  Handler: #{class_name_str.inspect}")
+      self.logger.verbose.info("  Handler: #{class_name_str.inspect}")
       Sanford::ServiceHandler.constantize(class_name_str).tap do |handler_class|
         raise Sanford::NoHandlerClassError.new(self, class_name_str) if !handler_class
       end
