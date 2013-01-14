@@ -5,7 +5,7 @@ class Sanford::Server
   class BaseTest < Assert::Context
     desc "Sanford::Server"
     setup do
-      @service_host = DummyHost.new
+      @service_host = TestHost.new
       @server = Sanford::Server.new(@service_host)
     end
     subject{ @server }

@@ -14,8 +14,6 @@ module Test
 
   end
 
-
-
   module ForkServerHelper
 
     def start_server(server, &block)
@@ -37,14 +35,12 @@ module Test
 
   end
 
-
-
   module ForkManagerHelper
 
     # start a Sanford server using Sanford's manager in a forked process
     def call_sanford_manager(*args, &block)
       pid = fork do
-        STDOUT.reopen('/dev/null')
+        STDOUT.reopen('/dev/null') unless ENV['SANFORD_DEBUG']
         trap("TERM"){ exit }
         Sanford::Manager.call(*args)
       end

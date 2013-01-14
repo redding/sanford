@@ -1,37 +1,50 @@
-# Sanford's server uses DatTCP for a TCP Server. When a client connects, the
-# `serve` method is called. Sanford creates a new instance of a connection
-# handler and hands it the service host and client socket. This is because the
-# `serve` method can be accessed by multiple threads, so we essentially create a
-# new connection handler per thread.
-#
 require 'dat-tcp'
+require 'sanford-protocol'
 
-require 'sanford/connection'
+require 'sanford/worker'
 
 module Sanford
 
   class Server
     include DatTCP::Server
 
-    attr_reader :service_host
-
     def initialize(service_host, options = {})
       @service_host = service_host
-      super(self.service_host.ip, self.service_host.port, options)
+      super(@service_host.ip, @service_host.port, options)
     end
 
     def name
-      self.service_host.name
+      @service_host.name
     end
 
+    # `serve` can be called at the same time by multiple threads. Thus we create
+    # a new instance of the handler for every request.
     def serve(socket)
-      connection = Sanford::Connection.new(self.service_host, socket)
-      connection.process
+      Sanford::Worker.new(@service_host).run(Connection.new(socket))
     end
 
     def inspect
       reference = '0x0%x' % (self.object_id << 1)
-      "#<#{self.class}:#{reference} @service_host=#{self.service_host.inspect}>"
+      "#<#{self.class}:#{reference} @service_host=#{@service_host.inspect}>"
+    end
+
+    class Connection
+
+      DEFAULT_TIMEOUT = 1
+
+      def initialize(socket)
+        @connection = Sanford::Protocol::Connection.new(socket)
+        @timeout    = (ENV['SANFORD_TIMEOUT'] || DEFAULT_TIMEOUT).to_f
+      end
+
+      def read_data
+        @connection.read(@timeout)
+      end
+
+      def write_data(data)
+        @connection.write data
+      end
+
     end
 
   end
