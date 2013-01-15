@@ -15,7 +15,7 @@ class ManagingTest < Assert::Context
     include Test::ForkManagerHelper
 
     setup do
-      Sanford.config.hosts.add(DummyHost)
+      Sanford.config.hosts.add(TestHost)
     end
   end
 
@@ -23,11 +23,9 @@ class ManagingTest < Assert::Context
     desc "to run a service host"
 
     should "start a sanford server for the only service host that is configured" do
-      host = Sanford.config.hosts.first
-
       self.call_sanford_manager(:run) do
-        assert_nothing_raised{ self.open_socket(host.config.ip, host.config.port) }
-        assert File.exists?(self.expected_pid_file(host, host.config.ip, host.config.port))
+        assert_nothing_raised{ self.open_socket(TestHost.config.ip, TestHost.config.port) }
+        assert File.exists?(self.expected_pid_file(TestHost, TestHost.config.ip, TestHost.config.port))
       end
     end
   end
@@ -35,15 +33,15 @@ class ManagingTest < Assert::Context
   class RunWithOptionsTest < CallTest
     desc "to run a service host and passing options"
     setup do
-      # make sure that DummyHost isn't the only 'host'
+      # make sure that TestHost isn't the only 'host'
       Sanford.config.hosts.add(Class.new)
     end
 
     should "start a sanford server for the specified service host and " \
            "use the passed options to override it's configuration" do
-      host = Sanford.config.find_host('DummyHost')
+      host = Sanford.config.find_host('TestHost')
 
-      self.call_sanford_manager(:run, { :host => 'DummyHost', :port => 12345 }) do
+      self.call_sanford_manager(:run, { :host => 'TestHost', :port => 12345 }) do
         assert_nothing_raised{ self.open_socket(host.config.ip, 12345) }
         assert File.exists?(self.expected_pid_file(host, host.config.ip, 12345))
       end
@@ -54,9 +52,9 @@ class ManagingTest < Assert::Context
     desc "to run a service host and setting env vars"
     setup do
       @current = ENV.delete('SANFORD_HOST'), ENV.delete('SANFORD_IP'), ENV.delete('SANFORD_PORT')
-      ENV['SANFORD_HOST'] = 'DummyHost'
+      ENV['SANFORD_HOST'] = 'TestHost'
       ENV['SANFORD_IP'], ENV['SANFORD_PORT'] = 'localhost', '54321'
-      # make sure that DummyHost isn't the only 'host'
+      # make sure that TestHost isn't the only 'host'
       Sanford.config.hosts.add(Class.new)
     end
     teardown do

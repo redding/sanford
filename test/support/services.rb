@@ -1,6 +1,6 @@
 require 'logger'
 
-class DummyHost
+class TestHost
   include Sanford::Host
 
   ip      'localhost'
@@ -13,12 +13,12 @@ class DummyHost
   verbose_logging false
 
   version 'v1' do
-    service_handler_ns 'DummyHost'
+    service_handler_ns 'TestHost'
 
     service 'echo',       'Echo'
     service 'bad',        'Bad'
     service 'multiply',   'Multiply'
-    service 'halt_it',    '::DummyHost::HaltIt'
+    service 'halt_it',    '::TestHost::HaltIt'
     service 'authorized', 'Authorized'
   end
 
@@ -71,4 +71,17 @@ class DummyHost
 
   end
 
+end
+
+class MyHost
+  include Sanford::Host
+
+  name  'my_host'
+  ip    'my.local'
+end
+
+class InvalidHost
+  include Sanford::Host
+
+  name 'invalid_host'
 end

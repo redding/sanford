@@ -6,8 +6,7 @@ class Sanford::Manager
   class BaseTest < Assert::Context
     desc "Sanford::Manager"
     setup do
-      @dummy_host = DummyHost
-      @manager = Sanford::Manager.new(@dummy_host)
+      @manager = Sanford::Manager.new(TestHost)
     end
     subject{ @manager }
 
