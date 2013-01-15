@@ -7,6 +7,8 @@ module Sanford
 
   class Worker
 
+    ProcessedService = Struct.new(:request, :handler_class, :response, :exception, :time_taken)
+
     attr_reader :logger
 
     def initialize(service_host)
@@ -17,64 +19,71 @@ module Sanford
     end
 
     def run(connection)
+      processed_service = nil
       self.log_received
       benchmark = Benchmark.measure do
-        self.run!(connection)
+        processed_service = self.run!(connection)
       end
-      @time_taken = self.round_time(benchmark.real)
-      self.log_complete
-      self.raise_if_debugging!
+      processed_service.time_taken = self.round_time(benchmark.real)
+      self.log_complete(processed_service)
+      self.raise_if_debugging!(processed_service.exception)
+      processed_service
     end
 
     protected
 
     def run!(connection)
-      @request = Sanford::Protocol::Request.parse(connection.read_data)
-      self.log_request
-      @handler_class = @service_host.handler_class_for(@request.version, @request.name)
-      self.log_handler_class
-      # @response = Sanford::Runner.new(@handler_class, @request).response
-      response_args = @handler_class.new(@service_host.logger, @request).run
-      @response = Sanford::Protocol::Response.new(*response_args)
-    rescue Exception => @exception
-      @response = @exception_handler.new(@exception, @logger).response
-    ensure
-      connection.write_data(@response.to_hash)
+      request, handler_class, response, exception = nil, nil, nil, nil
+      begin
+        request = Sanford::Protocol::Request.parse(connection.read_data)
+        self.log_request(request)
+        handler_class = @service_host.handler_class_for(request.version, request.name)
+        self.log_handler_class(handler_class)
+        # @response = Sanford::Runner.new(@handler_class, @request).response
+        response_args = handler_class.new(@service_host.logger, request).run
+        response = Sanford::Protocol::Response.new(*response_args)
+      rescue Exception => exception
+        response = @exception_handler.new(exception, @logger).response
+      ensure
+        connection.write_data response.to_hash
+      end
+      ProcessedService.new(request, handler_class, response, exception)
     end
 
-    def raise_if_debugging!
-      raise @exception if @exception && ENV['SANFORD_DEBUG']
+    def raise_if_debugging!(exception)
+      raise exception if exception && ENV['SANFORD_DEBUG']
     end
 
     def log_received
       self.logger.verbose.info("Received request")
     end
 
-    def log_request
-      self.logger.verbose.info("  Version: #{@request.version.inspect}")
-      self.logger.verbose.info("  Service: #{@request.name.inspect}")
+    def log_request(request)
+      self.logger.verbose.info("  Version: #{request.version.inspect}")
+      self.logger.verbose.info("  Service: #{request.name.inspect}")
+      self.logger.verbose.info("  Params:  #{request.params.inspect}")
     end
 
-    def log_handler_class
-      self.logger.verbose.info("  Handler: #{@handler_class}")
-      self.logger.verbose.info("  Params:  #{@request.params.inspect}")
+    def log_handler_class(handler_class)
+      self.logger.verbose.info("  Handler: #{handler_class}")
     end
 
-    def log_complete
-      self.logger.verbose.info("Completed in #{@time_taken}ms #{@response.status}\n")
-      self.logger.summary.info self.summary_line.to_s
+    def log_complete(processed_service)
+      self.logger.verbose.info "Completed in #{processed_service.time_taken}ms " \
+        "#{processed_service.response.status}\n"
+      self.logger.summary.info self.summary_line(processed_service).to_s
     end
 
-    def summary_line
+    def summary_line(processed_service)
       SummaryLine.new.tap do |line|
-        if @request
-          line.add 'version', @request.version
-          line.add 'service', @request.name
-          line.add 'params',  @request.params
+        if (request = processed_service.request)
+          line.add 'version', request.version
+          line.add 'service', request.name
+          line.add 'params',  request.params
         end
-        line.add 'handler',   @handler_class
-        line.add 'status',    @response.status.code if @response
-        line.add 'duration',  @time_taken
+        line.add 'handler',   processed_service.handler_class
+        line.add 'status',    processed_service.response.status.code if processed_service.response
+        line.add 'duration',  processed_service.time_taken
       end
     end
 
