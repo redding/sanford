@@ -11,8 +11,19 @@ class Sanford::Manager
     end
     subject{ @manager }
 
-    should have_instance_methods :host, :process_name, :call
+    should have_instance_methods :service_host, :process_name, :options, :call
     should have_class_methods :call
+  end
+
+  class InvalidServerOptionsTest < BaseTest
+    desc "invalid server options"
+
+    should "raise a custom exception" do
+      assert_raises(Sanford::InvalidServerOptionsError) do
+        Sanford::Manager.new(InvalidHost)
+      end
+    end
+
   end
 
   # Sanford::Manager#call methods are tested in the test/system/managing_test.rb

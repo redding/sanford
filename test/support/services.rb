@@ -85,3 +85,7 @@ class InvalidHost
 
   name 'invalid_host'
 end
+
+class EmptyHost
+  include Sanford::Host
+end

@@ -60,7 +60,7 @@ module Test
     end
 
     def expected_pid_file(host, ip, port)
-      host.config.pid_dir.join("#{ip}_#{port}_#{host}.pid")
+      host.pid_dir.join("#{ip}_#{port}_#{host}.pid")
     end
 
   end

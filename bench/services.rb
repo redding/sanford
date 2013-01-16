@@ -1,11 +1,11 @@
 class BenchHost
   include Sanford::Host
 
-  self.port             = 12000
-  self.pid_dir          = File.expand_path("../../tmp", __FILE__)
+  port     12000
+  pid_dir  File.expand_path("../../tmp", __FILE__)
 
-  self.logger           = Logger.new(STDOUT)
-  self.verbose_logging  = false
+  logger           Logger.new(STDOUT)
+  verbose_logging  false
 
   version 'v1' do
     service 'simple', 'BenchHost::Simple'

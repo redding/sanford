@@ -1,4 +1,5 @@
 require 'dat-tcp'
+require 'ostruct'
 require 'sanford-protocol'
 
 require 'sanford/worker'
@@ -10,7 +11,8 @@ module Sanford
 
     def initialize(service_host, options = {})
       @service_host = service_host
-      super(@service_host.ip, @service_host.port, options)
+      @configuration = OpenStruct.new(@service_host.configuration.to_hash.merge(options))
+      super(@configuration.ip, @configuration.port, options)
     end
 
     def name
