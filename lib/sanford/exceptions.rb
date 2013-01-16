@@ -8,7 +8,7 @@ module Sanford
     attr_reader :message
 
     def initialize(host_name)
-      @message = if Sanford.config.hosts.empty?
+      @message = if Sanford.hosts.empty?
         "No hosts have been defined. " \
         "Please define a host before trying to run Sanford."
       else

@@ -1,5 +1,6 @@
 require 'assert'
-require 'ostruct'
+
+require 'sanford/manager'
 
 class Sanford::Manager
 

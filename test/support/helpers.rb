@@ -3,12 +3,12 @@ module Test
   module Environment
 
     def self.store_and_clear_hosts
-      @previous_hosts = Sanford.config.hosts.dup
-      Sanford.config.hosts.clear
+      @previous_hosts = Sanford.hosts.instance_variable_get("@set").dup
+      Sanford.hosts.clear
     end
 
     def self.restore_hosts
-      Sanford.config.hosts = @previous_hosts
+      Sanford.instance_variable_set("@hosts", Sanford::Hosts.new(@previous_hosts))
       @previous_hosts = nil
     end
 

@@ -1,12 +1,5 @@
-# The Manager class is responsible for managing sanford's server process. Given
-# a host, it can start and stop the host's server process. This is done using
-# the Daemons gem and `run_proc`. The class provides a convenience method on the
-# class called `call`, which will find a host, build a new manager and call the
-# relevant action (this is what the rake tasks use).
-#
 require 'daemons'
 
-require 'sanford/config'
 require 'sanford/exceptions'
 require 'sanford/server'
 
@@ -22,9 +15,9 @@ module Sanford
       options[:port]  ||= ENV['SANFORD_PORT']
 
       host_class = if (host_class_or_name = options.delete(:host))
-        Sanford.config.find_host(host_class_or_name)
+        Sanford.hosts.find(host_class_or_name)
       else
-        Sanford.config.hosts.first
+        Sanford.hosts.first
       end
       raise(Sanford::NoHostError.new(host_class_or_name)) if !host_class
       self.new(host_class, options).call(action)
