@@ -1,11 +1,11 @@
 require 'assert'
 
-class Sanford::HostVersionGroup
+class Sanford::Host::VersionGroup
 
   class BaseTest < Assert::Context
     desc "Sanford::Host::VersionGroup"
     setup do
-      @version_group = Sanford::HostVersionGroup.new('v1'){ }
+      @version_group = Sanford::Host::VersionGroup.new('v1'){ }
     end
     subject{ @version_group }
 

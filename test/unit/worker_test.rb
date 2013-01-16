@@ -24,7 +24,7 @@ class Sanford::Worker
 
     desc "Sanford::Worker"
     setup do
-      @worker = Sanford::Worker.new(TestHost.new)
+      @worker = Sanford::Worker.new(TestHost)
     end
     subject{ @worker }
 

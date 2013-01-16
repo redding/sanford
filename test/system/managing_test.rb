@@ -26,8 +26,8 @@ class ManagingTest < Assert::Context
 
     should "start a sanford server for the only service host that is configured" do
       self.call_sanford_manager(:run) do
-        assert_nothing_raised{ self.open_socket(TestHost.config.ip, TestHost.config.port) }
-        assert File.exists?(self.expected_pid_file(TestHost, TestHost.config.ip, TestHost.config.port))
+        assert_nothing_raised{ self.open_socket(TestHost.ip, TestHost.port) }
+        assert File.exists?(self.expected_pid_file(TestHost, TestHost.ip, TestHost.port))
       end
     end
   end
@@ -44,8 +44,8 @@ class ManagingTest < Assert::Context
       host = Sanford.hosts.find('TestHost')
 
       self.call_sanford_manager(:run, { :host => 'TestHost', :port => 12345 }) do
-        assert_nothing_raised{ self.open_socket(host.config.ip, 12345) }
-        assert File.exists?(self.expected_pid_file(host, host.config.ip, 12345))
+        assert_nothing_raised{ self.open_socket(host.ip, 12345) }
+        assert File.exists?(self.expected_pid_file(host, host.ip, 12345))
       end
     end
   end

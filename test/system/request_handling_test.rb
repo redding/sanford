@@ -10,7 +10,7 @@ class RequestHandlingTest < Assert::Context
 
   desc "Sanford's handling of requests"
   setup do
-    @service_host = TestHost.new
+    @service_host = TestHost
     @server = Sanford::Server.new(@service_host, { :ready_timeout => 0 })
   end
 

@@ -1,37 +1,38 @@
 module Sanford
 
-  class BaseError < RuntimeError; end
+  BaseError = Class.new(RuntimeError)
 
-  class NotFoundError < BaseError; end
+  NotFoundError = Class.new(RuntimeError)
 
   class NoHostError < BaseError
     attr_reader :message
 
     def initialize(host_name)
-      @message = if Sanford.hosts.empty?
-        "No hosts have been defined. " \
-        "Please define a host before trying to run Sanford."
+      message = if Sanford.hosts.empty?
+        "No hosts have been defined. Please define a host before trying to run Sanford."
       else
         "A host couldn't be found with the name #{host_name.inspect}. "
       end
+      super message
     end
+
   end
 
-  class InvalidHostError < BaseError
-    attr_reader :message
+  class InvalidServerOptionsError < BaseError
 
     def initialize(host)
-      @message = "A port must be configured or provided to build an instance of '#{host}'"
+      super "A port must be configured or provided to run a server for '#{host}'"
     end
+
   end
 
   class NoHandlerClassError < BaseError
-    attr_reader :message
 
     def initialize(host, handler_class_name)
-      @message = "Sanford couldn't find the service handler '#{handler_class_name}'." \
+      super "Sanford couldn't find the service handler '#{handler_class_name}'. " \
         "It doesn't exist or hasn't been required in yet."
     end
+
   end
 
 end
