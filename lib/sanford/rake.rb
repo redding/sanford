@@ -12,6 +12,7 @@ module Sanford::Rake
 
         task :load_manager => :setup do
           require 'sanford'
+          require 'sanford/manager'
           Sanford.init
         end
 

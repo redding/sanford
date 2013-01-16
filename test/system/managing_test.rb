@@ -1,5 +1,7 @@
 require 'assert'
 
+require 'sanford/manager'
+
 class ManagingTest < Assert::Context
   desc "Using Sanford's manager"
   setup do
@@ -15,7 +17,7 @@ class ManagingTest < Assert::Context
     include Test::ForkManagerHelper
 
     setup do
-      Sanford.config.hosts.add(TestHost)
+      Sanford.register(TestHost)
     end
   end
 
@@ -34,12 +36,12 @@ class ManagingTest < Assert::Context
     desc "to run a service host and passing options"
     setup do
       # make sure that TestHost isn't the only 'host'
-      Sanford.config.hosts.add(Class.new)
+      Sanford.register(Class.new)
     end
 
     should "start a sanford server for the specified service host and " \
            "use the passed options to override it's configuration" do
-      host = Sanford.config.find_host('TestHost')
+      host = Sanford.hosts.find('TestHost')
 
       self.call_sanford_manager(:run, { :host => 'TestHost', :port => 12345 }) do
         assert_nothing_raised{ self.open_socket(host.config.ip, 12345) }
@@ -55,7 +57,7 @@ class ManagingTest < Assert::Context
       ENV['SANFORD_HOST'] = 'TestHost'
       ENV['SANFORD_IP'], ENV['SANFORD_PORT'] = 'localhost', '54321'
       # make sure that TestHost isn't the only 'host'
-      Sanford.config.hosts.add(Class.new)
+      Sanford.register(Class.new)
     end
     teardown do
       ENV['SANFORD_HOST'], ENV['SANFORD_IP'], ENV['SANFORD_PORT'] = @current
@@ -63,7 +65,7 @@ class ManagingTest < Assert::Context
 
     should "start a sanford server for the specified service host and " \
            "use the env vars to override it's configuration" do
-      host = Sanford.config.find_host(ENV['SANFORD_HOST'])
+      host = Sanford.hosts.find(ENV['SANFORD_HOST'])
       port = ENV['SANFORD_PORT'].to_i
 
       self.call_sanford_manager(:run) do
@@ -76,8 +78,8 @@ class ManagingTest < Assert::Context
   class BadHostTest < ManagingTest
     desc "with a bad host name"
     setup do
-      Sanford.config.hosts.clear
-      Sanford.config.hosts.add(Class.new)
+      Sanford.hosts.clear
+      Sanford.register(Class.new)
     end
 
     should "raise an exception when a service host can't be found" do
@@ -90,7 +92,7 @@ class ManagingTest < Assert::Context
   class NoHostsTest < ManagingTest
     desc "with no hosts"
     setup do
-      Sanford.config.hosts.clear
+      Sanford.hosts.clear
     end
 
     should "raise an exception when there aren't any service hosts" do

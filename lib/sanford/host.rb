@@ -13,7 +13,7 @@ module Sanford
       host_class.class_eval do
         extend Sanford::Host::Interface
       end
-      Sanford.config.hosts.add(host_class)
+      Sanford.register(host_class)
     end
 
     attr_reader :config

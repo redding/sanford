@@ -38,7 +38,7 @@ module Sanford::Host
     should have_instance_methods :name, :ip, :port, :pid_dir, :logger
 
     should "have registered the class with sanford's known hosts" do
-      assert_includes subject, Sanford.config.hosts
+      assert_includes subject, Sanford.hosts
     end
   end
 
