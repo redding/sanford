@@ -18,7 +18,7 @@ module Sanford
 
   end
 
-  class InvalidServerOptionsError < BaseError
+  class InvalidHostError < BaseError
 
     def initialize(host)
       super "A port must be configured or provided to run a server for '#{host}'"
@@ -28,7 +28,7 @@ module Sanford
 
   class NoHandlerClassError < BaseError
 
-    def initialize(host, handler_class_name)
+    def initialize(handler_class_name)
       super "Sanford couldn't find the service handler '#{handler_class_name}'. " \
         "It doesn't exist or hasn't been required in yet."
     end

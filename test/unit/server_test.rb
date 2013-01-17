@@ -1,6 +1,7 @@
 require 'assert'
 
 require 'sanford/server'
+require 'sanford/manager'
 
 class Sanford::Server
 
@@ -18,13 +19,6 @@ class Sanford::Server
     should "use the service host's ip and port" do
       assert_equal TestHost.ip,   subject.host
       assert_equal TestHost.port, subject.port
-    end
-
-    should "allow specifying a custom ip and port" do
-      server = Sanford::Server.new(TestHost, :ip => '1.2.3.4', :port => 12345)
-
-      assert_equal '1.2.3.4', server.host
-      assert_equal 12345,     server.port
     end
 
   end

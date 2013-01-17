@@ -86,6 +86,14 @@ class InvalidHost
   name 'invalid_host'
 end
 
+class UndefinedHandlersHost
+  include Sanford::Host
+
+  version 'v1' do
+    service 'undefined', 'ThisIsNotDefined'
+  end
+end
+
 class EmptyHost
   include Sanford::Host
 end

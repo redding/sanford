@@ -44,7 +44,7 @@ module Test
         trap("TERM"){ exit }
         Sanford::Manager.call(*args)
       end
-      sleep 1 # give time for the command to run
+      sleep 1.5 # give time for the command to run
       yield
     ensure
       if pid

@@ -5,13 +5,14 @@
 #
 require 'assert'
 
+require 'sanford/manager'
+
 class RequestHandlingTest < Assert::Context
   include Test::ForkServerHelper
 
   desc "Sanford's handling of requests"
   setup do
-    @service_host = TestHost
-    @server = Sanford::Server.new(@service_host, { :ready_timeout => 0 })
+    @server = Sanford::Server.new(TestHost, { :ready_timeout => 0 })
   end
 
   # Simple service test that echos back the params sent to it
@@ -20,7 +21,7 @@ class RequestHandlingTest < Assert::Context
 
     should "return a successful response and echo the params sent to it" do
       self.start_server(@server) do
-        response = SimpleClient.call_with_request(@service_host, 'v1', 'echo', {
+        response = SimpleClient.call_with_request(TestHost, 'v1', 'echo', {
           :message => 'test'
         })
 
@@ -48,7 +49,7 @@ class RequestHandlingTest < Assert::Context
     should "return a bad request response with an error message" do
       self.start_server(@server) do
         bytes = [ Sanford::Protocol.msg_version, "\000" ].join
-        response = SimpleClient.call_with(@service_host, bytes)
+        response = SimpleClient.call_with(TestHost, bytes)
 
         assert_equal 400,     response.status.code
         assert_match "size",  response.status.message
@@ -64,7 +65,7 @@ class RequestHandlingTest < Assert::Context
     should "return a bad request response with an error message" do
       self.start_server(@server) do
         bytes = [ Sanford::Protocol.msg_version, "\000" ].join
-        response = SimpleClient.call_with_msg_body(@service_host, {}, nil, "\000")
+        response = SimpleClient.call_with_msg_body(TestHost, {}, nil, "\000")
 
         assert_equal 400,                 response.status.code
         assert_match "Protocol version",  response.status.message
@@ -78,7 +79,7 @@ class RequestHandlingTest < Assert::Context
     desc "when sent a request with an invalid body"
     should "return a bad request response with an error message" do
       self.start_server(@server) do
-        response = SimpleClient.call_with_encoded_msg_body(@service_host, "\000\001\010\011" * 2)
+        response = SimpleClient.call_with_encoded_msg_body(TestHost, "\000\001\010\011" * 2)
 
         assert_equal 400,     response.status.code
         assert_match "body",  response.status.message
@@ -98,7 +99,7 @@ class RequestHandlingTest < Assert::Context
 
     should "timeout" do
       self.start_server(@server) do
-        client = SimpleClient.new(@service_host, :with_delay => 0.2)
+        client = SimpleClient.new(TestHost, :with_delay => 0.2)
         response = client.call_with_request('v1', 'echo', { :message => 'test' })
 
         assert_equal 408,   response.status.code

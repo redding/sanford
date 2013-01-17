@@ -2,6 +2,7 @@ require 'dat-tcp'
 require 'ostruct'
 require 'sanford-protocol'
 
+require 'sanford/host_data'
 require 'sanford/worker'
 
 module Sanford
@@ -9,25 +10,26 @@ module Sanford
   class Server
     include DatTCP::Server
 
-    def initialize(service_host, options = {})
-      @service_host = service_host
-      @configuration = OpenStruct.new(@service_host.configuration.to_hash.merge(options))
-      super(@configuration.ip, @configuration.port, options)
+    attr_reader :host_data
+
+    def initialize(host, options = {})
+      @host_data = host.kind_of?(Sanford::HostData) ? host : Sanford::HostData.new(host)
+      super(@host_data.ip, @host_data.port, options)
     end
 
     def name
-      @service_host.name
+      @host_data.name
     end
 
     # `serve` can be called at the same time by multiple threads. Thus we create
     # a new instance of the handler for every request.
     def serve(socket)
-      Sanford::Worker.new(@service_host).run(Connection.new(socket))
+      Sanford::Worker.new(@host_data, Connection.new(socket)).run
     end
 
     def inspect
       reference = '0x0%x' % (self.object_id << 1)
-      "#<#{self.class}:#{reference} @service_host=#{@service_host.inspect}>"
+      "#<#{self.class}:#{reference} @service_host=#{@host_data.inspect}>"
     end
 
     class Connection

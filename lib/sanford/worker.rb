@@ -11,18 +11,18 @@ module Sanford
 
     attr_reader :logger
 
-    def initialize(service_host)
-      @service_host = service_host
+    def initialize(host_data, connection)
+      @host_data, @connection = host_data, connection
 
-      @logger = Sanford::Logger.new(@service_host.logger, @service_host.verbose_logging)
-      @exception_handler = @service_host.exception_handler
+      @logger = Sanford::Logger.new(@host_data.logger, @host_data.verbose)
+      @exception_handler = @host_data.exception_handler
     end
 
-    def run(connection)
+    def run
       processed_service = nil
       self.log_received
       benchmark = Benchmark.measure do
-        processed_service = self.run!(connection)
+        processed_service = self.run!
       end
       processed_service.time_taken = self.round_time(benchmark.real)
       self.log_complete(processed_service)
@@ -32,20 +32,20 @@ module Sanford
 
     protected
 
-    def run!(connection)
+    def run!
       request, handler_class, response, exception = nil, nil, nil, nil
       begin
-        request = Sanford::Protocol::Request.parse(connection.read_data)
+        request = Sanford::Protocol::Request.parse(@connection.read_data)
         self.log_request(request)
-        handler_class = @service_host.handler_class_for(request.version, request.name)
+        handler_class = @host_data.handler_class_for(request.version, request.name)
         self.log_handler_class(handler_class)
         # @response = Sanford::Runner.new(@handler_class, @request).response
-        response_args = handler_class.new(@service_host.logger, request).run
+        response_args = handler_class.new(@host_data.logger, request).run
         response = Sanford::Protocol::Response.new(*response_args)
       rescue Exception => exception
         response = @exception_handler.new(exception, @logger).response
       ensure
-        connection.write_data response.to_hash
+        @connection.write_data response.to_hash
       end
       ProcessedService.new(request, handler_class, response, exception)
     end

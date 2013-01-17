@@ -24,7 +24,9 @@ class Sanford::Worker
 
     desc "Sanford::Worker"
     setup do
-      @worker = Sanford::Worker.new(TestHost)
+      @host_data = Sanford::HostData.new(TestHost)
+      @connection = FakeConnection.with_request('version', 'service', {})
+      @worker = Sanford::Worker.new(@host_data, @connection)
     end
     subject{ @worker }
 
@@ -36,10 +38,11 @@ class Sanford::Worker
     desc "running a request for the echo server"
     setup do
       @connection = FakeConnection.with_request('v1', 'echo', { :message => 'test' })
+      @worker = Sanford::Worker.new(@host_data, @connection)
     end
 
     should "return a successful response and echo the params sent to it" do
-      assert_nothing_raised{ @worker.run(@connection) }
+      assert_nothing_raised{ @worker.run }
       response = @connection.response
 
       assert_equal 200,     response.status.code
@@ -55,11 +58,12 @@ class Sanford::Worker
       request_hash = Sanford::Protocol::Request.new('v1', 'what', {}).to_hash
       request_hash.delete('version')
       @connection = FakeConnection.new(request_hash)
+      @worker = Sanford::Worker.new(@host_data, @connection)
     end
 
     should "return a bad request response" do
       assert_raises(Sanford::Protocol::BadRequestError) do
-        @worker.run(@connection)
+        @worker.run
       end
       response = @connection.response
 
@@ -77,11 +81,12 @@ class Sanford::Worker
       request_hash = Sanford::Protocol::Request.new('v1', 'what', {}).to_hash
       request_hash.delete('name')
       @connection = FakeConnection.new(request_hash)
+      @worker = Sanford::Worker.new(@host_data, @connection)
     end
 
     should "return a bad request response" do
       assert_raises(Sanford::Protocol::BadRequestError) do
-        @worker.run(@connection)
+        @worker.run
       end
       response = @connection.response
 
@@ -97,11 +102,12 @@ class Sanford::Worker
     desc "running a request with no matching service name"
     setup do
       @connection = FakeConnection.with_request('v1', 'what', {})
+      @worker = Sanford::Worker.new(@host_data, @connection)
     end
 
     should "return a bad request response" do
       assert_raises(Sanford::NotFoundError) do
-        @worker.run(@connection)
+        @worker.run
       end
       response = @connection.response
 
@@ -116,11 +122,12 @@ class Sanford::Worker
     desc "running a request that errors on the server"
     setup do
       @connection = FakeConnection.with_request('v1', 'bad', {})
+      @worker = Sanford::Worker.new(@host_data, @connection)
     end
 
     should "return a bad request response" do
       assert_raises(RuntimeError) do
-        @worker.run(@connection)
+        @worker.run
       end
       response = @connection.response
 
@@ -135,10 +142,11 @@ class Sanford::Worker
     desc "running a request that halts"
     setup do
       @connection = FakeConnection.with_request('v1', 'halt_it', {})
+      @worker = Sanford::Worker.new(@host_data, @connection)
     end
 
     should "return the response that was halted" do
-      assert_nothing_raised{ @worker.run(@connection) }
+      assert_nothing_raised{ @worker.run }
       response = @connection.response
 
       assert_equal 728,                 response.status.code
@@ -152,10 +160,11 @@ class Sanford::Worker
     desc "running a request that halts in a callback"
     setup do
       @connection = FakeConnection.with_request('v1', 'authorized', {})
+      @worker = Sanford::Worker.new(@host_data, @connection)
     end
 
     should "return the response that was halted" do
-      assert_nothing_raised{ @worker.run(@connection) }
+      assert_nothing_raised{ @worker.run }
       response = @connection.response
 
       assert_equal 401,               response.status.code
