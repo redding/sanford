@@ -25,8 +25,9 @@ end
 class HaltWithServiceHandler < StaticServiceHandler
 
   def initialize(halt_with)
+    stringified = halt_with.inject({}){|h, (k, v)| h.merge({ k.to_s => v }) }
     request = Sanford::Protocol::Request.new('v1', 'name', {
-      'halt_with' => halt_with.dup
+      'halt_with' => stringified
     })
     super(Sanford::NullLogger.new, request)
   end
