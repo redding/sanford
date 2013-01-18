@@ -1,170 +1,128 @@
 require 'assert'
 
+require 'sanford/test_helpers'
+
 module Sanford::ServiceHandler
 
   class BaseTest < Assert::Context
+    include Sanford::TestHelpers
+
     desc "Sanford::ServiceHandler"
     setup do
-      @handler = StaticServiceHandler.new
+      @handler = init_handler(TestServiceHandler)
     end
     subject{ @handler }
 
-    should have_instance_methods :logger, :request, :init, :init!, :run, :run!, :halt, :params
+    should have_instance_methods :init, :init!, :run, :run!
 
     should "raise a NotImplementedError if run! is not overwritten" do
       assert_raises(NotImplementedError){ subject.run! }
     end
-    should "return the request's params with #params" do
-      assert_equal subject.request.params, subject.params
-    end
+
   end
 
   class WithMethodFlagsTest < BaseTest
     setup do
-      @handler = FlaggedServiceHandler.new
+      @handler = init_handler(FlagServiceHandler)
     end
 
-    should "should call the `init!` method when `init` is called" do
-      subject.init
-
+    should "have called `init!`" do
       assert_equal true, subject.init_bang_called
     end
-    should "run the `init` and `run!` method when `run` is called" do
-      subject.run
 
-      assert_equal true, subject.init_called
-      assert_equal true, subject.run_bang_called
+    should "not have called `run!` or it's callbacks when initialized" do
+      assert_nil subject.before_run_called
+      assert_nil subject.run_bang_called
+      assert_nil subject.after_run_called
     end
-    should "run it's callbacks when `run` is called" do
+
+    should "call `run!` and it's callbacks when it's `run`" do
       subject.run
 
       assert_equal true, subject.before_run_called
+      assert_equal true, subject.run_bang_called
       assert_equal true, subject.after_run_called
     end
+
   end
 
-  class ManualWithThrowTest < BaseTest
-    desc "run that manuallly throws `:halt`"
-    setup do
-      handler = ManualThrowServiceHandler.new
-      @returned = handler.run
-    end
+  class HaltTest < BaseTest
+    desc "halt"
 
-    should "catch `:halt` and return what was thrown" do
-      assert_equal 'halted!', @returned
-    end
-  end
-
-  class HaltWithAStatusNameAndMessageTest < BaseTest
-    desc "halt with a status name and a message"
-    setup do
-      @halt_with = { :code => :success, :message => "Just a test" }
-      handler = HaltWithServiceHandler.new(@halt_with)
-      @response_status, @data = handler.run
-    end
-
-    should "return a response with the status passed to halt and a nil data" do
-      assert_equal @halt_with[:code],     @response_status.first
-      assert_equal @halt_with[:message],  @response_status.last
-      assert_equal @halt_with[:data],     @data
-    end
-  end
-
-  class HaltWithAStatusCodeAndDataTest < BaseTest
-    desc "halt with a status code and data"
-    setup do
-      @halt_with = { :code => 648, :data => true }
-      handler = HaltWithServiceHandler.new(@halt_with)
-      @response_status, @data = handler.run
-    end
-
-    should "return a response status and data when passed a number and a data option" do
-      assert_equal @halt_with[:code],     @response_status.first
-      assert_equal @halt_with[:message],  @response_status.last
-      assert_equal @halt_with[:data],     @data
-    end
-  end
-
-  class BeforeRunHaltsTest < BaseTest
-    desc "if 'before_run' halts"
-    setup do
-      @handler = ConfigurableServiceHandler.new({
-        :before_run => proc{ halt 601, :message => "before_run halted" }
+    should "return a response with the status code and the passed data" do
+      response = run_handler(HaltServiceHandler, {
+        'code'    => 648,
+        'data'    => true
       })
-      @response_status, @data = @handler.run
+
+      assert_equal 648,   response.status.code
+      assert_equal true,  response.data
+      assert_nil response.status.message
     end
 
-    should "only call 'before_run' and 'after_run'" do
-      assert_equal true,  subject.before_run_called
-      assert_equal false, subject.init_called
-      assert_equal false, subject.init_bang_called
-      assert_equal false, subject.run_bang_called
-      assert_equal true,  subject.after_run_called
-    end
+    should "return a response with the status code for the named status and the passed message" do
+      response = run_handler(HaltServiceHandler, {
+        'code'    => 'ok',
+        'message' => 'test message'
+      })
 
-    should "return the 'before_run' response" do
-      assert_equal 601,                 @response_status.first
-      assert_equal "before_run halted", @response_status.last
-      assert_equal nil,                 @data
-    end
-  end
-
-  class AfterRunHaltsTest < BaseTest
-    desc "if 'after_run' halts"
-    setup do
-      @after_run = proc{ halt 801, :message => "after_run halted" }
+      assert_equal 200,             response.status.code
+      assert_equal 'test message',  response.status.message
+      assert_nil response.data
     end
 
   end
 
-  class AndBeforeRunHaltsTest < AfterRunHaltsTest
-      desc "and 'before_run' halts"
-      setup do
-        @handler = ConfigurableServiceHandler.new({
-          :before_run => proc{ halt 601, :message => "before_run halted" },
-          :after_run  => @after_run
-        })
-        @response_status, @data = @handler.run
-      end
+  class HaltingTest < BaseTest
+    desc "halting at different points"
 
-      should "only call 'before_run' and 'after_run'" do
-        assert_equal true,  subject.before_run_called
-        assert_equal false, subject.init_called
-        assert_equal false, subject.init_bang_called
-        assert_equal false, subject.run_bang_called
-        assert_equal true,  subject.after_run_called
-      end
+    should "not call `run!` or it's callbacks when `init!` halts" do
+      response = run_handler(HaltingBehaviorServiceHandler, {
+        'when' => 'init!'
+      })
 
-      should "return the 'after_run' response" do
-        assert_equal 801,                 @response_status.first
-        assert_equal "after_run halted",  @response_status.last
-        assert_equal nil,                 @data
-      end
+      assert_equal 'init! halting', response.status.message
     end
 
-    class AndRunBangHaltsTest < AfterRunHaltsTest
-      desc "and 'run!' halts"
-      setup do
-        @handler = ConfigurableServiceHandler.new({
-          :run!       => proc{ halt 601, :message => "run! halted" },
-          :after_run  => @after_run
-        })
-        @response_status, @data = @handler.run
-      end
+    should "not call `run!` but should call `before_run` and `after_run` when `before_run` halts" do
+      handler, response = run_and_return_handler(HaltingBehaviorServiceHandler, {
+        'when' => 'before_run'
+      })
 
-      should "call 'init!', 'run!' and the callbacks" do
-        assert_equal true,  subject.before_run_called
-        assert_equal true,  subject.init_called
-        assert_equal true,  subject.init_bang_called
-        assert_equal true,  subject.run_bang_called
-        assert_equal true,  subject.after_run_called
-      end
+      assert_equal true,  handler.init_bang_called
+      assert_equal true,  handler.before_run_called
+      assert_equal nil,   handler.run_bang_called
+      assert_equal nil,   handler.after_run_called
 
-      should "return the 'after_run' response" do
-        assert_equal 801,                 @response_status.first
-        assert_equal "after_run halted",  @response_status.last
-        assert_equal nil,                 @data
-      end
+      assert_equal 'before_run halting', response.status.message
     end
+
+    should "call `before_run` and `run!` when `run!` halts" do
+      handler, response = run_and_return_handler(HaltingBehaviorServiceHandler, {
+        'when' => 'run!'
+      })
+
+      assert_equal true,  handler.init_bang_called
+      assert_equal true,  handler.before_run_called
+      assert_equal true,  handler.run_bang_called
+      assert_equal nil,   handler.after_run_called
+
+      assert_equal 'run! halting', response.status.message
+    end
+
+    should "call `before_run`, `run!` and `after_run` when `after_run` halts" do
+      handler, response = run_and_return_handler(HaltingBehaviorServiceHandler, {
+        'when' => 'after_run'
+      })
+
+      assert_equal true,  handler.init_bang_called
+      assert_equal true,  handler.before_run_called
+      assert_equal true,  handler.run_bang_called
+      assert_equal true,  handler.after_run_called
+
+      assert_equal 'after_run halting', response.status.message
+    end
+
+  end
 
 end

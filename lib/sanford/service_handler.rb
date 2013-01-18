@@ -15,11 +15,9 @@ module Sanford
       false
     end
 
-    attr_reader :logger, :request
-
-    def initialize(logger, request)
-      @logger = logger
-      @request = request
+    def initialize(runner)
+      @sanford_runner = runner
+      self.init
     end
 
     def init
@@ -29,39 +27,15 @@ module Sanford
     def init!
     end
 
-    # This method has very specific handling when before/after callbacks halt.
-    # It should always return a response tuple: `[ status, data ]`
-    # * If `before_run` halts, then the handler is not 'run' (it's `init` and
-    #   `run` methods are not called) and it's response tuple is returned.
-    # * If `after_run` halts, then it's response tuple is returned, even if
-    #   calling `before_run` or 'running' the handler generated a response
-    #   tuple.
-    # * If `before_run` and `after_run` do not halt, then the response tuple
-    #   from 'running' is used.
     def run
-      response_tuple = self.run_callback 'before_run'
-      response_tuple ||= catch(:halt) do
-        self.init
-        data = self.run!
-        [ 200, data ]
-      end
-      after_response_tuple = self.run_callback 'after_run'
-      (response_tuple = after_response_tuple) if after_response_tuple
-      response_tuple
+      self.run_callback 'before_run'
+      data = self.run!
+      self.run_callback 'after_run'
+      [ 200, data ]
     end
 
     def run!
       raise NotImplementedError
-    end
-
-    def before_run
-    end
-
-    def after_run
-    end
-
-    def params
-      self.request.params
     end
 
     def inspect
@@ -71,21 +45,33 @@ module Sanford
 
     protected
 
-    def halt(status, options = nil)
-      options = OpenStruct.new(options || {})
-      response_status = [ status, options.message ]
-      throw(:halt, [ response_status, options.data ])
+    def before_run
     end
 
-    # Notes:
-    # * Callbacks need to catch :halt incase the halt method is called. They
-    #   also need to be sure to return nil if nothing is thrown, so that it
-    #   is not considered as a response.
-    def run_callback(name)
-      catch(:halt) do
-        self.send(name.to_s)
-        nil
-      end
+    def after_run
+    end
+
+    # Helpers
+
+    def halt(*args)
+      args.push(caller)
+      @sanford_runner.halt(*args)
+    end
+
+    def request
+      @sanford_runner.request
+    end
+
+    def params
+      self.request.params
+    end
+
+    def logger
+      @sanford_runner.logger
+    end
+
+    def run_callback(callback)
+      self.send(callback.to_s)
     end
 
   end

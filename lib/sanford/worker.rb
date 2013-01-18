@@ -2,6 +2,7 @@ require 'benchmark'
 require 'sanford-protocol'
 
 require 'sanford/logger'
+require 'sanford/runner'
 
 module Sanford
 
@@ -39,9 +40,7 @@ module Sanford
         self.log_request(request)
         handler_class = @host_data.handler_class_for(request.version, request.name)
         self.log_handler_class(handler_class)
-        # @response = Sanford::Runner.new(@handler_class, @request).response
-        response_args = handler_class.new(@host_data.logger, request).run
-        response = Sanford::Protocol::Response.new(*response_args)
+        response = Sanford::Runner.new(handler_class, request, @host_data.logger).run
       rescue Exception => exception
         response = @exception_handler.new(exception, @logger).response
       ensure
