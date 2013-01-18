@@ -4,7 +4,6 @@ require 'pathname'
 require 'sanford/exception_handler'
 require 'sanford/exceptions'
 require 'sanford/logger'
-require 'sanford/service_handler'
 
 module Sanford
 
@@ -28,8 +27,6 @@ module Sanford
       option :verbose_logging,            :default => true
       option :exception_handler,          :default => proc{ Sanford::ExceptionHandler }
 
-      option :versioned_services, Hash,   :default => {}
-
       def initialize(host)
         self.name = host.class.to_s
       end
@@ -44,10 +41,11 @@ module Sanford
       Sanford.register(host_class)
     end
 
-    attr_reader :configuration
+    attr_reader :configuration, :versioned_services
 
     def initialize
       @configuration = Configuration.new(self)
+      @versioned_services = {}
     end
 
     def name(*args)
@@ -80,14 +78,7 @@ module Sanford
 
     def version(name, &block)
       version_group = Sanford::Host::VersionGroup.new(name, &block)
-      self.configuration.versioned_services.merge!(version_group.to_hash)
-    end
-
-    def handler_class_for(version, name)
-      class_name = handler_class_name(version, name)
-      Sanford::ServiceHandler.constantize(class_name).tap do |handler_class|
-        raise Sanford::NoHandlerClassError.new(self, class_name) if !handler_class
-      end
+      @versioned_services.merge!(version_group.to_hash)
     end
 
     def inspect
@@ -97,13 +88,6 @@ module Sanford
     end
 
     protected
-
-    def handler_class_name(version, name)
-      services = self.configuration.versioned_services[version] || {}
-      services[name].tap do |name|
-        raise Sanford::NotFoundError if !name
-      end
-    end
 
     class VersionGroup
       attr_reader :name, :services

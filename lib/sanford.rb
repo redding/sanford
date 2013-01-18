@@ -5,6 +5,7 @@ require 'pathname'
 require 'set'
 
 require 'sanford/host'
+require 'sanford/service_handler'
 require 'sanford/version'
 
 ENV['SANFORD_SERVICES_CONFIG'] ||= 'config/services'
