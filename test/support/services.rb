@@ -10,7 +10,7 @@ class TestHost
   logger(Logger.new(File.expand_path("../../../log/test.log", __FILE__)).tap do |logger|
     logger.level = Logger::DEBUG
   end)
-  verbose_logging false
+  verbose_logging true
 
   version 'v1' do
     service_handler_ns 'TestHost'

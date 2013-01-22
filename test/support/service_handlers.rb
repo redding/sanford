@@ -1,116 +1,69 @@
-# A bunch of service handler examples. These are defined to implement certain
-# edge cases and are for specific tests within the test suite.
-#
-
-class StaticServiceHandler
+class TestServiceHandler
   include Sanford::ServiceHandler
 
-  # builds with the same request and logger always, just for convenience
-
-  def initialize(logger = nil, request = nil)
-    request ||= Sanford::Protocol::Request.new('v1', 'name', {})
-    super(logger || Sanford::NullLogger.new, request)
-  end
-
 end
 
-class ManualThrowServiceHandler < StaticServiceHandler
+class BasicServiceHandler
+  include Sanford::ServiceHandler
 
   def run!
-    throw(:halt, 'halted!')
+    { 'name' => 'Joe Test', 'email' => "joe.test@example.com" }
   end
 
 end
 
-class HaltWithServiceHandler < StaticServiceHandler
+class FlagServiceHandler
+  include Sanford::ServiceHandler
 
-  def initialize(halt_with)
-    stringified = halt_with.inject({}){|h, (k, v)| h.merge({ k.to_s => v }) }
-    request = Sanford::Protocol::Request.new('v1', 'name', {
-      'halt_with' => stringified
-    })
-    super(Sanford::NullLogger.new, request)
+  attr_reader :init_bang_called, :before_run_called, :run_bang_called, :after_run_called
+
+  def init!
+    @init_bang_called = true
+  end
+
+  def before_run
+    @before_run_called = true
   end
 
   def run!
-    params['halt_with'].tap do |halt_with|
-      halt(halt_with.delete('code'), halt_with)
-    end
+    @run_bang_called = true
+  end
+
+  def after_run
+    @after_run_called = true
   end
 
 end
 
-class NoopServiceHandler < StaticServiceHandler
-
-  # simply overwrites the default `run!` so it doesn't error
+class HaltServiceHandler
+  include Sanford::ServiceHandler
 
   def run!
-    # nothing!
+    halt params['code'], :message => params['message'], :data => params['data']
   end
 
 end
 
-class FlaggedServiceHandler < NoopServiceHandler
+class HaltingBehaviorServiceHandler < FlagServiceHandler
 
-  # flags a bunch of methods as they are run by setting instance variables
-
-  FLAGGED_METHODS = {
-    'init'        => :init_called,
-    'init!'       => :init_bang_called,
-    'run!'        => :run_bang_called,
-    'before_run'  => :before_run_called,
-    'after_run'   => :after_run_called
-  }
-  FLAGS = FLAGGED_METHODS.values
-
-  attr_reader *FLAGS
-
-  def initialize(*passed)
+  def init!
     super
-    FLAGS.each{|name| self.instance_variable_set("@#{name}", false) }
-  end
-
-  FLAGGED_METHODS.each do |method_name, instance_variable_name|
-
-    # def before_run
-    #   super
-    #   @before_run_called = true
-    # end
-    define_method(method_name) do
-      super
-      self.instance_variable_set("@#{instance_variable_name}", true)
-    end
-
-  end
-
-end
-
-class ConfigurableServiceHandler < FlaggedServiceHandler
-
-  def initialize(options = {})
-    @options = options
-    super
+    halt 200, :message => 'init! halting' if [*params['when']].include?('init!')
   end
 
   def before_run
     super
-    if @options[:before_run]
-      self.instance_eval(&@options[:before_run])
-    end
+    halt 200, :message => 'before_run halting' if [*params['when']].include?('before_run')
   end
 
   def run!
     super
-    if @options[:run!]
-      self.instance_eval(&@options[:run!])
-    end
+    halt 200, :message => 'run! halting' if [*params['when']].include?('run!')
   end
 
   def after_run
     super
-    if @options[:after_run]
-      self.instance_eval(&@options[:after_run])
-    end
+    halt 200, :message => 'after_run halting' if [*params['when']].include?('after_run')
   end
 
 end
