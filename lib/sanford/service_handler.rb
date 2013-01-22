@@ -17,7 +17,6 @@ module Sanford
 
     def initialize(runner)
       @sanford_runner = runner
-      self.init
     end
 
     def init
@@ -55,7 +54,7 @@ module Sanford
 
     def halt(*args)
       args.push(caller)
-      @sanford_runner.halt(*args)
+      @sanford_runner.halt(self, *args)
     end
 
     def request

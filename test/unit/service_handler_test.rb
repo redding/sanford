@@ -1,15 +1,15 @@
 require 'assert'
 
-require 'sanford/test_helpers'
+require 'sanford/test_runner'
 
 module Sanford::ServiceHandler
 
   class BaseTest < Assert::Context
-    include Sanford::TestHelpers
+    include Sanford::TestRunner::Helpers
 
     desc "Sanford::ServiceHandler"
     setup do
-      @handler = init_handler(TestServiceHandler)
+      @handler = test_runner(TestServiceHandler).handler
     end
     subject{ @handler }
 
@@ -23,7 +23,7 @@ module Sanford::ServiceHandler
 
   class WithMethodFlagsTest < BaseTest
     setup do
-      @handler = init_handler(FlagServiceHandler)
+      @handler = test_runner(FlagServiceHandler).handler
     end
 
     should "have called `init!`" do
@@ -50,25 +50,27 @@ module Sanford::ServiceHandler
     desc "halt"
 
     should "return a response with the status code and the passed data" do
-      response = run_handler(HaltServiceHandler, {
+      runner = test_runner(HaltServiceHandler, {
         'code'    => 648,
         'data'    => true
       })
+      runner.run
 
-      assert_equal 648,   response.status.code
-      assert_equal true,  response.data
-      assert_nil response.status.message
+      assert_equal 648,   runner.response.code
+      assert_equal true,  runner.response.data
+      assert_nil runner.response.status.message
     end
 
     should "return a response with the status code for the named status and the passed message" do
-      response = run_handler(HaltServiceHandler, {
+      runner = test_runner(HaltServiceHandler, {
         'code'    => 'ok',
         'message' => 'test message'
       })
+      runner.run
 
-      assert_equal 200,             response.status.code
-      assert_equal 'test message',  response.status.message
-      assert_nil response.data
+      assert_equal 200,             runner.response.code
+      assert_equal 'test message',  runner.response.status.message
+      assert_nil runner.response.data
     end
 
   end
@@ -77,50 +79,53 @@ module Sanford::ServiceHandler
     desc "halting at different points"
 
     should "not call `run!` or it's callbacks when `init!` halts" do
-      response = run_handler(HaltingBehaviorServiceHandler, {
+      runner = test_runner(HaltingBehaviorServiceHandler, {
         'when' => 'init!'
       })
 
-      assert_equal 'init! halting', response.status.message
+      assert_equal 'init! halting', runner.response.status.message
     end
 
     should "not call `run!` but should call `before_run` and `after_run` when `before_run` halts" do
-      handler, response = run_and_return_handler(HaltingBehaviorServiceHandler, {
+      runner = test_runner(HaltingBehaviorServiceHandler, {
         'when' => 'before_run'
       })
+      runner.run
 
-      assert_equal true,  handler.init_bang_called
-      assert_equal true,  handler.before_run_called
-      assert_equal nil,   handler.run_bang_called
-      assert_equal nil,   handler.after_run_called
+      assert_equal true,  runner.handler.init_bang_called
+      assert_equal true,  runner.handler.before_run_called
+      assert_equal nil,   runner.handler.run_bang_called
+      assert_equal nil,   runner.handler.after_run_called
 
-      assert_equal 'before_run halting', response.status.message
+      assert_equal 'before_run halting', runner.response.status.message
     end
 
     should "call `before_run` and `run!` when `run!` halts" do
-      handler, response = run_and_return_handler(HaltingBehaviorServiceHandler, {
+      runner = test_runner(HaltingBehaviorServiceHandler, {
         'when' => 'run!'
       })
+      runner.run
 
-      assert_equal true,  handler.init_bang_called
-      assert_equal true,  handler.before_run_called
-      assert_equal true,  handler.run_bang_called
-      assert_equal nil,   handler.after_run_called
+      assert_equal true,  runner.handler.init_bang_called
+      assert_equal true,  runner.handler.before_run_called
+      assert_equal true,  runner.handler.run_bang_called
+      assert_equal nil,   runner.handler.after_run_called
 
-      assert_equal 'run! halting', response.status.message
+      assert_equal 'run! halting', runner.response.status.message
     end
 
     should "call `before_run`, `run!` and `after_run` when `after_run` halts" do
-      handler, response = run_and_return_handler(HaltingBehaviorServiceHandler, {
+      runner = test_runner(HaltingBehaviorServiceHandler, {
         'when' => 'after_run'
       })
+      runner.run
 
-      assert_equal true,  handler.init_bang_called
-      assert_equal true,  handler.before_run_called
-      assert_equal true,  handler.run_bang_called
-      assert_equal true,  handler.after_run_called
+      assert_equal true,  runner.handler.init_bang_called
+      assert_equal true,  runner.handler.before_run_called
+      assert_equal true,  runner.handler.run_bang_called
+      assert_equal true,  runner.handler.after_run_called
 
-      assert_equal 'after_run halting', response.status.message
+      assert_equal 'after_run halting', runner.response.status.message
     end
 
   end
