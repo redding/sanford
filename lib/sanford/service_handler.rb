@@ -19,7 +19,9 @@ module Sanford
     end
 
     def init
+      self.run_callback 'before_init'
       self.init!
+      self.run_callback 'after_init'
     end
 
     def init!
@@ -42,6 +44,12 @@ module Sanford
     end
 
     protected
+
+    def before_init
+    end
+
+    def after_init
+    end
 
     def before_run
     end
