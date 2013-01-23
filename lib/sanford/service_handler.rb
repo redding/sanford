@@ -1,4 +1,3 @@
-require 'ostruct'
 require 'sanford-protocol'
 
 module Sanford
@@ -53,8 +52,7 @@ module Sanford
     # Helpers
 
     def halt(*args)
-      args.push(caller)
-      @sanford_runner.halt(self, *args)
+      @sanford_runner.halt(*args)
     end
 
     def request

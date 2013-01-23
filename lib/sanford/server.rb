@@ -1,5 +1,4 @@
 require 'dat-tcp'
-require 'ostruct'
 require 'sanford-protocol'
 
 require 'sanford/host_data'
