@@ -1,6 +1,7 @@
 require 'benchmark'
 require 'sanford-protocol'
 
+require 'sanford/error_handler'
 require 'sanford/logger'
 require 'sanford/runner'
 
@@ -16,7 +17,6 @@ module Sanford
       @host_data, @connection = host_data, connection
 
       @logger = Sanford::Logger.new(@host_data.logger, @host_data.verbose)
-      @exception_handler = @host_data.exception_handler
     end
 
     def run
@@ -42,7 +42,9 @@ module Sanford
         self.log_handler_class(handler_class)
         response = Sanford::Runner.new(handler_class, request, @host_data.logger).run
       rescue Exception => exception
-        response = @exception_handler.new(exception, @logger).response
+        error_handler = Sanford::ErrorHandler.new(exception, @host_data, request)
+        response = error_handler.run
+        self.log_exception(error_handler.exception)
       ensure
         @connection.write_data response.to_hash
       end
@@ -71,6 +73,11 @@ module Sanford
       self.logger.verbose.info "Completed in #{processed_service.time_taken}ms " \
         "#{processed_service.response.status}\n"
       self.logger.summary.info self.summary_line(processed_service).to_s
+    end
+
+    def log_exception(exception)
+      self.logger.verbose.error("#{exception.class}: #{exception.message}")
+      self.logger.verbose.error(exception.backtrace.join("\n"))
     end
 
     def summary_line(processed_service)

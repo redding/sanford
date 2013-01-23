@@ -12,14 +12,21 @@ class TestHost
   end)
   verbose_logging true
 
+  error do |exception, host_data, request|
+    if exception.kind_of?(::MyCustomError)
+      Sanford::Protocol::Response.new([ 987, 'custom error!' ])
+    end
+  end
+
   version 'v1' do
     service_handler_ns 'TestHost'
 
-    service 'echo',       'Echo'
-    service 'bad',        'Bad'
-    service 'multiply',   'Multiply'
-    service 'halt_it',    '::TestHost::HaltIt'
-    service 'authorized', 'Authorized'
+    service 'echo',         'Echo'
+    service 'bad',          'Bad'
+    service 'multiply',     'Multiply'
+    service 'halt_it',      '::TestHost::HaltIt'
+    service 'authorized',   'Authorized'
+    service 'custom_error', 'CustomError'
   end
 
   class Echo
@@ -67,6 +74,17 @@ class TestHost
 
     def before_run
       halt 401, :message => "Not authorized"
+    end
+
+  end
+
+  ::MyCustomError = Class.new(RuntimeError)
+
+  class CustomError
+    include Sanford::ServiceHandler
+
+    def run!
+      raise ::MyCustomError
     end
 
   end
