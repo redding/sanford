@@ -15,10 +15,19 @@ end
 class FlagServiceHandler
   include Sanford::ServiceHandler
 
-  attr_reader :init_bang_called, :before_run_called, :run_bang_called, :after_run_called
+  attr_reader :before_init_called, :init_bang_called, :after_init_called,
+    :before_run_called, :run_bang_called, :after_run_called
+
+  def before_init
+    @before_init_called = true
+  end
 
   def init!
     @init_bang_called = true
+  end
+
+  def after_init
+    @after_init_called = true
   end
 
   def before_run
@@ -46,24 +55,49 @@ end
 
 class HaltingBehaviorServiceHandler < FlagServiceHandler
 
+  def before_init
+    super
+    halt_when('before_init')
+  end
+
   def init!
     super
-    halt 200, :message => 'init! halting' if [*params['when']].include?('init!')
+    halt_when('init!')
+  end
+
+  def after_init
+    super
+    halt_when('after_init')
   end
 
   def before_run
     super
-    halt 200, :message => 'before_run halting' if [*params['when']].include?('before_run')
+    halt_when('before_run')
   end
 
   def run!
     super
-    halt 200, :message => 'run! halting' if [*params['when']].include?('run!')
+    halt_when('run!')
   end
 
   def after_run
     super
-    halt 200, :message => 'after_run halting' if [*params['when']].include?('after_run')
+    halt_when('after_run')
+  end
+
+  def halt_when(method_name)
+    return if ![*params['when']].include?(method_name)
+    halt(200, {
+      :message  => "#{method_name} halting",
+      :data     => {
+        :before_init_called => @before_init_called,
+        :init_bang_called   => @init_bang_called,
+        :after_init_called  => @after_init_called,
+        :before_run_called  => @before_run_called,
+        :run_bang_called    => @run_bang_called,
+        :after_run_called   => @after_run_called
+      }
+    })
   end
 
 end
