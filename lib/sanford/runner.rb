@@ -1,3 +1,4 @@
+require 'ostruct'
 require 'sanford-protocol'
 
 require 'sanford/logger'
@@ -6,7 +7,7 @@ module Sanford
 
   class Runner
 
-    ResponseArgs = Struct.new(:status, :data, :backtrace)
+    ResponseArgs = Struct.new(:status, :data)
 
     attr_reader :handler_class, :request, :logger
 
@@ -31,10 +32,10 @@ module Sanford
       # block returns (either by throwing or running normally), you get the same
       # thing kind of object.
 
-      def halt(handler, status, options = nil, called_from = caller)
+      def halt(status, options = nil)
         options = OpenStruct.new(options || {})
         response_status = [ status, options.message ]
-        throw :halt, ResponseArgs.new(response_status, options.data, called_from)
+        throw :halt, ResponseArgs.new(response_status, options.data)
       end
 
       def catch_halt(&block)

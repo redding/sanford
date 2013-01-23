@@ -1,7 +1,6 @@
 require 'ns-options'
 require 'pathname'
 
-require 'sanford/exception_handler'
 require 'sanford/exceptions'
 require 'sanford/logger'
 
@@ -25,7 +24,7 @@ module Sanford
       option :pid_dir,          Pathname, :default => Dir.pwd
       option :logger,                     :default => proc{ Sanford::NullLogger.new }
       option :verbose_logging,            :default => true
-      option :exception_handler,          :default => proc{ Sanford::ExceptionHandler }
+      option :error_proc,       Proc,     :default => proc{ }
 
       def initialize(host)
         self.name = host.class.to_s
@@ -72,8 +71,8 @@ module Sanford
       self.configuration.verbose_logging *args
     end
 
-    def exception_handler(*args)
-      self.configuration.exception_handler *args
+    def error(&block)
+      self.configuration.error_proc = block
     end
 
     def version(name, &block)

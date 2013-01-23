@@ -13,7 +13,7 @@ module Sanford::Host
     subject{ MyHost.instance }
 
     should have_instance_methods :configuration, :name, :ip, :port, :pid_dir, :logger,
-      :verbose_logging, :exception_handler, :version, :versioned_services
+      :verbose_logging, :error, :version, :versioned_services
 
     should "get and set it's configuration options with their matching methods" do
       subject.name 'my_awesome_host'
