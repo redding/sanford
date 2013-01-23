@@ -174,4 +174,22 @@ class Sanford::Worker
 
   end
 
+  class WithCustomErrorHandlerTest < BaseTest
+    desc "running a request that triggers our custom error handler"
+    setup do
+      @connection = FakeConnection.with_request('v1', 'custom_error', {})
+      @worker = Sanford::Worker.new(@host_data, @connection)
+    end
+
+    should "return the response that was halted" do
+      assert_raises(::MyCustomError){ @worker.run }
+      response = @connection.response
+
+      assert_equal 987,               response.status.code
+      assert_equal "custom error!",   response.status.message
+      assert_equal nil,               response.data
+    end
+
+  end
+
 end

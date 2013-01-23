@@ -10,7 +10,7 @@ class Sanford::Host::Configuration
     subject{ @configuration }
 
     should have_instance_methods :name, :ip, :port, :pid_dir, :logger, :verbose_logging, :logger,
-      :exception_handler
+      :error_proc
 
     should "default name to the class name of the host" do
       assert_equal 'EmptyHost', subject.name
@@ -34,10 +34,6 @@ class Sanford::Host::Configuration
 
     should "default verbose_logging to true" do
       assert_equal true, subject.verbose_logging
-    end
-
-    should "default exception_handler to Sanfords" do
-      assert_equal Sanford::ExceptionHandler, subject.exception_handler
     end
 
   end
