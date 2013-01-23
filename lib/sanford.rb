@@ -5,6 +5,7 @@ require 'pathname'
 require 'set'
 
 require 'sanford/host'
+require 'sanford/server'
 require 'sanford/service_handler'
 require 'sanford/version'
 
