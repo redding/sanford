@@ -9,7 +9,7 @@ require 'sanford/server'
 require 'sanford/service_handler'
 require 'sanford/version'
 
-ENV['SANFORD_SERVICES_CONFIG'] ||= 'config/services'
+ENV['SANFORD_SERVICES_FILE'] ||= 'config/services'
 
 module Sanford
 
@@ -32,13 +32,12 @@ module Sanford
 
   def self.init
     @hosts ||= Hosts.new
-    require self.config.services_config
+    require self.config.services_file
   end
 
   module Config
     include NsOptions::Proxy
-
-    option :services_config,  Pathname, :default => ENV['SANFORD_SERVICES_CONFIG']
+    option :services_file,  Pathname, :default => ENV['SANFORD_SERVICES_FILE']
 
   end
 
