@@ -7,7 +7,7 @@ ROOT = File.expand_path('../..', __FILE__)
 require 'sanford'
 
 Sanford.configure do |config|
-  config.services_config = File.join(ROOT, 'test/support/services')
+  config.services_file = File.join(ROOT, 'test/support/services')
 end
 Sanford.init
 
