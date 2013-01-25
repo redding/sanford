@@ -20,12 +20,19 @@ module Sanford
       @pid_dir            = configuration[:pid_dir]
       @logger, @verbose   = configuration[:logger], configuration[:verbose_logging]
       @error_proc         = configuration[:error_proc]
+      @setup_proc         = configuration[:setup_proc]
 
-      @handlers = service_host.versioned_services.inject({}) do |hash, (version, services)|
-        hash.merge({ version => self.constantize_services(services) })
-      end
+      @versioned_services = service_host.versioned_services
+      @handlers = {}
 
       raise Sanford::InvalidHostError.new(service_host) if !self.port
+    end
+
+    def setup
+      @setup_proc.call
+      @handlers = @versioned_services.inject({}) do |hash, (version, services)|
+        hash.merge({ version => self.constantize_services(services) })
+      end
     end
 
     def handler_class_for(version, service)

@@ -25,6 +25,7 @@ module Sanford
       option :logger,                     :default => proc{ Sanford::NullLogger.new }
       option :verbose_logging,            :default => true
       option :error_proc,       Proc,     :default => proc{ }
+      option :setup_proc,       Proc,     :default => proc{ }
 
       def initialize(host)
         self.name = host.class.to_s
@@ -73,6 +74,10 @@ module Sanford
 
     def error(&block)
       self.configuration.error_proc = block
+    end
+
+    def setup(&block)
+      self.configuration.setup_proc = block
     end
 
     def version(name, &block)
