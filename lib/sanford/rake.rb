@@ -6,11 +6,7 @@ module Sanford::Rake
     def self.load
       namespace :sanford do
 
-        # Overwrite this to load your application's environment so that it can
-        # be used with Sanford
-        task :setup
-
-        task :load_manager => :setup do
+        task :load_manager do
           require 'sanford'
           require 'sanford/manager'
           Sanford.init

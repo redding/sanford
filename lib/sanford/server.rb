@@ -13,6 +13,7 @@ module Sanford
 
     def initialize(host, options = {})
       @host_data = host.kind_of?(Sanford::HostData) ? host : Sanford::HostData.new(host)
+      @host_data.setup
       super(@host_data.ip, @host_data.port, options)
     end
 
