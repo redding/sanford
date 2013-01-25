@@ -3,6 +3,12 @@ require 'logger'
 class TestHost
   include Sanford::Host
 
+  attr_accessor :setup_has_been_called
+
+  setup do
+    self.setup_has_been_called = true
+  end
+
   ip      'localhost'
   port    12000
   pid_dir File.expand_path('../../../tmp/', __FILE__)
@@ -106,6 +112,8 @@ end
 
 class UndefinedHandlersHost
   include Sanford::Host
+
+  port 12345
 
   version 'v1' do
     service 'undefined', 'ThisIsNotDefined'

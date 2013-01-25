@@ -13,15 +13,13 @@ module Sanford::Host
     subject{ MyHost.instance }
 
     should have_instance_methods :configuration, :name, :ip, :port, :pid_dir, :logger,
-      :verbose_logging, :error, :version, :versioned_services
+      :verbose_logging, :error, :setup, :version, :versioned_services
 
     should "get and set it's configuration options with their matching methods" do
       subject.name 'my_awesome_host'
 
       assert_equal 'my_awesome_host',           subject.name
       assert_equal subject.configuration.port,  subject.port
-
-
     end
 
     should "add a version group with #version" do

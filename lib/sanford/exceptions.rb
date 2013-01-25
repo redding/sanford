@@ -5,7 +5,6 @@ module Sanford
   NotFoundError = Class.new(RuntimeError)
 
   class NoHostError < BaseError
-    attr_reader :message
 
     def initialize(host_name)
       message = if Sanford.hosts.empty?

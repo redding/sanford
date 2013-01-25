@@ -144,14 +144,16 @@ Define a `name` on a Host to set a string name for your host that can be used to
 
 ### Loading An Application
 
-Typically, a Sanford host is part of a larger application and parts of the application need to be setup or loaded when you start your Sanford server. The task `sanford:setup` is called before running any start, stop, or restart task; override it to hook in your application setup code:
+Typically, a Sanford host is part of a larger application and parts of the application need to be setup or loaded when you start your Sanford server. to support this, Sanford provides a `setup` hook for hosts. The proc that is defined will be called before the Sanford server is started, properly running the server in your application's environment:
 
 ```ruby
-# In your Rakefile
-namespace :sanford do
-  task :setup do
-    require 'config/environment'
+class MyHost
+  include Sanford::Host
+
+  setup do
+    require File.expand_path("../config/environment", __FILE__)
   end
+
 end
 ```
 
