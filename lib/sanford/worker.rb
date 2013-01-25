@@ -34,21 +34,42 @@ module Sanford
     protected
 
     def run!
-      request, handler_class, response, exception = nil, nil, nil, nil
+      service = ProcessedService.new
       begin
         request = Sanford::Protocol::Request.parse(@connection.read_data)
         self.log_request(request)
+        service.request = request
+
         handler_class = @host_data.handler_class_for(request.version, request.name)
         self.log_handler_class(handler_class)
+        service.handler_class = handler_class
+
         response = Sanford::Runner.new(handler_class, request, @host_data.logger).run
+        service.response = response
       rescue Exception => exception
-        error_handler = Sanford::ErrorHandler.new(exception, @host_data, request)
-        response = error_handler.run
-        self.log_exception(error_handler.exception)
+        self.handle_exception(service, exception, @host_data)
       ensure
-        @connection.write_data response.to_hash
+        self.write_response(service)
       end
-      ProcessedService.new(request, handler_class, response, exception)
+      service
+    end
+
+    def write_response(service)
+      begin
+        @connection.write_data service.response.to_hash
+      rescue Exception => exception
+        service = self.handle_exception(service, exception)
+        @connection.write_data service.response.to_hash
+      end
+      service
+    end
+
+    def handle_exception(service, exception, host_data = nil)
+      error_handler = Sanford::ErrorHandler.new(exception, host_data, service.request)
+      service.response  = error_handler.run
+      service.exception = error_handler.exception
+      self.log_exception(service.exception)
+      service
     end
 
     def raise_if_debugging!(exception)

@@ -7,8 +7,9 @@ module Sanford
 
     attr_reader :exception, :host_data, :request
 
-    def initialize(exception, host_data, request = nil)
+    def initialize(exception, host_data = nil, request = nil)
       @exception, @host_data, @request = exception, host_data, request
+      @error_proc = @host_data ? @host_data.error_proc : proc{ }
     end
 
     # The exception that we are generating a response for can change in the case
@@ -19,7 +20,7 @@ module Sanford
 
     def run
       begin
-        result = @host_data.error_proc.call(@exception, @host_data, @request)
+        result = @error_proc.call(@exception, @host_data, @request)
       rescue Exception => proc_exception
         @exception = proc_exception
       end
