@@ -192,4 +192,22 @@ class Sanford::Worker
 
   end
 
+  class WithBadResponseHashTest < BaseTest
+    desc "running a request that builds an object that can't be encoded"
+    setup do
+      @connection = FakeConnection.with_request('v1', 'echo', { :message => 'cant encode' }, true)
+      @worker = Sanford::Worker.new(@host_data, @connection)
+    end
+
+    should "return the response that was halted" do
+      assert_raises(RuntimeError){ @worker.run }
+      response = @connection.response
+
+      assert_equal 500,                             response.status.code
+      assert_equal "An unexpected error occurred.", response.status.message
+      assert_equal nil,                             response.data
+    end
+
+  end
+
 end
