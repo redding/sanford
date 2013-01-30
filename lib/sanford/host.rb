@@ -18,14 +18,15 @@ module Sanford
       # effects (messing up someone's `initialize`). Thus, the `Configuration`
       # is a separate class and not on the `Host` directly.
 
-      option :name,             String
-      option :ip,               String,   :default => '0.0.0.0'
-      option :port,             Integer
-      option :pid_dir,          Pathname, :default => Dir.pwd
-      option :logger,                     :default => proc{ Sanford::NullLogger.new }
-      option :verbose_logging,            :default => true
-      option :error_proc,       Proc,     :default => proc{ }
-      option :setup_proc,       Proc,     :default => proc{ }
+      option :name,                 String
+      option :ip,                   String,   :default => '0.0.0.0'
+      option :port,                 Integer
+      option :pid_dir,              Pathname, :default => Dir.pwd
+      option :logger,                         :default => proc{ Sanford::NullLogger.new }
+      option :verbose_logging,                :default => true
+      option :receives_keep_alive,            :default => false
+      option :error_proc,           Proc,     :default => proc{ }
+      option :setup_proc,           Proc,     :default => proc{ }
 
       def initialize(host)
         self.name = host.class.to_s
@@ -70,6 +71,10 @@ module Sanford
 
     def verbose_logging(*args)
       self.configuration.verbose_logging *args
+    end
+
+    def receives_keep_alive(*args)
+      self.configuration.receives_keep_alive *args
     end
 
     def error(&block)

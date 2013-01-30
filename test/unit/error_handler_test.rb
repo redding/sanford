@@ -121,6 +121,24 @@ class Sanford::ErrorHandler
       assert_nil response.status.message
     end
 
+    should "build a 200 response with an EndOfStreamError when the host data expects it" do
+      host_data = Sanford::HostData.new(TestHost, { :receives_keep_alive => true })
+      exception = Sanford::Protocol::EndOfStreamError.new
+      response = Sanford::ErrorHandler.new(exception, host_data).run
+
+      assert_equal 200, response.code
+      assert_nil response.status.message
+    end
+
+    should "build a 400 response with an EndOfStreamError when the host data doesn't expect it" do
+      host_data = Sanford::HostData.new(TestHost, { :receives_keep_alive => false })
+      exception = Sanford::Protocol::EndOfStreamError.new
+      response = Sanford::ErrorHandler.new(exception, host_data).run
+
+      assert_equal 400,                       response.code
+      assert_equal "Couldn't read request.",  response.status.message
+    end
+
     should "build a 500 response with all other exceptions" do
       response = Sanford::ErrorHandler.new(RuntimeError.new('test'), @host_data).run
 
