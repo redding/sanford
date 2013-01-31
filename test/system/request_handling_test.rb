@@ -21,7 +21,7 @@ class RequestHandlingTest < Assert::Context
       ENV.delete('SANFORD_PROTOCOL_DEBUG')
       ENV['SANFORD_DEBUG'] = '1'
 
-      @host_data = Sanford::HostData.new(TestHost).tap{|hd| hd.setup }
+      @host_data = Sanford::HostData.new(TestHost)
     end
     teardown do
       ENV['SANFORD_DEBUG'] = @env_sanford_debug
@@ -214,9 +214,7 @@ class RequestHandlingTest < Assert::Context
     end
 
     should "return a 200 response if the host expects keep-alive connections" do
-      host_data = Sanford::HostData.new(TestHost, { :receives_keep_alive => true }).tap do |hd|
-        hd.setup
-      end
+      host_data = Sanford::HostData.new(TestHost, { :receives_keep_alive => true })
       worker = Sanford::Worker.new(host_data, @connection)
 
       assert_raises(Sanford::Protocol::EndOfStreamError){ worker.run }
@@ -228,9 +226,7 @@ class RequestHandlingTest < Assert::Context
     end
 
     should "return a 500 response if the host doesn't expect keep-alive connections" do
-      host_data = Sanford::HostData.new(TestHost, { :receives_keep_alive => false }).tap do |hd|
-        hd.setup
-      end
+      host_data = Sanford::HostData.new(TestHost, { :receives_keep_alive => false })
       worker = Sanford::Worker.new(host_data, @connection)
 
       assert_raises(Sanford::Protocol::EndOfStreamError){ worker.run }

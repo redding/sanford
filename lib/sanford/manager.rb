@@ -19,18 +19,19 @@ module Sanford
       self.new(service_host, options).call(action)
     end
 
-    attr_reader :host_data, :process_name
+    attr_reader :process_name
 
     def initialize(service_host, options = {})
-      @host_data = Sanford::HostData.new(service_host, options)
-      @process_name = [ self.host_data.ip, self.host_data.port, self.host_data.name ].join('_')
+      @service_host, @host_options = service_host, options
+      @pid_dir      = @service_host.pid_dir || @host_options[:pid_dir]
+      @process_name = ProcessName.new(@service_host, @host_options)
     end
 
     def call(action)
       daemons_options = self.default_options.merge({ :ARGV => [ action.to_s ] })
       FileUtils.mkdir_p(daemons_options[:dir])
       ::Daemons.run_proc(self.process_name, daemons_options) do
-        server = Sanford::Server.new(self.host_data)
+        server = Sanford::Server.new(@service_host, @host_options)
         server.start
         server.join_thread
       end
@@ -40,8 +41,19 @@ module Sanford
 
     def default_options
       { :dir_mode   => :normal,
-        :dir        => self.host_data.pid_dir
+        :dir        => @pid_dir
       }
+    end
+
+    class ProcessName < String
+      attr_reader :ip, :port
+
+      def initialize(host, options)
+        @ip    = options[:ip] || host.ip
+        @port  = options[:port] || host.port
+        super [ @ip, @port, host.name ].join('_')
+      end
+
     end
 
   end

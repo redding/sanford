@@ -10,33 +10,26 @@ module Sanford
     # constantizing a host's handlers and merging a host's configuration with
     # optional overrides.
 
-    attr_reader :name, :ip, :port, :pid_dir, :logger, :verbose
-    attr_reader :keep_alive, :error_proc
+    attr_reader :ip, :port, :logger, :verbose, :keep_alive, :error_proc
 
     def initialize(service_host, options = nil)
-      configuration = service_host.configuration.to_hash.merge(remove_nil_values(options || {}))
+      service_host.configuration.setup_proc.call
 
-      @name       = configuration[:name]
+      overrides = self.remove_nil_values(options || {})
+      configuration = service_host.configuration.to_hash.merge(overrides)
+
       @ip         = configuration[:ip]
       @port       = configuration[:port]
-      @pid_dir    = configuration[:pid_dir]
       @logger     = configuration[:logger]
       @verbose    = configuration[:verbose_logging]
       @keep_alive = configuration[:receives_keep_alive]
       @error_proc = configuration[:error_proc]
-      @setup_proc = configuration[:setup_proc]
 
-      @versioned_services = service_host.versioned_services
-      @handlers = {}
-
-      raise Sanford::InvalidHostError.new(service_host) if !self.port
-    end
-
-    def setup
-      @setup_proc.call
-      @handlers = @versioned_services.inject({}) do |hash, (version, services)|
+      @handlers = service_host.versioned_services.inject({}) do |hash, (version, services)|
         hash.merge({ version => self.constantize_services(services) })
       end
+
+      raise Sanford::InvalidHostError.new(@service_host) if !@port
     end
 
     def handler_class_for(version, service)
