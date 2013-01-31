@@ -10,17 +10,21 @@ module Sanford
     # constantizing a host's handlers and merging a host's configuration with
     # optional overrides.
 
-    attr_reader :name, :ip, :port, :pid_dir, :logger, :verbose, :error_proc
+    attr_reader :name, :ip, :port, :pid_dir, :logger, :verbose
+    attr_reader :keep_alive, :error_proc
 
     def initialize(service_host, options = nil)
       configuration = service_host.configuration.to_hash.merge(remove_nil_values(options || {}))
 
-      @name               = configuration[:name]
-      @ip, @port          = configuration[:ip], configuration[:port]
-      @pid_dir            = configuration[:pid_dir]
-      @logger, @verbose   = configuration[:logger], configuration[:verbose_logging]
-      @error_proc         = configuration[:error_proc]
-      @setup_proc         = configuration[:setup_proc]
+      @name       = configuration[:name]
+      @ip         = configuration[:ip]
+      @port       = configuration[:port]
+      @pid_dir    = configuration[:pid_dir]
+      @logger     = configuration[:logger]
+      @verbose    = configuration[:verbose_logging]
+      @keep_alive = configuration[:receives_keep_alive]
+      @error_proc = configuration[:error_proc]
+      @setup_proc = configuration[:setup_proc]
 
       @versioned_services = service_host.versioned_services
       @handlers = {}

@@ -109,7 +109,7 @@ module Sanford
           line.add 'params',  request.params
         end
         line.add 'handler',   processed_service.handler_class
-        line.add 'status',    processed_service.response.status.code if processed_service.response
+        line.add 'status',    processed_service.response.code if processed_service.response
         line.add 'duration',  processed_service.time_taken
       end
     end
@@ -130,8 +130,6 @@ module Sanford
         @hash[key] = value.inspect if value
       end
 
-      # change the key's order in the array to change the order to change the
-      # order they appear in when logged
       def to_s
         [ 'version', 'service', 'handler', 'status', 'duration', 'params' ].map do |key|
           "#{key}=#{@hash[key]}" if @hash[key]
