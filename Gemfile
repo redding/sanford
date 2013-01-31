@@ -6,4 +6,5 @@ gemspec
 gem 'bson_ext'
 gem 'rake',     '~>0.9.2'
 
-gem 'sanford-protocol', :git => 'git://github.com/redding/sanford-protocol.git', :branch => "jcr-fix-eof-detection"
+gem 'sanford-protocol',
+  :git => 'git://github.com/redding/sanford-protocol.git', :branch => "v0.5.2"
