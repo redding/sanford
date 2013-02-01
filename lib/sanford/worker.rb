@@ -77,7 +77,7 @@ module Sanford
     end
 
     def log_received
-      self.logger.verbose.info("Received request")
+      self.logger.verbose.info("===== Received request =====")
     end
 
     def log_request(request)
@@ -91,8 +91,8 @@ module Sanford
     end
 
     def log_complete(processed_service)
-      self.logger.verbose.info "Completed in #{processed_service.time_taken}ms " \
-        "#{processed_service.response.status}\n"
+      self.logger.verbose.info "===== Completed in #{processed_service.time_taken}ms " \
+        "#{processed_service.response.status} ====="
       self.logger.summary.info self.summary_line(processed_service).to_s
     end
 
