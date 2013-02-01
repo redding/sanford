@@ -12,8 +12,7 @@ module Sanford
     attr_reader :host_data
 
     def initialize(host, options = {})
-      @host_data = host.kind_of?(Sanford::HostData) ? host : Sanford::HostData.new(host)
-      @host_data.setup
+      @host_data = Sanford::HostData.new(host, options)
       super(@host_data.ip, @host_data.port, options)
     end
 
