@@ -15,7 +15,7 @@ class Sanford::HostData
     end
     subject{ @host_data }
 
-    should have_instance_methods :ip, :port, :logger, :verbose,
+    should have_instance_methods :name, :ip, :port, :logger, :verbose,
       :error_proc, :handler_class_for
 
     should "default it's configuration from the service host, but allow overrides" do
