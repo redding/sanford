@@ -35,6 +35,12 @@ class SimpleClient
     self.call_using_fake_socket(:with_encoded_msg_body, *args)
   end
 
+  def call_with_keep_alive
+    socket = TCPSocket.new(@host, @port)
+  ensure
+    socket.close rescue false
+  end
+
   def call(bytes)
     socket = TCPSocket.new(@host, @port)
     socket.setsockopt(::Socket::IPPROTO_TCP, ::Socket::TCP_NODELAY, true)
