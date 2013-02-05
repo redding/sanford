@@ -32,6 +32,10 @@ module Sanford
       FileUtils.mkdir_p(daemons_options[:dir])
       ::Daemons.run_proc(self.process_name, daemons_options) do
         server = Sanford::Server.new(@service_host, @host_options)
+        server.connect
+
+        Signal.trap("TERM"){ server.stop }
+
         server.start
         server.join_thread
       end

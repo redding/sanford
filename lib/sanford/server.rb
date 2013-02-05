@@ -9,15 +9,15 @@ module Sanford
   class Server
     include DatTCP::Server
 
-    attr_reader :host_data
-
     def initialize(host, options = {})
-      @host_data    = Sanford::HostData.new(host, options)
-      super(@host_data.ip, @host_data.port, options)
+      @service_host, @host_options = host, options
+      ip    = options[:ip]   || host.ip
+      port  = options[:port] || host.port
+      super(ip, port, options)
     end
 
-    def name
-      @host_data.name
+    def on_start
+      @host_data = Sanford::HostData.new(@service_host, @host_options)
     end
 
     # `serve` can be called at the same time by multiple threads. Thus we create
