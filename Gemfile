@@ -5,3 +5,5 @@ gemspec
 
 gem 'bson_ext'
 gem 'rake',     '~>0.9.2'
+
+gem 'dat-tcp', :path => "~/Projects/redding/gems/dat-tcp"
