@@ -47,12 +47,6 @@ module Sanford
         build_response :not_found
       when Sanford::Protocol::TimeoutError
         build_response :timeout
-      when Sanford::Protocol::EndOfStreamError
-        if @keep_alive
-          build_response :ok
-        else
-          build_response :bad_request, :message => "Couldn't read request."
-        end
       when Exception
         build_response :error, :message => "An unexpected error occurred."
       end

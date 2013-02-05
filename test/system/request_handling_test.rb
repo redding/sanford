@@ -205,40 +205,6 @@ class RequestHandlingTest < Assert::Context
 
   end
 
-  class WithAKeepAliveTest < FakeConnectionTest
-    desc "receiving a keep-alive connection"
-    setup do
-      fake_socket = Sanford::Protocol::Test::FakeSocket.new
-      protocol_connection = Sanford::Protocol::Connection.new(fake_socket)
-      @connection = FakeConnection.new(protocol_connection)
-    end
-
-    should "return a 200 response if the host expects keep-alive connections" do
-      host_data = Sanford::HostData.new(TestHost, { :receives_keep_alive => true })
-      worker = Sanford::Worker.new(host_data, @connection)
-
-      assert_raises(Sanford::Protocol::EndOfStreamError){ worker.run }
-      response = @connection.response
-
-      assert_equal 200, response.code
-      assert_equal nil, response.status.message
-      assert_equal nil, response.data
-    end
-
-    should "return a 500 response if the host doesn't expect keep-alive connections" do
-      host_data = Sanford::HostData.new(TestHost, { :receives_keep_alive => false })
-      worker = Sanford::Worker.new(host_data, @connection)
-
-      assert_raises(Sanford::Protocol::EndOfStreamError){ worker.run }
-      response = @connection.response
-
-      assert_equal 400,                       response.code
-      assert_equal "Couldn't read request.",  response.status.message
-      assert_equal nil,                       response.data
-    end
-
-  end
-
   class ForkedServerTest < RequestHandlingTest
     include Test::ForkServerHelper
 
@@ -322,7 +288,7 @@ class RequestHandlingTest < Assert::Context
   end
 
   class HangingRequestTest < ErroringRequestTest
-    desc "when a client connects but doesn't send anything"
+    desc "when a client connects but doesn't send anything for to long"
     setup do
       ENV['SANFORD_TIMEOUT'] = '0.1'
     end
@@ -340,6 +306,40 @@ class RequestHandlingTest < Assert::Context
         assert_equal nil,   response.data
       end
     end
+  end
+
+  # essentially, don't call `IO.select`
+  class FakeProtocolConnection < Sanford::Protocol::Connection
+    def wait_for_data(*args)
+      true
+    end
+  end
+
+  class WithAKeepAliveTest < ForkedServerTest
+    desc "receiving a keep-alive connection"
+    setup do
+      ENV['SANFORD_DEBUG'] = 'yes'
+      @server = Sanford::Server.new(TestHost, {
+        :ready_timeout        => 0,
+        :receives_keep_alive  => true
+      })
+      @socket = Sanford::Protocol::Test::FakeSocket.new
+      @fake_connection = FakeProtocolConnection.new(@socket)
+      Sanford::Protocol::Connection.stubs(:new).with(@socket).returns(@fake_connection)
+    end
+    teardown do
+      Sanford::Protocol::Connection.unstub(:new)
+      ENV.delete('SANFORD_DEBUG')
+    end
+
+    should "not error and nothing should be written" do
+      assert_nothing_raised do
+        @server.serve(@socket)
+
+        assert_equal "", @socket.out
+      end
+    end
+
   end
 
 end
