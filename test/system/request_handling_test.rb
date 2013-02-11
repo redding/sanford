@@ -323,6 +323,7 @@ class RequestHandlingTest < Assert::Context
         :ready_timeout        => 0,
         :receives_keep_alive  => true
       })
+      @server.on_start
       @socket = Sanford::Protocol::Test::FakeSocket.new
       @fake_connection = FakeProtocolConnection.new(@socket)
       Sanford::Protocol::Connection.stubs(:new).with(@socket).returns(@fake_connection)
