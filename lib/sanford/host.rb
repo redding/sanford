@@ -1,5 +1,6 @@
 require 'ns-options'
 require 'pathname'
+require 'singleton'
 
 require 'sanford/exceptions'
 require 'sanford/logger'
