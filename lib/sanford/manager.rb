@@ -23,6 +23,9 @@ module Sanford
       @service_host, @host_options = service_host, options
       @pid_dir      = @service_host.pid_dir || @host_options[:pid_dir]
       @process_name = ProcessName.new(@service_host, @host_options)
+      @server_options = {}
+      # FUTURE allow passing through dat-tcp options (min/max workers)
+      # FUTURE merge in host options for verbose / keep_alive
 
       @pid_file = PIDFile.new("#{@pid_dir.join(@process_name)}.pid")
     end
@@ -46,18 +49,18 @@ module Sanford
     protected
 
     def run!(daemonize = false)
-      puts "Starting Sanford server for #{@service_host.name} on #{@process_name.uri}"
       daemonize!(true) if daemonize
+      puts "Starting Sanford server for #{@service_host.name} on #{@process_name.uri}"
       $0 = @process_name
       @pid_file.write
 
-      server = Sanford::Server.new(@service_host, @host_options)
-      server.connect
+      server = Sanford::Server.new(@service_host, @server_options)
+      server.listen(@process_name.ip, @process_name.port)
 
       Signal.trap("TERM"){ server.stop }
+      Signal.trap("INT"){ server.halt(false) }
 
-      server.start
-      server.join_thread
+      server.run.join
     ensure
       @pid_file.remove
     end
@@ -68,7 +71,7 @@ module Sanford
       exit if fork                     # Zap session leader. See [1].
       Dir.chdir "/" unless no_chdir    # Release old working directory.
       if !no_close
-        null = File.open "/dev/null"
+        null = File.open "/dev/null", 'w'
         STDIN.reopen null
         STDOUT.reopen null
         STDERR.reopen null

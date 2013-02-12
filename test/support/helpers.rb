@@ -1,27 +1,13 @@
 module Test
 
-  module Environment
-
-    def self.store_and_clear_hosts
-      @previous_hosts = Sanford.hosts.instance_variable_get("@set").dup
-      Sanford.hosts.clear
-    end
-
-    def self.restore_hosts
-      Sanford.instance_variable_set("@hosts", Sanford::Hosts.new(@previous_hosts))
-      @previous_hosts = nil
-    end
-
-  end
-
   module ForkServerHelper
 
-    def start_server(server, &block)
+    def start_server(host, &block)
       begin
+        server = Sanford::Server.new(host, { :ready_timeout => 0.1 })
         pid = fork do
           trap("TERM"){ server.stop }
-          server.start
-          server.join_thread
+          server.run(host.ip, host.port).join
         end
         sleep 0.3 # Give time for the socket to start listening.
         yield
@@ -35,16 +21,16 @@ module Test
 
   end
 
-  module ForkManagerHelper
+  module ManagerHelper
 
     # start a Sanford server using Sanford's manager in a forked process
-    def call_sanford_manager(*args, &block)
+    def fork_and_call(proc, &block)
       pid = fork do
         STDOUT.reopen('/dev/null') unless ENV['SANFORD_DEBUG']
         trap("TERM"){ exit }
-        Sanford::Manager.call(*args)
+        proc.call
       end
-      sleep 1.5 # give time for the command to run
+      sleep 0.3 # give time for the command to run
       yield
     ensure
       if pid
@@ -57,10 +43,6 @@ module Test
       socket = TCPSocket.new(host, port)
     ensure
       socket.close rescue false
-    end
-
-    def expected_pid_file(host, ip, port)
-      host.pid_dir.join("#{ip}_#{port}_#{host}.pid")
     end
 
   end
