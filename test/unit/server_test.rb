@@ -7,9 +7,7 @@ class Sanford::Server
   class BaseTest < Assert::Context
     desc "Sanford::Server"
     setup do
-      @server = Sanford::Server.new(TestHost, {
-        :sanford_host => { :receives_keep_alive => true }
-      })
+      @server = Sanford::Server.new(TestHost, { :keep_alive => true })
     end
     subject{ @server }
 
@@ -20,9 +18,9 @@ class Sanford::Server
       assert_includes DatTCP::Server, subject.class.included_modules
     end
 
-    should "save it's host but not initialize a host data yet" do
+    should "save it's host and host options but not initialize a host data yet" do
       assert_equal TestHost, subject.sanford_host
-      assert_equal({ :receives_keep_alive => true }, subject.sanford_host_options)
+      assert_equal true, subject.sanford_host_options[:receives_keep_alive]
       assert_nil subject.sanford_host_data
     end
 

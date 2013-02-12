@@ -1,7 +1,5 @@
 require 'assert'
 
-require 'sanford/manager'
-
 class Sanford::HostData
 
   class BaseTest < Assert::Context
@@ -15,26 +13,18 @@ class Sanford::HostData
     end
     subject{ @host_data }
 
-    should have_instance_methods :name, :ip, :port, :logger, :verbose,
-      :error_proc, :handler_class_for
+    should have_instance_methods :logger, :verbose, :error_proc, :handler_class_for
 
     should "default it's configuration from the service host, but allow overrides" do
-      host_data = Sanford::HostData.new(TestHost, :ip => '1.2.3.4', :port => 12345)
+      host_data = Sanford::HostData.new(TestHost, :verbose_logging => false)
 
-      assert_equal '1.2.3.4',   host_data.ip
-      assert_equal 12345,       host_data.port
-      assert_equal true,        host_data.verbose
+      assert_equal TestHost.receives_keep_alive, host_data.keep_alive
+      assert_equal false, host_data.verbose
     end
 
     should "ignore nil values passed as overrides" do
-      host_data = Sanford::HostData.new(TestHost, :ip => nil)
-      assert_not_nil host_data.ip
-    end
-
-    should "raise a custom exception when passed an invalid host" do
-      assert_raises(Sanford::InvalidHostError) do
-        Sanford::HostData.new(InvalidHost)
-      end
+      host_data = Sanford::HostData.new(TestHost, :verbose_logging => nil)
+      assert_not_nil host_data.verbose
     end
 
     should "have called the setup proc" do

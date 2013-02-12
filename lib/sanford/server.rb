@@ -1,4 +1,5 @@
 require 'dat-tcp'
+require 'ostruct'
 require 'sanford-protocol'
 
 require 'sanford/host_data'
@@ -10,9 +11,13 @@ module Sanford
     include DatTCP::Server
     attr_reader :sanford_host, :sanford_host_data, :sanford_host_options
 
-    def initialize(host, options = {})
+    def initialize(host, options = nil)
+      options ||= {}
       @sanford_host = host
-      @sanford_host_options = options[:sanford_host] || {}
+      @sanford_host_options = {
+        :receives_keep_alive => options.delete(:keep_alive),
+        :verbose_logging     => options.delete(:verbose)
+      }
       super options
     end
 

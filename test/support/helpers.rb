@@ -5,17 +5,11 @@ module Test
     def start_server(host, &block)
       begin
         server = Sanford::Server.new(host, { :ready_timeout => 0.1 })
-        pid = fork do
-          trap("TERM"){ server.stop }
-          server.run(host.ip, host.port).join
-        end
-        sleep 0.3 # Give time for the socket to start listening.
+        thread = server.run(host.ip, host.port)
         yield
       ensure
-        if pid
-          Process.kill("TERM", pid)
-          Process.wait(pid)
-        end
+        server.halt if server
+        thread.join if thread
       end
     end
 
@@ -27,8 +21,8 @@ module Test
     def fork_and_call(proc, &block)
       pid = fork do
         STDOUT.reopen('/dev/null') unless ENV['SANFORD_DEBUG']
-        trap("TERM"){ exit }
-        proc.call
+        manager = proc.call
+        trap("TERM"){ manager.stop }
       end
       sleep 0.3 # give time for the command to run
       yield

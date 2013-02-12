@@ -18,8 +18,6 @@ class RequestHandlingTest < Assert::Context
     ENV['SANFORD_PROTOCOL_DEBUG'] = @env_sanford_protocol_debug
   end
 
-  # turn off the protocol's debugging (in case it's on) and turn on Sanford's
-  # debugging
   class FakeConnectionTest < RequestHandlingTest
     setup do
       @host_data = Sanford::HostData.new(TestHost)
@@ -202,6 +200,38 @@ class RequestHandlingTest < Assert::Context
 
   end
 
+  # essentially, don't call `IO.select`
+  class FakeProtocolConnection < Sanford::Protocol::Connection
+    def wait_for_data(*args)
+      true
+    end
+  end
+
+  class WithAKeepAliveTest < FakeConnectionTest
+    desc "receiving a keep-alive connection"
+    setup do
+      @server = Sanford::Server.new(TestHost, {
+        :ready_timeout => 0.1,
+        :keep_alive    => true
+      })
+      @server.on_run
+      @socket = Sanford::Protocol::Test::FakeSocket.new
+      @fake_connection = FakeProtocolConnection.new(@socket)
+      Sanford::Protocol::Connection.stubs(:new).with(@socket).returns(@fake_connection)
+    end
+    teardown do
+      Sanford::Protocol::Connection.unstub(:new)
+    end
+
+    should "not error and nothing should be written" do
+      assert_nothing_raised do
+        @server.serve(@socket)
+        assert_equal "", @socket.out
+      end
+    end
+
+  end
+
   class ForkedServerTest < RequestHandlingTest
     include Test::ForkServerHelper
   end
@@ -289,40 +319,6 @@ class RequestHandlingTest < Assert::Context
         assert_equal nil,   response.data
       end
     end
-  end
-
-  # essentially, don't call `IO.select`
-  class FakeProtocolConnection < Sanford::Protocol::Connection
-    def wait_for_data(*args)
-      true
-    end
-  end
-
-  class WithAKeepAliveTest < FakeConnectionTest
-    desc "receiving a keep-alive connection"
-    setup do
-      @server = Sanford::Server.new(TestHost, {
-        :ready_timeout => 0,
-        :sanford_host => {
-          :receives_keep_alive  => true
-        }
-      })
-      @server.on_run
-      @socket = Sanford::Protocol::Test::FakeSocket.new
-      @fake_connection = FakeProtocolConnection.new(@socket)
-      Sanford::Protocol::Connection.stubs(:new).with(@socket).returns(@fake_connection)
-    end
-    teardown do
-      Sanford::Protocol::Connection.unstub(:new)
-    end
-
-    should "not error and nothing should be written" do
-      assert_nothing_raised do
-        @server.serve(@socket)
-        assert_equal "", @socket.out
-      end
-    end
-
   end
 
 end
