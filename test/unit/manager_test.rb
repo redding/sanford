@@ -11,7 +11,7 @@ class Sanford::Manager
     end
     subject{ @manager }
 
-    should have_instance_methods :process_name, :call
+    should have_instance_methods :process_name, :run, :start, :stop, :restart
     should have_class_methods :call
 
   end
