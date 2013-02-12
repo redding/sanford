@@ -1,7 +1,7 @@
 class BenchHost
   include Sanford::Host
 
-  port     12000
+  port     59284
   pid_dir  File.expand_path("../../tmp", __FILE__)
 
   logger           Logger.new(STDOUT)

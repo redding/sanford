@@ -7,7 +7,7 @@ module Bench
 
   class Runner
     # this should match up with bench/services host and port
-    HOST_AND_PORT = [ '127.0.0.1', 12000 ]
+    HOST_AND_PORT = [ '127.0.0.1', 59284 ]
 
     REQUESTS = [
       [ 'v1', 'simple',       {}, 10000 ]
