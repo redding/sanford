@@ -1,4 +1,5 @@
 require 'dat-tcp'
+require 'ostruct'
 require 'sanford-protocol'
 
 require 'sanford/host_data'
@@ -8,16 +9,20 @@ module Sanford
 
   class Server
     include DatTCP::Server
+    attr_reader :sanford_host, :sanford_host_data, :sanford_host_options
 
-    def initialize(host, options = {})
-      @service_host, @host_options = host, options
-      ip    = options[:ip]   || host.ip
-      port  = options[:port] || host.port
-      super(ip, port, options)
+    def initialize(host, options = nil)
+      options ||= {}
+      @sanford_host = host
+      @sanford_host_options = {
+        :receives_keep_alive => options.delete(:keep_alive),
+        :verbose_logging     => options.delete(:verbose)
+      }
+      super options
     end
 
-    def on_start
-      @host_data = Sanford::HostData.new(@service_host, @host_options)
+    def on_run
+      @sanford_host_data = Sanford::HostData.new(@sanford_host, @sanford_host_options)
     end
 
     # `serve` can be called at the same time by multiple threads. Thus we create
@@ -25,19 +30,14 @@ module Sanford
     def serve(socket)
       connection = Connection.new(socket)
       if !self.keep_alive_connection?(connection)
-        Sanford::Worker.new(@host_data, connection).run
+        Sanford::Worker.new(@sanford_host_data, connection).run
       end
-    end
-
-    def inspect
-      reference = '0x0%x' % (self.object_id << 1)
-      "#<#{self.class}:#{reference} @service_host=#{@host_data.inspect}>"
     end
 
     protected
 
     def keep_alive_connection?(connection)
-      @host_data.keep_alive && connection.peek_data.empty?
+      @sanford_host_data.keep_alive && connection.peek_data.empty?
     end
 
     class Connection

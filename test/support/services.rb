@@ -102,6 +102,7 @@ class MyHost
 
   name  'my_host'
   ip    'my.local'
+  pid_dir File.expand_path('../../../tmp/', __FILE__)
 end
 
 class InvalidHost

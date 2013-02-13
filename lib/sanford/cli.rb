@@ -1,5 +1,6 @@
 require 'sanford'
-require 'sanford/manager'
+require 'sanford/host_data'
+require 'sanford/server'
 require 'sanford/version'
 
 module Sanford
@@ -23,7 +24,6 @@ module Sanford
       begin
         @cli.parse!(*args)
         @command = @cli.args.first || 'run'
-
         Sanford.config.services_file = @cli.opts['config'] if @cli.opts['config']
         Sanford.init
         Sanford::Manager.call(@command, @cli.opts)
@@ -48,6 +48,120 @@ module Sanford
       "Usage: sanford <command> <options> \n" \
       "Commands: run, start, stop, restart \n" \
       "#{@cli}"
+    end
+
+  end
+
+  class Manager
+
+    def self.call(action, options = nil)
+      self.new(options).tap{|manager| manager.send(action) }
+    end
+
+    attr_reader :host, :ip, :port, :process_name, :pid_file
+
+    def initialize(opts = nil)
+      options = OpenStruct.new(opts || {})
+      host_name = ENV['SANFORD_HOST'] || options.host
+
+      @host = host_name ? Sanford.hosts.find(host_name) : Sanford.hosts.first
+      raise Sanford::NoHostError.new(host_name) if !@host
+
+      @ip   = ENV['SANFORD_IP']   || options.ip   || @host.ip
+      @port = ENV['SANFORD_PORT'] || options.port || @host.port
+      raise Sanford::InvalidHostError.new(@host) if !@port
+      @port = @port.to_i
+
+      @process_name   = ProcessName.new(@host.name, @ip, @port)
+      @server_options = {}
+      # FUTURE allow passing through dat-tcp options (min/max workers)
+      # FUTURE merge in host options for verbose / keep_alive
+
+      options.pid_file ||= @host.pid_dir.join(@process_name).to_s
+      @pid_file = PIDFile.new(options.pid_file)
+    end
+
+    def run
+      self.run!
+    end
+
+    def start
+      self.run! true
+    end
+
+    def stop
+      Process.kill("TERM", @pid_file.pid)
+    end
+
+    def restart
+      raise NotImplementedError # TODO
+    end
+
+    protected
+
+    def run!(daemonize = false)
+      daemonize!(true) if daemonize
+      puts "Starting Sanford server for #{@host.name} on #{@ip}:#{@port}"
+      $0 = @process_name
+      @pid_file.write
+
+      Sanford::Server.new(@host, @server_options).tap do |server|
+        server.listen(@ip, @port)
+
+        Signal.trap("TERM"){ server.stop }
+        Signal.trap("INT"){ server.halt(false) }
+
+        server.run.join
+      end
+    ensure
+      @pid_file.remove
+    end
+
+    def daemonize!(no_chdir = false, no_close = false)
+      exit if fork                     # Parent exits, child continues.
+      Process.setsid                   # Become session leader.
+      exit if fork                     # Zap session leader. See [1].
+      Dir.chdir "/" unless no_chdir    # Release old working directory.
+      if !no_close
+        null = File.open "/dev/null", 'w'
+        STDIN.reopen null
+        STDOUT.reopen null
+        STDERR.reopen null
+      end
+      0
+    end
+
+    class ProcessName < String
+
+      def initialize(name, ip, port)
+        super "#{[ name, ip, port ].join('_')}.pid"
+      end
+
+    end
+
+    class PIDFile
+
+      def initialize(path)
+        @path = path
+      end
+
+      def pid
+        pid = File.read(@path).strip
+        pid.to_i if pid
+      end
+
+      def write
+        File.open(@path, 'w'){|f| f.puts Process.pid }
+      end
+
+      def remove
+        FileUtils.rm_f(@path)
+      end
+
+      def to_s
+        @path
+      end
+
     end
 
   end
