@@ -1,31 +1,26 @@
-# This test is intended as a high level test against Sanford's server. This will
-# use multiple request scenarios to test out Sanford's behavior and how it
-# responds. These tests depend on a socket (or the protocol's connection) and
-# thus are a system level test.
-#
+# These tests are intended as a high level test against Sanford's server. They
+# use fake and real connections to test how Sanford behaves.
+
 require 'assert'
 
-require 'sanford/manager'
 require 'sanford-protocol/test/fake_socket'
 
 class RequestHandlingTest < Assert::Context
   desc "Sanford's handling of requests"
+  setup do
+    @env_sanford_protocol_debug = ENV['SANFORD_PROTOCOL_DEBUG']
+    @env_sanford_debug          = ENV['SANFORD_DEBUG']
+    ENV.delete('SANFORD_PROTOCOL_DEBUG')
+    ENV['SANFORD_DEBUG'] = '1'
+  end
+  teardown do
+    ENV['SANFORD_DEBUG']          = @env_sanford_debug
+    ENV['SANFORD_PROTOCOL_DEBUG'] = @env_sanford_protocol_debug
+  end
 
-
-  # turn off the protocol's debugging (in case it's on) and turn on Sanford's
-  # debugging
   class FakeConnectionTest < RequestHandlingTest
     setup do
-      @env_sanford_protocol_debug = ENV['SANFORD_PROTOCOL_DEBUG']
-      @env_sanford_debug = ENV['SANFORD_DEBUG']
-      ENV.delete('SANFORD_PROTOCOL_DEBUG')
-      ENV['SANFORD_DEBUG'] = '1'
-
       @host_data = Sanford::HostData.new(TestHost)
-    end
-    teardown do
-      ENV['SANFORD_DEBUG'] = @env_sanford_debug
-      ENV['SANFORD_PROTOCOL_DEBUG'] = @env_sanford_protocol_debug
     end
   end
 
@@ -205,13 +200,40 @@ class RequestHandlingTest < Assert::Context
 
   end
 
-  class ForkedServerTest < RequestHandlingTest
-    include Test::ForkServerHelper
+  # essentially, don't call `IO.select`
+  class FakeProtocolConnection < Sanford::Protocol::Connection
+    def wait_for_data(*args)
+      true
+    end
+  end
 
+  class WithAKeepAliveTest < FakeConnectionTest
+    desc "receiving a keep-alive connection"
     setup do
-      @server = Sanford::Server.new(TestHost, { :ready_timeout => 0 })
+      @server = Sanford::Server.new(TestHost, {
+        :ready_timeout => 0.1,
+        :keep_alive    => true
+      })
+      @server.on_run
+      @socket = Sanford::Protocol::Test::FakeSocket.new
+      @fake_connection = FakeProtocolConnection.new(@socket)
+      Sanford::Protocol::Connection.stubs(:new).with(@socket).returns(@fake_connection)
+    end
+    teardown do
+      Sanford::Protocol::Connection.unstub(:new)
     end
 
+    should "not error and nothing should be written" do
+      assert_nothing_raised do
+        @server.serve(@socket)
+        assert_equal "", @socket.out
+      end
+    end
+
+  end
+
+  class ForkedServerTest < RequestHandlingTest
+    include Test::ForkServerHelper
   end
 
   # Simple service test that echos back the params sent to it
@@ -219,7 +241,7 @@ class RequestHandlingTest < Assert::Context
     desc "when hitting an echo service"
 
     should "return a successful response and echo the params sent to it" do
-      self.start_server(@server) do
+      self.start_server(TestHost) do
         response = SimpleClient.call_with_request(TestHost, 'v1', 'echo', {
           :message => 'test'
         })
@@ -231,22 +253,12 @@ class RequestHandlingTest < Assert::Context
     end
   end
 
-  class ErroringRequestTest < ForkedServerTest
-    setup do
-      @env_sanford_protocol_debug = ENV['SANFORD_PROTOCOL_DEBUG']
-      ENV.delete('SANFORD_PROTOCOL_DEBUG')
-    end
-    teardown do
-      ENV['SANFORD_PROTOCOL_DEBUG'] = @env_sanford_protocol_debug
-    end
-  end
-
   # Sending the server a completely wrong stream of bytes
-  class BadMessageTest < ErroringRequestTest
+  class BadMessageTest < ForkedServerTest
     desc "when sent a invalid request stream"
 
     should "return a bad request response with an error message" do
-      self.start_server(@server) do
+      self.start_server(TestHost) do
         bytes = [ Sanford::Protocol.msg_version, "\000" ].join
         response = SimpleClient.call_with(TestHost, bytes)
 
@@ -258,11 +270,11 @@ class RequestHandlingTest < Assert::Context
   end
 
   # Sending the server a protocol version that doesn't match it's version
-  class WrongProtocolVersionTest < ErroringRequestTest
+  class WrongProtocolVersionTest < ForkedServerTest
     desc "when sent a request with a wrong protocol version"
 
     should "return a bad request response with an error message" do
-      self.start_server(@server) do
+      self.start_server(TestHost) do
         bytes = [ Sanford::Protocol.msg_version, "\000" ].join
         response = SimpleClient.call_with_msg_body(TestHost, {}, nil, "\000")
 
@@ -274,10 +286,11 @@ class RequestHandlingTest < Assert::Context
   end
 
   # Sending the server a body that it can't parse
-  class BadBodyTest < ErroringRequestTest
+  class BadBodyTest < ForkedServerTest
     desc "when sent a request with an invalid body"
+
     should "return a bad request response with an error message" do
-      self.start_server(@server) do
+      self.start_server(TestHost) do
         response = SimpleClient.call_with_encoded_msg_body(TestHost, "\000\001\010\011" * 2)
 
         assert_equal 400,     response.code
@@ -287,7 +300,7 @@ class RequestHandlingTest < Assert::Context
     end
   end
 
-  class HangingRequestTest < ErroringRequestTest
+  class HangingRequestTest < ForkedServerTest
     desc "when a client connects but doesn't send anything for to long"
     setup do
       ENV['SANFORD_TIMEOUT'] = '0.1'
@@ -297,8 +310,8 @@ class RequestHandlingTest < Assert::Context
     end
 
     should "timeout" do
-      self.start_server(@server) do
-        client = SimpleClient.new(TestHost, :with_delay => 0.2)
+      self.start_server(TestHost) do
+        client = SimpleClient.new(TestHost, :with_delay => 1)
         response = client.call_with_request('v1', 'echo', { :message => 'test' })
 
         assert_equal 408,   response.code
@@ -306,41 +319,6 @@ class RequestHandlingTest < Assert::Context
         assert_equal nil,   response.data
       end
     end
-  end
-
-  # essentially, don't call `IO.select`
-  class FakeProtocolConnection < Sanford::Protocol::Connection
-    def wait_for_data(*args)
-      true
-    end
-  end
-
-  class WithAKeepAliveTest < ForkedServerTest
-    desc "receiving a keep-alive connection"
-    setup do
-      ENV['SANFORD_DEBUG'] = 'yes'
-      @server = Sanford::Server.new(TestHost, {
-        :ready_timeout        => 0,
-        :receives_keep_alive  => true
-      })
-      @server.on_start
-      @socket = Sanford::Protocol::Test::FakeSocket.new
-      @fake_connection = FakeProtocolConnection.new(@socket)
-      Sanford::Protocol::Connection.stubs(:new).with(@socket).returns(@fake_connection)
-    end
-    teardown do
-      Sanford::Protocol::Connection.unstub(:new)
-      ENV.delete('SANFORD_DEBUG')
-    end
-
-    should "not error and nothing should be written" do
-      assert_nothing_raised do
-        @server.serve(@socket)
-
-        assert_equal "", @socket.out
-      end
-    end
-
   end
 
 end
