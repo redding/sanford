@@ -29,7 +29,8 @@ class Sanford::Server
   class RunTest < BaseTest
     desc "run"
     setup do
-      @server.run(TestHost.ip, TestHost.port)
+      @server.listen(TestHost.ip, TestHost.port)
+      @server.run
     end
     teardown do
       @server.stop
