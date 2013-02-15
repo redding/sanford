@@ -2,7 +2,6 @@ require 'ns-options'
 require 'pathname'
 require 'singleton'
 
-require 'sanford/exceptions'
 require 'sanford/logger'
 
 module Sanford
@@ -22,7 +21,7 @@ module Sanford
       option :name,                 String
       option :ip,                   String,   :default => '0.0.0.0'
       option :port,                 Integer
-      option :pid_dir,              Pathname, :default => Dir.pwd
+      option :pid_file,             Pathname
       option :logger,                         :default => proc{ Sanford::NullLogger.new }
       option :verbose_logging,                :default => true
       option :receives_keep_alive,            :default => false
@@ -62,8 +61,8 @@ module Sanford
       self.configuration.port *args
     end
 
-    def pid_dir(*args)
-      self.configuration.pid_dir *args
+    def pid_file(*args)
+      self.configuration.pid_file *args
     end
 
     def logger(*args)

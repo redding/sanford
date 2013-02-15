@@ -9,8 +9,8 @@ class Sanford::Host::Configuration
     end
     subject{ @configuration }
 
-    should have_instance_methods :name, :ip, :port, :pid_dir, :logger, :verbose_logging, :logger,
-      :error_proc
+    should have_instance_methods :name, :ip, :port, :pid_file, :logger,
+      :verbose_logging, :logger, :error_proc
 
     should "default name to the class name of the host" do
       assert_equal 'EmptyHost', subject.name
@@ -22,10 +22,6 @@ class Sanford::Host::Configuration
 
     should "not default the port" do
       assert_nil subject.port
-    end
-
-    should "default pid_dir to the current working directory" do
-      assert_equal Pathname.new(Dir.pwd), subject.pid_dir
     end
 
     should "default logger to a null logger" do
