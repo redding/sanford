@@ -1,3 +1,7 @@
+if ENV['BUNDLE_GEMFILE']
+  require 'bundler/setup' rescue LoadError
+end
+
 require 'sanford'
 require 'sanford/host_data'
 require 'sanford/server'
