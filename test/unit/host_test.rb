@@ -12,8 +12,8 @@ module Sanford::Host
     end
     subject{ MyHost.instance }
 
-    should have_instance_methods :configuration, :name, :ip, :port, :pid_dir, :logger,
-      :verbose_logging, :error, :setup, :version, :versioned_services
+    should have_instance_methods :configuration, :name, :ip, :port, :pid_file,
+      :logger, :verbose_logging, :error, :setup, :version, :versioned_services
 
     should "get and set it's configuration options with their matching methods" do
       subject.name 'my_awesome_host'
@@ -36,7 +36,7 @@ module Sanford::Host
 
     should "proxy it's method to it's instance" do
       assert_equal subject.instance.name, subject.name
-      assert subject.respond_to?(:pid_dir)
+      assert subject.respond_to?(:pid_file)
     end
 
     should "have registered the class with sanford's known hosts" do

@@ -9,9 +9,9 @@ class TestHost
     self.setup_has_been_called = true
   end
 
-  ip      'localhost'
-  port    12000
-  pid_dir File.expand_path('../../../tmp/', __FILE__)
+  ip       'localhost'
+  port     12000
+  pid_file File.expand_path('../../../tmp/test_host.pid', __FILE__)
 
   logger(Logger.new(File.expand_path("../../../log/test.log", __FILE__)).tap do |logger|
     logger.level = Logger::DEBUG
@@ -100,9 +100,9 @@ end
 class MyHost
   include Sanford::Host
 
-  name  'my_host'
-  ip    'my.local'
-  pid_dir File.expand_path('../../../tmp/', __FILE__)
+  name     'my_host'
+  ip       'my.local'
+  pid_file File.expand_path('../../../tmp/my_host.pid', __FILE__)
 end
 
 class InvalidHost

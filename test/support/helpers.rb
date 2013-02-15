@@ -5,7 +5,8 @@ module Test
     def start_server(host, &block)
       begin
         server = Sanford::Server.new(host, { :ready_timeout => 0.1 })
-        thread = server.run(host.ip, host.port)
+        server.listen(host.ip, host.port)
+        thread = server.run
         yield
       ensure
         server.halt if server

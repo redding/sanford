@@ -1,3 +1,7 @@
+if ENV['BUNDLE_GEMFILE']
+  require 'bundler/setup' rescue LoadError
+end
+
 require 'sanford'
 require 'sanford/host_data'
 require 'sanford/server'
@@ -52,102 +56,184 @@ module Sanford
 
   end
 
-  class Manager
+  module Manager
 
     def self.call(action, options = nil)
-      self.new(options).tap{|manager| manager.send(action) }
+      get_handler_class(action).new(options).tap{ |manager| manager.send(action) }
     end
 
-    attr_reader :host, :ip, :port, :process_name, :pid_file
-
-    def initialize(opts = nil)
-      options = OpenStruct.new(opts || {})
-      host_name = ENV['SANFORD_HOST'] || options.host
-
-      @host = host_name ? Sanford.hosts.find(host_name) : Sanford.hosts.first
-      raise Sanford::NoHostError.new(host_name) if !@host
-
-      @ip   = ENV['SANFORD_IP']   || options.ip   || @host.ip
-      @port = ENV['SANFORD_PORT'] || options.port || @host.port
-      raise Sanford::InvalidHostError.new(@host) if !@port
-      @port = @port.to_i
-
-      @process_name   = ProcessName.new(@host.name, @ip, @port)
-      @server_options = {}
-      # FUTURE allow passing through dat-tcp options (min/max workers)
-      # FUTURE merge in host options for verbose / keep_alive
-
-      options.pid_file ||= @host.pid_dir.join(@process_name).to_s
-      @pid_file = PIDFile.new(options.pid_file)
-    end
-
-    def run
-      self.run!
-    end
-
-    def start
-      self.run! true
-    end
-
-    def stop
-      Process.kill("TERM", @pid_file.pid)
-    end
-
-    def restart
-      raise NotImplementedError # TODO
-    end
-
-    protected
-
-    def run!(daemonize = false)
-      daemonize!(true) if daemonize
-      puts "Starting Sanford server for #{@host.name} on #{@ip}:#{@port}"
-      $0 = @process_name
-      @pid_file.write
-
-      Sanford::Server.new(@host, @server_options).tap do |server|
-        server.listen(@ip, @port)
-
-        Signal.trap("TERM"){ server.stop }
-        Signal.trap("INT"){ server.halt(false) }
-
-        server.run.join
+    def self.get_handler_class(action)
+      case action.to_sym
+      when :start, :run
+        ServerHandler
+      when :stop, :restart
+        SignalHandler
       end
-    ensure
-      @pid_file.remove
     end
 
-    def daemonize!(no_chdir = false, no_close = false)
-      exit if fork                     # Parent exits, child continues.
-      Process.setsid                   # Become session leader.
-      exit if fork                     # Zap session leader. See [1].
-      Dir.chdir "/" unless no_chdir    # Release old working directory.
-      if !no_close
-        null = File.open "/dev/null", 'w'
-        STDIN.reopen null
-        STDOUT.reopen null
-        STDERR.reopen null
+    class ServerHandler
+
+      def initialize(options = nil)
+        @config = Config.new(options)
+        raise Sanford::NoHostError.new(@config.host_name) if !@config.found_host?
+        raise Sanford::InvalidHostError.new(@config.host) if !@config.has_listen_args?
+        @host   = @config.host
+        @logger = @host.logger
+
+        @server_options = {}
+        # FUTURE allow passing through dat-tcp options (min/max workers)
+        # FUTURE merge in host options for verbose / keep_alive
+
+        @restart_cmd = RestartCmd.new
       end
-      0
+
+      def run
+        self.run!
+      end
+
+      def start
+        self.run! true
+      end
+
+      protected
+
+      def run!(daemonize = false)
+        daemonize!(true) if daemonize
+        Sanford::Server.new(@host, @server_options).tap do |server|
+          @logger.info "Starting Sanford server for #{@host.name}"
+
+          server.listen(*@config.listen_args)
+          @logger.info "Listening on #{server.ip}:#{server.port}"
+          @logger.info "PID: #{Process.pid}"
+
+          $0 = ProcessName.new(@host, server.ip, server.port)
+          @config.pid_file.write
+
+          Signal.trap("TERM"){ self.stop!(server) }
+          Signal.trap("INT"){  self.halt!(server) }
+          Signal.trap("USR2"){ self.restart!(server) }
+
+          client_fds = (ENV['SANFORD_CLIENT_FDS'] || "").split(',')
+          server.run(client_fds).join
+        end
+      ensure
+        @config.pid_file.remove
+      end
+
+      def restart!(server)
+        @logger.info "Restarting the server..."
+        server.pause
+        @logger.info "server paused"
+
+        ENV['SANFORD_HOST']       = @host.name
+        ENV['SANFORD_SERVER_FD']  = server.file_descriptor.to_s
+        ENV['SANFORD_CLIENT_FDS'] = server.client_file_descriptors.join(',')
+
+        @logger.info "calling exec ..."
+        Dir.chdir @restart_cmd.dir
+        Kernel.exec(*@restart_cmd.argv)
+      end
+
+      def stop!(server)
+        @logger.info "Stopping the server..."
+        server.stop
+        @logger.info "Done"
+      end
+
+      def halt!(server)
+        @logger.info "Halting the server..."
+        server.halt false
+        @logger.info "Done"
+      end
+
+      def daemonize!(no_chdir = false, no_close = false)
+        exit if fork                     # Parent exits, child continues.
+        Process.setsid                   # Become session leader.
+        exit if fork                     # Zap session leader. See [1].
+        Dir.chdir "/" unless no_chdir    # Release old working directory.
+        if !no_close
+          null = File.open "/dev/null", 'w'
+          STDIN.reopen null
+          STDOUT.reopen null
+          STDERR.reopen null
+        end
+        0
+      end
+
+    end
+
+    class SignalHandler
+
+      def initialize(options = nil)
+        @config = Config.new(options)
+        raise Sanford::NoPIDError.new if !@config.pid
+      end
+
+      def stop
+        Process.kill("TERM", @config.pid)
+      end
+
+      def restart
+        Process.kill("USR2", @config.pid)
+      end
+
+    end
+
+    class Config
+      attr_reader :host_name, :host, :ip, :port, :file_descriptor
+      attr_reader :pid_file, :pid
+
+      def initialize(opts = nil)
+        options = OpenStruct.new(opts || {})
+        @host_name = ENV['SANFORD_HOST'] || options.host
+
+        @host = @host_name ? Sanford.hosts.find(@host_name) : Sanford.hosts.first
+        @host ||= NullHost.new
+
+        @file_descriptor = ENV['SANFORD_SERVER_FD'] || options.file_descriptor
+        @file_descriptor = @file_descriptor.to_i if @file_descriptor
+        @ip   = ENV['SANFORD_IP']   || options.ip   || @host.ip
+        @port = ENV['SANFORD_PORT'] || options.port || @host.port
+        @port = @port.to_i if @port
+
+        @pid_file = PIDFile.new(ENV['SANFORD_PID_FILE'] || options.pid_file || @host.pid_file)
+        @pid      = options.pid || @pid_file.pid
+      end
+
+      def listen_args
+        @file_descriptor ? [ @file_descriptor ] : [ @ip, @port ]
+      end
+
+      def has_listen_args?
+        !!@file_descriptor || !!(@ip && @port)
+      end
+
+      def found_host?
+        !@host.kind_of?(NullHost)
+      end
+
+    end
+
+    class NullHost
+      [ :ip, :port, :pid_file ].each do |method_name|
+        define_method(method_name){ }
+      end
     end
 
     class ProcessName < String
-
       def initialize(name, ip, port)
-        super "#{[ name, ip, port ].join('_')}.pid"
+        super "#{[ name, ip, port ].join('_')}"
       end
-
     end
 
     class PIDFile
-
       def initialize(path)
-        @path = path
+        @path = (path || '/dev/null').to_s
       end
 
       def pid
-        pid = File.read(@path).strip
-        pid.to_i if pid
+        pid = File.read(@path).strip if File.exists?(@path)
+        pid.to_i if pid && !pid.empty?
       end
 
       def write
@@ -161,12 +247,35 @@ module Sanford
       def to_s
         @path
       end
-
     end
 
+    class RestartCmd
+      attr_reader :argv, :dir
+
+      def initialize
+        require 'rubygems'
+        @dir = self.get_pwd
+        @argv = [ Gem.ruby, $0, ARGV.dup ].flatten
+      end
+
+      protected
+
+      # Trick from puma/unicorn. Favor PWD because it contains an unresolved
+      # symlink, useful for when the pwd is /data/releases/current.
+      def get_pwd
+        env_stat = File.stat(ENV['PWD'])
+        pwd_stat = File.stat(Dir.pwd)
+        if env_stat.ino == pwd_stat.ino && env_stat.dev == pwd_stat.dev
+          ENV['PWD']
+        else
+          Dir.pwd
+        end
+      end
+
+    end
   end
 
-  class CLIRB  # Version 0.2.0, https://github.com/redding/cli.rb
+  class CLIRB  # Version 1.0.0, https://github.com/redding/cli.rb
     Error    = Class.new(RuntimeError);
     HelpExit = Class.new(RuntimeError); VersionExit = Class.new(RuntimeError)
     attr_reader :argv, :args, :opts, :data
@@ -218,6 +327,29 @@ module Sanford
       end
       def gvalinfo(v); v.kind_of?(Class) ? [nil,gklass(v)] : [v,gklass(v.class)]; end
       def gklass(k); k == Fixnum ? Integer : k; end
+    end
+  end
+
+  class NoHostError < CLIRB::Error
+    def initialize(host_name)
+      message = if Sanford.hosts.empty?
+        "No hosts have been defined. Please define a host before trying to run Sanford."
+      else
+        "A host couldn't be found with the name #{host_name.inspect}. "
+      end
+      super message
+    end
+  end
+
+  class InvalidHostError < CLIRB::Error
+    def initialize(host)
+      super "A port must be configured or provided to run a server for '#{host}'"
+    end
+  end
+
+  class NoPIDError < CLIRB::Error
+    def initialize
+      super "A PID or PID file is required"
     end
   end
 
