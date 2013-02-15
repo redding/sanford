@@ -18,7 +18,7 @@ class ManagingTest < Assert::Context
     should "run the server specified and write a PID file" do
       self.fork_and_call(@proc) do
         assert_nothing_raised{ self.open_socket('localhost', 12345) }
-        assert File.exists?('tmp/my_host_localhost_12345.pid')
+        assert File.exists?('tmp/my_host.pid')
       end
     end
 
@@ -36,7 +36,7 @@ class ManagingTest < Assert::Context
     should "run the server specified and write a PID file" do
       self.fork_and_call(@proc) do
         assert_nothing_raised{ self.open_socket('localhost', 12345) }
-        assert File.exists?('tmp/my_host_localhost_12345.pid')
+        assert File.exists?('tmp/my_host.pid')
       end
     end
 
@@ -61,7 +61,34 @@ class ManagingTest < Assert::Context
   end
 
   class RestartTest < ManagingTest
-    # TODO
+    desc "to restart a daemonized server"
+    setup do
+      @start_proc = proc{ Sanford::Manager.call(:start, @start_options) }
+    end
+
+    should "stop the server specified and remove the PID file" do
+      self.fork_and_call(@start_proc) do
+        exception = nil
+        stop = false
+        thread = Thread.new do
+          while !stop do
+            begin
+              self.open_socket('localhost', 12345)
+              sleep 0.1
+            rescue Exception => exception
+            end
+          end
+        end
+        Sanford::Manager.call(:restart, @start_options)
+        thread.join(1)
+
+        # make sure we didn't lost the ability to connect
+        assert_nil exception
+
+        stop = true
+        thread.join
+      end
+    end
   end
 
 end

@@ -36,7 +36,7 @@ module Bench
 
       output "\nHitting #{name.inspect} service with #{params.inspect}, #{times} times"
       [*(1..times.to_i)].each do |index|
-        benchmark = self.hit_service(name, version, params.merge({ :request_number => index }), show_result)
+        benchmark = self.hit_service(version, name, params.merge({ :request_number => index }), show_result)
         benchmarks << self.round_time(benchmark.real * 1000.to_f)
         output('.', false) if ((index - 1) % 100 == 0) && !show_result
       end
@@ -72,13 +72,12 @@ module Bench
       output "\n"
     end
 
-    protected
 
     def hit_service(version, name, params, show_result)
       Benchmark.measure do
         begin
           client = Bench::Client.new(*HOST_AND_PORT)
-          response = client.call(name, version, params)
+          response = client.call(version, name, params)
           if show_result
             output "Got a response:"
             output "  #{response.status}"
@@ -90,6 +89,8 @@ module Bench
         end
       end
     end
+
+    protected
 
     def output(message, puts = true)
       method = puts ? :puts : :print

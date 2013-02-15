@@ -13,7 +13,8 @@ class Sanford::HostData
     end
     subject{ @host_data }
 
-    should have_instance_methods :logger, :verbose, :error_proc, :handler_class_for
+    should have_instance_methods :name, :logger, :verbose, :error_proc,
+      :handler_class_for
 
     should "default it's configuration from the service host, but allow overrides" do
       host_data = Sanford::HostData.new(TestHost, :verbose_logging => false)

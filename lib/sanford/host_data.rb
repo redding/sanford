@@ -1,4 +1,3 @@
-require 'sanford/exceptions'
 require 'sanford/service_handler'
 
 module Sanford
@@ -10,7 +9,9 @@ module Sanford
     # constantizing a host's handlers and merging a host's configuration with
     # optional overrides.
 
-    attr_reader :logger, :verbose, :keep_alive, :error_proc
+    # NOTE: The `name` attribute shouldn't be removed, it is used to identify
+    # a `HostData`, particularly in error handlers
+    attr_reader :name, :logger, :verbose, :keep_alive, :error_proc
 
     def initialize(service_host, options = nil)
       service_host.configuration.setup_proc.call
@@ -18,6 +19,7 @@ module Sanford
       overrides = self.remove_nil_values(options || {})
       configuration = service_host.configuration.to_hash.merge(overrides)
 
+      @name       = configuration[:name]
       @logger     = configuration[:logger]
       @verbose    = configuration[:verbose_logging]
       @keep_alive = configuration[:receives_keep_alive]
@@ -50,6 +52,15 @@ module Sanford
       hash.inject({}){|h, (k, v)| !v.nil? ? h.merge({ k => v }) : h }
     end
 
+  end
+
+  NotFoundError = Class.new(RuntimeError)
+
+  class NoHandlerClassError < RuntimeError
+    def initialize(handler_class_name)
+      super "Sanford couldn't find the service handler '#{handler_class_name}'. " \
+        "It doesn't exist or hasn't been required in yet."
+    end
   end
 
 end

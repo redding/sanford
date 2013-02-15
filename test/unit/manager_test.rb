@@ -2,64 +2,120 @@ require 'assert'
 
 require 'sanford/cli'
 
-class Sanford::Manager
+module Sanford::Manager
 
   class BaseTest < Assert::Context
     desc "Sanford::Manager"
+    subject{ Sanford::Manager }
+
+    should have_instance_methods :call, :get_handler_class
+
+    should "return ServerHandler or SignalHandler with get_handler_class" do
+      assert_equal Sanford::Manager::ServerHandler, subject.get_handler_class('run')
+      assert_equal Sanford::Manager::ServerHandler, subject.get_handler_class('start')
+      assert_equal Sanford::Manager::SignalHandler, subject.get_handler_class('stop')
+      assert_equal Sanford::Manager::SignalHandler, subject.get_handler_class('restart')
+    end
+
+  end
+
+  class ServerHandlerTest < BaseTest
+    desc "ServerHandler"
     setup do
-      @manager = Sanford::Manager.new({ :host => 'TestHost' })
+      @handler = Sanford::Manager::ServerHandler.new({ :host => 'TestHost' })
     end
-    subject{ @manager }
+    subject{ @handler }
 
-    should have_instance_methods :host, :ip, :port, :process_name, :pid_file
-    should have_instance_methods :run, :start, :stop, :restart
-    should have_class_methods :call
-
-    should "find a host based on the `host` option" do
-      assert_equal TestHost, subject.host
-    end
-
-    should "set the ip, port and pid file based on the host's configuration" do
-      assert_equal TestHost.ip,   subject.ip
-      assert_equal TestHost.port, subject.port
-      assert_includes TestHost.pid_dir, subject.pid_file.to_s
-    end
-
-    should "build a process name based on the name of the host, ip and port" do
-      assert_equal "TestHost_#{subject.ip}_#{subject.port}.pid", subject.process_name
-    end
-
-    should "build a pid_file based on the host and the process name" do
-      assert_instance_of Sanford::Manager::PIDFile, subject.pid_file
-      assert_equal File.join(TestHost.pid_dir, subject.process_name), subject.pid_file.to_s
-    end
-
-    should "use the first host if no host option is provided" do
-      manager = Sanford::Manager.new({ :port => 1 })
-      assert_equal Sanford.hosts.first, manager.host
-    end
+    should have_instance_methods :run, :start
 
     should "raise an error when a host can't be found matching the `host` option" do
       assert_raises(Sanford::NoHostError) do
-        Sanford::Manager.new({ :host => 'poop' })
+        Sanford::Manager::ServerHandler.new({ :host => 'poop' })
       end
     end
 
     should "raise an error when a host is invalid for running a server" do
       assert_raises(Sanford::InvalidHostError) do
-        Sanford::Manager.new({ :host => 'InvalidHost' })
+        Sanford::Manager::ServerHandler.new({ :host => 'InvalidHost' })
       end
     end
 
   end
 
-  class EnvVarsTest < BaseTest
+  class SignalHandlertest < BaseTest
+    desc "SignalHandler"
+    setup do
+      @handler = Sanford::Manager::SignalHandler.new({ :pid => -1 })
+    end
+    subject{ @handler }
+
+    should have_instance_methods :stop, :restart
+
+    should "raise an error when a pid can't be found" do
+      assert_raises(Sanford::NoPIDError) do
+        Sanford::Manager::SignalHandler.new
+      end
+    end
+  end
+
+  class ConfigTest < BaseTest
+    desc "Config"
+    setup do
+      @config = Sanford::Manager::Config.new({ :host => 'TestHost' })
+    end
+    subject{ @config }
+
+    should have_instance_methods :host_name, :host, :ip, :port, :pid, :pid_file
+    should have_instance_methods :file_descriptor
+    should have_instance_methods :listen_args, :has_listen_args?, :found_host?
+
+    should "find a host based on the `host` option" do
+      assert_equal TestHost, subject.host
+      assert_equal true, subject.found_host?
+    end
+
+    should "set the ip, port and pid file based on the host's configuration" do
+      assert_equal TestHost.ip,            subject.ip
+      assert_equal TestHost.port,          subject.port
+      assert_equal TestHost.pid_file.to_s, subject.pid_file.to_s
+    end
+
+    should "use the first host if no host option is provided" do
+      manager = Sanford::Manager::Config.new({ :port => 1 })
+      assert_equal Sanford.hosts.first, manager.host
+    end
+
+    should "return the file descriptor or ip and port with listen_args" do
+      config = Sanford::Manager::Config.new({
+        :file_descriptor => 1,
+        :ip => 'localhost', :port => 1234
+      })
+      assert_equal [ config.file_descriptor ], config.listen_args
+      assert_equal true, subject.has_listen_args?
+
+      config = Sanford::Manager::Config.new({ :ip => 'localhost', :port => 1234 })
+      assert_equal [ config.ip, config.port ], config.listen_args
+      assert_equal true, subject.has_listen_args?
+
+      config = Sanford::Manager::Config.new({ :host => 'InvalidHost' })
+      assert_equal false, config.has_listen_args?
+    end
+
+    should "build a NullHost when a host can't be found" do
+      config = Sanford::Manager::Config.new({ :host => 'poop' })
+      assert_instance_of Sanford::Manager::NullHost, config.host
+      assert_equal false, config.found_host?
+    end
+
+  end
+
+  class EnvVarsTest < ConfigTest
     desc "with env vars set"
     setup do
       ENV['SANFORD_HOST'] = 'TestHost'
       ENV['SANFORD_IP']   = '127.0.0.1'
       ENV['SANFORD_PORT'] = '12345'
-      @manager = Sanford::Manager.new({
+      @config = Sanford::Manager::Config.new({
         :host => 'InvalidHost',
         :port => 54678
       })
@@ -78,7 +134,7 @@ class Sanford::Manager
 
   end
 
-  # Sanford::Manager run, start, stop and restart are tested with system tests:
-  #   test/system/managing_test.rb
+  # ServerHandler run/start and SignalHandler stop/restart are tested with
+  # system tests: test/system/managing_test.rb
 
 end
