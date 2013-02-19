@@ -102,7 +102,7 @@ module Sanford
           log "Listening on #{server.ip}:#{server.port}"
           log "PID: #{Process.pid}"
 
-          $0 = ProcessName.new(@host, server.ip, server.port)
+          $0 = ProcessName.new(@host.name, server.ip, server.port)
           @config.pid_file.write
 
           Signal.trap("TERM"){ self.stop!(server) }
