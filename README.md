@@ -12,7 +12,7 @@ class MyHost
   include Sanford::Host
 
   port 8000
-  pid_dir '/path/to/pids'
+  pid_file '/path/to/host.pid'
 
   # define some services
   version 'v1' do
@@ -39,7 +39,7 @@ To define a Sanford host, include the mixin `Sanford::Host` on a class and use t
 
 * `ip` - (string) A hostname or IP address for the server to bind to; default: `'0.0.0.0'`.
 * `port` - (integer) The port number for the server to bind to.
-* `pid_dir` - (string) Path to the directory where you want the pid file to be written; default: `Dir.pwd`.
+* `pid_file` - (string) Path to where you want the pid file to be written.
 * `logger`- (logger) A logger for Sanford to use when handling requests; default: `Logger.new`.
 
 Any values specified using the DSL act as defaults for instances of the host. You can overwritten when creating new instances:
@@ -118,29 +118,25 @@ end
 
 ## Running Host Daemons
 
-Sanford comes with rake tasks for running hosts:
+Sanford comes with a CLI for running hosts:
 
-* `rake sanford:start` - spin up a background process running the host daemon.
-* `rake sanford:stop` - shutdown the background process running the host gracefully.
-* `rake sanford:restart` - runs the stop and then the start tasks.
-* `rake sanford:run` - starts the server, but don't daemonize it (runs in the current ruby process). Convenient when using the server in a development environment.
+* `sanford start` - spin up a background process running the host daemon.
+* `sanford stop` - shutdown the background process running the host gracefully.
+* `sanford restart` - "hot restart" the process running the host.
+* `sanford run` - starts the server, but doesn't daemonize it (runs in the current ruby process). Convenient when using the server in a development environment.
 
-These can be installed by requiring it's rake tasks in your `Rakefile`:
-
-```ruby
-require 'sanford/rake'
-```
-
-The basic rake tasks are useful if your application only has one host defined and if you only want to run the host on a single port. In the case you have multiple hosts defined or you want to run a single host on multiple ports, use environment variables to set custom configurations.
+The basic commands are useful if your application only has one host defined and if you only want to run the host on a single port. In the case you have multiple hosts defined or you want to run a single host on multiple ports, use environment variables to set custom configurations.
 
 ```bash
-rake sanford:start   # starts the first defined host
-SANFORD_HOST=AnotherHost SANFORD_PORT=13001 rake sanford:start # choose a specific host and port to run on with ENV vars
+sanford start # starts the first defined host
+SANFORD_HOST=AnotherHost SANFORD_PORT=13001 sanford start # choose a specific host and port to run on with ENV vars
 ```
 
-The rake tasks allow using environment variables for specifying which host to run the command against and for overriding the host's configuration. They recognize the following environment variables: `SANFORD_HOST`, `SANFORD_IP`, and `SANFORD_PORT`.
+The CLI allow using environment variables for specifying which host to run the command against and for overriding the host's configuration. They recognize the a number of environment variables, but the main ones are: `SANFORD_HOST`, `SANFORD_IP`, and `SANFORD_PORT`.
 
-Define a `name` on a Host to set a string name for your host that can be used to reference a host when using the rake tasks.  If no name is set, Sanford will use the host's class name.
+Define a `name` on a Host to set a string name for your host that can be used to reference a host when using the CLI.  If no name is set, Sanford will use the host's class name.
+
+Alternatively, the CLI supports passing switches to override the host's configuration as well. Use `sanford --help` to see the options that are available.
 
 ### Loading An Application
 
