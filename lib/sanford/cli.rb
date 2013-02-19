@@ -96,11 +96,11 @@ module Sanford
       def run!(daemonize = false)
         daemonize!(true) if daemonize
         Sanford::Server.new(@host, @server_options).tap do |server|
-          @logger.info "Starting Sanford server for #{@host.name}"
+          log "Starting server for #{@host.name}"
 
           server.listen(*@config.listen_args)
-          @logger.info "Listening on #{server.ip}:#{server.port}"
-          @logger.info "PID: #{Process.pid}"
+          log "Listening on #{server.ip}:#{server.port}"
+          log "PID: #{Process.pid}"
 
           $0 = ProcessName.new(@host, server.ip, server.port)
           @config.pid_file.write
@@ -116,9 +116,9 @@ module Sanford
       end
 
       def restart!(server)
-        @logger.info "Restarting the server..."
+        log "Restarting the server..."
         server.pause
-        @logger.info "server paused"
+        log "server paused"
 
         ENV['SANFORD_HOST']        = @host.name
         ENV['SANFORD_SERVER_FD']   = server.file_descriptor.to_s
@@ -130,15 +130,15 @@ module Sanford
       end
 
       def stop!(server)
-        @logger.info "Stopping the server..."
+        log "Stopping the server..."
         server.stop
-        @logger.info "Done"
+        log "Done"
       end
 
       def halt!(server)
-        @logger.info "Halting the server..."
+        log "Halting the server..."
         server.halt false
-        @logger.info "Done"
+        log "Done"
       end
 
       def daemonize!(no_chdir = false, no_close = false)
@@ -153,6 +153,10 @@ module Sanford
           STDERR.reopen null
         end
         0
+      end
+
+      def log(message)
+        @logger.info "[Sanford] #{message}"
       end
 
     end
