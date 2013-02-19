@@ -80,7 +80,7 @@ module Sanford
         # FUTURE allow passing through dat-tcp options (min/max workers)
         # FUTURE merge in host options for verbose / keep_alive
 
-        @restart_cmd = RestartCmd.new
+        @restart_cmd = RestartCmd.new(@config)
       end
 
       def run
@@ -109,8 +109,7 @@ module Sanford
           Signal.trap("INT"){  self.halt!(server) }
           Signal.trap("USR2"){ self.restart!(server) }
 
-          client_fds = (ENV['SANFORD_CLIENT_FDS'] || "").split(',')
-          server.run(client_fds).join
+          server.run(@config.client_file_descriptors).join
         end
       ensure
         @config.pid_file.remove
@@ -121,9 +120,9 @@ module Sanford
         server.pause
         @logger.info "server paused"
 
-        ENV['SANFORD_HOST']       = @host.name
-        ENV['SANFORD_SERVER_FD']  = server.file_descriptor.to_s
-        ENV['SANFORD_CLIENT_FDS'] = server.client_file_descriptors.join(',')
+        ENV['SANFORD_HOST']        = @host.name
+        ENV['SANFORD_SERVER_FD']   = server.file_descriptor.to_s
+        ENV['SANFORD_CLIENT_FDS']  = server.client_file_descriptors.join(',')
 
         @logger.info "calling exec ..."
         Dir.chdir @restart_cmd.dir
@@ -177,7 +176,7 @@ module Sanford
 
     class Config
       attr_reader :host_name, :host, :ip, :port, :file_descriptor
-      attr_reader :pid_file, :pid
+      attr_reader :client_file_descriptors, :pid_file, :pid, :restart_dir
 
       def initialize(opts = nil)
         options = OpenStruct.new(opts || {})
@@ -192,8 +191,13 @@ module Sanford
         @port = ENV['SANFORD_PORT'] || options.port || @host.port
         @port = @port.to_i if @port
 
+        client_fds_str = ENV['SANFORD_CLIENT_FDS'] || options.client_fds || ""
+        @client_file_descriptors = client_fds_str.split(',').map(&:to_i)
+
         @pid_file = PIDFile.new(ENV['SANFORD_PID_FILE'] || options.pid_file || @host.pid_file)
         @pid      = options.pid || @pid_file.pid
+
+        @restart_dir = ENV['SANFORD_RESTART_DIR'] || options.restart_dir
       end
 
       def listen_args
@@ -248,9 +252,10 @@ module Sanford
     class RestartCmd
       attr_reader :argv, :dir
 
-      def initialize
+      def initialize(config = nil)
         require 'rubygems'
-        @dir = self.get_pwd
+        config ||= OpenStruct.new
+        @dir = config.restart_dir || get_pwd
         @argv = [ Gem.ruby, $0, ARGV.dup ].flatten
       end
 
