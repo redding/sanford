@@ -66,7 +66,8 @@ module Sanford::Manager
     subject{ @config }
 
     should have_instance_methods :host_name, :host, :ip, :port, :pid, :pid_file
-    should have_instance_methods :file_descriptor
+    should have_instance_methods :file_descriptor, :client_file_descriptors
+    should have_instance_methods :restart_dir
     should have_instance_methods :listen_args, :has_listen_args?, :found_host?
 
     should "find a host based on the `host` option" do
@@ -105,6 +106,11 @@ module Sanford::Manager
       config = Sanford::Manager::Config.new({ :host => 'poop' })
       assert_instance_of Sanford::Manager::NullHost, config.host
       assert_equal false, config.found_host?
+    end
+
+    should "split a string list of client file descriptors into an array" do
+      config = Sanford::Manager::Config.new({ :client_fds => '1,2,3' })
+      assert_equal [ 1, 2, 3 ], config.client_file_descriptors
     end
 
   end
