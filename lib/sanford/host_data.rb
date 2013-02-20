@@ -14,7 +14,7 @@ module Sanford
     attr_reader :name, :logger, :verbose, :keep_alive, :error_proc
 
     def initialize(service_host, options = nil)
-      service_host.configuration.setup_proc.call
+      service_host.configuration.init_proc.call
 
       overrides = self.remove_nil_values(options || {})
       configuration = service_host.configuration.to_hash.merge(overrides)
