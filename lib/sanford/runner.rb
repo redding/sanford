@@ -11,6 +11,11 @@ module Sanford
 
     attr_reader :handler_class, :request, :logger
 
+    def self.run(handler_class, params = nil, logger = nil)
+      request = Sanford::Protocol::Request.new('version', 'name', params || {})
+      self.new(handler_class, request, logger).run
+    end
+
     def initialize(handler_class, request, logger = nil)
       @handler_class, @request = handler_class, request
       @logger = logger || Sanford::NullLogger.new
