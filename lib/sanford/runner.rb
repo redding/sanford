@@ -1,8 +1,6 @@
 require 'ostruct'
 require 'sanford-protocol'
 
-require 'sanford/logger'
-
 module Sanford
 
   class Runner
@@ -18,7 +16,7 @@ module Sanford
 
     def initialize(handler_class, request, logger = nil)
       @handler_class, @request = handler_class, request
-      @logger = logger || Sanford::NullLogger.new
+      @logger = logger || Sanford.config.logger
       @handler = @handler_class.new(self)
     end
 

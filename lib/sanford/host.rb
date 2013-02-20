@@ -22,7 +22,7 @@ module Sanford
       option :ip,                   String,   :default => '0.0.0.0'
       option :port,                 Integer
       option :pid_file,             Pathname
-      option :logger,                         :default => proc{ Sanford::NullLogger.new }
+      option :logger,                         :default => proc{ Sanford.config.logger }
       option :verbose_logging,                :default => true
       option :receives_keep_alive,            :default => false
       option :error_proc,           Proc,     :default => proc{ }
