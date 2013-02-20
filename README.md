@@ -144,13 +144,13 @@ Define a `name` on a Host to set a string name for your host that can be used to
 
 ### Loading An Application
 
-Typically, a Sanford host is part of a larger application and parts of the application need to be setup or loaded when you start your Sanford server. to support this, Sanford provides a `setup` hook for hosts. The proc that is defined will be called before the Sanford server is started, properly running the server in your application's environment:
+Typically, a Sanford host is part of a larger application and parts of the application need to be initialized or loaded when you start your Sanford server. To support this, Sanford provides an `init` hook for hosts. The proc that is defined will be called before the Sanford server is started, properly running the server in your application's environment:
 
 ```ruby
 class MyHost
   include Sanford::Host
 
-  setup do
+  init do
     require File.expand_path("../config/environment", __FILE__)
   end
 
