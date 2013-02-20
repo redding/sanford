@@ -5,6 +5,7 @@ require 'pathname'
 require 'set'
 
 require 'sanford/host'
+require 'sanford/logger'
 require 'sanford/server'
 require 'sanford/service_handler'
 require 'sanford/version'
@@ -38,7 +39,7 @@ module Sanford
   module Config
     include NsOptions::Proxy
     option :services_file,  Pathname, :default => ENV['SANFORD_SERVICES_FILE']
-
+    option :logger,                   :default => Sanford::NullLogger.new
   end
 
   class Hosts

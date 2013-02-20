@@ -1,6 +1,5 @@
 require 'sanford-protocol'
 
-require 'sanford/logger'
 require 'sanford/runner'
 
 module Sanford
@@ -11,9 +10,9 @@ module Sanford
     attr_reader :handler, :response, :request, :logger
 
     def initialize(handler_class, params = {}, logger = nil)
-      @handler_class  = handler_class
-      @request        = params.kind_of?(Sanford::Protocol::Request) ? params : test_request(params)
-      @logger         = logger || Sanford::NullLogger.new
+      @handler_class = handler_class
+      @request       = params.kind_of?(Sanford::Protocol::Request) ? params : test_request(params)
+      @logger        = logger || Sanford.config.logger
 
       @handler  = @handler_class.new(self)
       @response = build_response catch(:halt){ @handler.init; nil }
