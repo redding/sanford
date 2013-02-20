@@ -26,7 +26,7 @@ module Sanford
       option :verbose_logging,                :default => true
       option :receives_keep_alive,            :default => false
       option :error_proc,           Proc,     :default => proc{ }
-      option :setup_proc,           Proc,     :default => proc{ }
+      option :init_proc,            Proc,     :default => proc{ }
 
       def initialize(host)
         self.name = host.class.to_s
@@ -81,8 +81,8 @@ module Sanford
       self.configuration.error_proc = block
     end
 
-    def setup(&block)
-      self.configuration.setup_proc = block
+    def init(&block)
+      self.configuration.init_proc = block
     end
 
     def version(name, &block)

@@ -3,10 +3,10 @@ require 'logger'
 class TestHost
   include Sanford::Host
 
-  attr_accessor :setup_has_been_called
+  attr_accessor :init_has_been_called
 
-  setup do
-    self.setup_has_been_called = true
+  init do
+    self.init_has_been_called = true
   end
 
   ip       'localhost'

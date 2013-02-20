@@ -5,11 +5,11 @@ class Sanford::HostData
   class BaseTest < Assert::Context
     desc "Sanford::HostData"
     setup do
-      TestHost.setup_has_been_called = false
+      TestHost.init_has_been_called = false
       @host_data = Sanford::HostData.new(TestHost)
     end
     teardown do
-      TestHost.setup_has_been_called = false
+      TestHost.init_has_been_called = false
     end
     subject{ @host_data }
 
@@ -29,7 +29,7 @@ class Sanford::HostData
     end
 
     should "have called the setup proc" do
-      assert_equal true, TestHost.setup_has_been_called
+      assert_equal true, TestHost.init_has_been_called
     end
 
     should "constantize a host's handlers" do
