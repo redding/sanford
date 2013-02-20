@@ -44,6 +44,15 @@ class FlagServiceHandler
 
 end
 
+class RunOtherHandler
+  include Sanford::ServiceHandler
+
+  def run!
+    response = run_handler(HaltServiceHandler, 'code' => 200, 'data' => 'RunOtherHandler')
+    response.data
+  end
+end
+
 class HaltServiceHandler
   include Sanford::ServiceHandler
 

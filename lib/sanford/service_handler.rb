@@ -1,4 +1,5 @@
 require 'sanford-protocol'
+require 'sanford/runner'
 
 module Sanford
 
@@ -12,6 +13,12 @@ module Sanford
       klass == Object ? false : klass
     rescue NameError
       false
+    end
+
+    def self.included(klass)
+      klass.class_eval do
+        extend ClassMethods
+      end
     end
 
     def initialize(runner)
@@ -59,6 +66,10 @@ module Sanford
 
     # Helpers
 
+    def run_handler(handler_class, params = nil)
+      handler_class.run(params || {}, self.logger)
+    end
+
     def halt(*args)
       @sanford_runner.halt(*args)
     end
@@ -77,6 +88,14 @@ module Sanford
 
     def run_callback(callback)
       self.send(callback.to_s)
+    end
+
+    module ClassMethods
+
+      def run(params = nil, logger = nil)
+        Sanford::Runner.run(self, params || {}, logger)
+      end
+
     end
 
   end

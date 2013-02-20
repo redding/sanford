@@ -14,11 +14,30 @@ module Sanford::ServiceHandler
     subject{ @handler }
 
     should have_instance_methods :init, :init!, :run, :run!
+    should have_class_methods :run
 
     should "raise a NotImplementedError if run! is not overwritten" do
       assert_raises(NotImplementedError){ subject.run! }
     end
 
+    should "allow running a handler class with the class method #run" do
+      response = HaltServiceHandler.run({
+        'code'    => 648,
+        'data'    => true
+      })
+      assert_equal 648,   response.code
+      assert_equal true,  response.data
+    end
+
+  end
+
+  class RunHandlerTest < BaseTest
+    desc "run_handler helper"
+
+    should "allow easily running another handler" do
+      response = test_runner(RunOtherHandler).run
+      assert_equal 'RunOtherHandler', response.data
+    end
   end
 
   class WithMethodFlagsTest < BaseTest
