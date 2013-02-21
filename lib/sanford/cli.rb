@@ -141,18 +141,19 @@ module Sanford
         log "Done"
       end
 
+      # Full explanation: http://www.steve.org.uk/Reference/Unix/faq_2.html#SEC16
       def daemonize!(no_chdir = false, no_close = false)
-        exit if fork                     # Parent exits, child continues.
-        Process.setsid                   # Become session leader.
-        exit if fork                     # Zap session leader. See [1].
-        Dir.chdir "/" unless no_chdir    # Release old working directory.
+        exit if fork
+        Process.setsid
+        exit if fork
+        Dir.chdir "/" unless no_chdir
         if !no_close
           null = File.open "/dev/null", 'w'
           STDIN.reopen null
           STDOUT.reopen null
           STDERR.reopen null
         end
-        0
+        return 0
       end
 
       def log(message)
@@ -266,7 +267,9 @@ module Sanford
       protected
 
       # Trick from puma/unicorn. Favor PWD because it contains an unresolved
-      # symlink, useful for when the pwd is /data/releases/current.
+      # symlink. This is useful when restarting after deploying; the original
+      # directory may be removed, but the symlink is pointing to a new
+      # directory.
       def get_pwd
         env_stat = File.stat(ENV['PWD'])
         pwd_stat = File.stat(Dir.pwd)
