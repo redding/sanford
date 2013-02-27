@@ -5,19 +5,20 @@ require 'sanford/runner'
 module Sanford
 
   class TestRunner
-    include Sanford::Runner::HaltMethods
+    include Sanford::Runner
 
-    attr_reader :handler, :response, :request, :logger
+    attr_reader :handler, :response
 
-    def initialize(handler_class, params = {}, logger = nil)
-      @handler_class = handler_class
-      @request       = params.kind_of?(Sanford::Protocol::Request) ? params : test_request(params)
-      @logger        = logger || Sanford.config.logger
-
-      @handler  = @handler_class.new(self)
+    def init!
+      if !@request.kind_of?(Sanford::Protocol::Request)
+        @request = test_request(@request)
+      end
       @response = build_response catch(:halt){ @handler.init; nil }
     end
 
+    # we override the `run` method because the TestRunner wants to control
+    # storing any generated response. If `init` generated a response, we don't
+    # want to `run` at all.
     def run
       @response ||= build_response catch_halt{ @handler.run }
     end
@@ -25,7 +26,7 @@ module Sanford
     protected
 
     def test_request(params)
-      Sanford::Protocol::Request.new('test_version', 'test_service', params)
+      Sanford::Protocol::Request.new('version', 'name', params)
     end
 
     def build_response(response_args)
@@ -35,8 +36,8 @@ module Sanford
     module Helpers
       module_function
 
-      def test_runner(*args)
-        TestRunner.new(*args)
+      def test_runner(handler_class, params = nil, logger = nil)
+        TestRunner.new(handler_class, params || {}, logger)
       end
 
     end

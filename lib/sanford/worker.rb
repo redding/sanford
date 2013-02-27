@@ -44,7 +44,7 @@ module Sanford
         self.log_handler_class(handler_class)
         service.handler_class = handler_class
 
-        response = Sanford::Runner.new(handler_class, request, @host_data.logger).run
+        response = @host_data.run(handler_class, request)
         service.response = response
       rescue Exception => exception
         self.handle_exception(service, exception, @host_data)
