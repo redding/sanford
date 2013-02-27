@@ -233,7 +233,7 @@ class RequestHandlingTest < Assert::Context
   end
 
   class ForkedServerTest < RequestHandlingTest
-    include Test::ForkServerHelper
+    include Test::SpawnServerHelper
   end
 
   # Simple service test that echos back the params sent to it
