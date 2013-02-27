@@ -140,7 +140,4 @@ module Sanford::Manager
 
   end
 
-  # ServerHandler run/start and SignalHandler stop/restart are tested with
-  # system tests: test/system/managing_test.rb
-
 end

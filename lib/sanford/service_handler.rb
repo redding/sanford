@@ -93,7 +93,7 @@ module Sanford
     module ClassMethods
 
       def run(params = nil, logger = nil)
-        Sanford::Runner.run(self, params || {}, logger)
+        Sanford.config.runner.run(self, params || {}, logger)
       end
 
     end

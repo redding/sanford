@@ -1,12 +1,12 @@
 require 'assert'
 
-class Sanford::Runner
+module Sanford::Runner
 
   class BaseTest < Assert::Context
     desc "Sanford::Runner"
     setup do
       request = Sanford::Protocol::Request.new('v1', 'test', {})
-      @runner = Sanford::Runner.new(BasicServiceHandler, request)
+      @runner = Sanford::DefaultRunner.new(BasicServiceHandler, request)
     end
     subject{ @runner }
 
@@ -25,7 +25,7 @@ class Sanford::Runner
     should "be able to build a runner with a handler class and params" do
       response = nil
       assert_nothing_raised do
-        response = Sanford::Runner.run(BasicServiceHandler, {})
+        response = Sanford::DefaultRunner.run(BasicServiceHandler, {})
       end
 
       assert_equal 200, response.code
