@@ -39,7 +39,7 @@ class Sanford::ErrorHandler
         Sanford::Protocol::Response.new([ 567, 'custom message'], 'custom data')
       end
       host_data = Sanford::HostData.new(EmptyHost, @host_defaults.merge({
-        :error_proc => error_proc
+        :error_procs => [ error_proc ]
       }))
       response = Sanford::ErrorHandler.new(@exception, host_data).run
 
@@ -50,7 +50,7 @@ class Sanford::ErrorHandler
 
     should "use an integer returned by the error proc to generate a protocol response" do
       host_data = Sanford::HostData.new(EmptyHost, @host_defaults.merge({
-        :error_proc => proc{ 345 }
+        :error_procs => [ proc{ 345 } ]
       }))
       response = Sanford::ErrorHandler.new(@exception, host_data).run
 
@@ -61,7 +61,7 @@ class Sanford::ErrorHandler
 
     should "use a symbol returned by the error proc to generate a protocol response" do
       host_data = Sanford::HostData.new(EmptyHost, @host_defaults.merge({
-        :error_proc => proc{ :not_found }
+        :error_procs => [ proc{ :not_found } ]
       }))
       response = Sanford::ErrorHandler.new(@exception, host_data).run
 
@@ -72,7 +72,7 @@ class Sanford::ErrorHandler
 
     should "use the default behavior if the error proc doesn't return a valid response result" do
       host_data = Sanford::HostData.new(EmptyHost, @host_defaults.merge({
-        :error_proc => proc{ true }
+        :error_procs => [ proc{ true } ]
       }))
       response = Sanford::ErrorHandler.new(@exception, host_data).run
 
@@ -83,7 +83,7 @@ class Sanford::ErrorHandler
     should "use the default behavior for an exception raised by the error proc " \
       "and ignore the original exception" do
       host_data = Sanford::HostData.new(EmptyHost, @host_defaults.merge({
-        :error_proc => proc{ raise Sanford::NotFoundError }
+        :error_procs => [ proc{ raise Sanford::NotFoundError } ]
       }))
       response = Sanford::ErrorHandler.new(@exception, host_data).run
 
@@ -126,6 +126,60 @@ class Sanford::ErrorHandler
 
       assert_equal 500,                             response.code
       assert_equal 'An unexpected error occurred.', response.status.message
+    end
+
+  end
+
+  class MultipleErrorProcsTest < ResponseFromProcTest
+    desc "with multiple error procs"
+    setup do
+      @first_called, @second_called, @third_called = nil, nil, nil
+      @host_data = Sanford::HostData.new(EmptyHost, @host_defaults.merge({
+        :error_procs => [ first_proc, second_proc, third_proc ]
+      }))
+    end
+
+    should "call every error proc" do
+      @error_handler = Sanford::ErrorHandler.new(RuntimeError.new('test'), @host_data)
+      @error_handler.run
+
+      assert_equal true, @first_called
+      assert_equal true, @second_called
+      assert_equal true, @third_called
+    end
+
+    should "should return the response of the last configured error proc " \
+           "that returned a valid response" do
+      @error_handler = Sanford::ErrorHandler.new(RuntimeError.new('test'), @host_data)
+      response = @error_handler.run
+
+      # use the second proc's generated response
+      assert_equal 987, response.code
+
+      exception = generate_exception(Sanford::NotFoundError, 'not found')
+      @error_handler = Sanford::ErrorHandler.new(exception, @host_data)
+      response = @error_handler.run
+
+      # use the third proc's generated response
+      assert_equal 876, response.code
+    end
+
+    def first_proc
+      proc{ @first_called = true }
+    end
+
+    def second_proc
+      proc do |exception, host_data, request|
+        @second_called = true
+        987
+      end
+    end
+
+    def third_proc
+      proc do |exception, host_data, request|
+        @third_called = true
+        876 if exception.kind_of?(Sanford::NotFoundError)
+      end
     end
 
   end

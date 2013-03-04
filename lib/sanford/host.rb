@@ -26,7 +26,7 @@ module Sanford
       option :verbose_logging,                :default => true
       option :receives_keep_alive,            :default => false
       option :runner,                         :default => proc{ Sanford.config.runner }
-      option :error_proc,           Proc,     :default => proc{ }
+      option :error_procs,          Array,    :default => []
       option :init_proc,            Proc,     :default => proc{ }
 
       def initialize(host)
@@ -83,7 +83,7 @@ module Sanford
     end
 
     def error(&block)
-      self.configuration.error_proc = block
+      self.configuration.error_procs << block
     end
 
     def init(&block)
