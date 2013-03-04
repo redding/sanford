@@ -11,7 +11,7 @@ module Sanford
 
     # NOTE: The `name` attribute shouldn't be removed, it is used to identify
     # a `HostData`, particularly in error handlers
-    attr_reader :name, :logger, :verbose, :keep_alive, :runner, :error_proc
+    attr_reader :name, :logger, :verbose, :keep_alive, :runner, :error_procs
 
     def initialize(service_host, options = nil)
       service_host.configuration.init_proc.call
@@ -19,12 +19,12 @@ module Sanford
       overrides = self.remove_nil_values(options || {})
       configuration = service_host.configuration.to_hash.merge(overrides)
 
-      @name       = configuration[:name]
-      @logger     = configuration[:logger]
-      @verbose    = configuration[:verbose_logging]
-      @keep_alive = configuration[:receives_keep_alive]
-      @runner     = configuration[:runner]
-      @error_proc = configuration[:error_proc]
+      @name        = configuration[:name]
+      @logger      = configuration[:logger]
+      @verbose     = configuration[:verbose_logging]
+      @keep_alive  = configuration[:receives_keep_alive]
+      @runner      = configuration[:runner]
+      @error_procs = configuration[:error_procs]
 
       @handlers = service_host.versioned_services.inject({}) do |hash, (version, services)|
         hash.merge({ version => self.constantize_services(services) })
