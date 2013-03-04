@@ -9,8 +9,8 @@ module Sanford
 
     def initialize(exception, host_data = nil, request = nil)
       @exception, @host_data, @request = exception, host_data, request
-      @keep_alive = @host_data ? @host_data.keep_alive : false
-      @error_proc = @host_data ? @host_data.error_proc : proc{ }
+      @keep_alive  = @host_data ? @host_data.keep_alive : false
+      @error_procs = @host_data ? @host_data.error_procs.reverse : []
     end
 
     # The exception that we are generating a response for can change in the case
@@ -20,12 +20,17 @@ module Sanford
     # server will respond and log based on the last exception that occurred.
 
     def run
-      begin
-        result = @error_proc.call(@exception, @host_data, @request)
-      rescue Exception => proc_exception
-        @exception = proc_exception
+      response = nil
+      @error_procs.each do |error_proc|
+        result = nil
+        begin
+          result = error_proc.call(@exception, @host_data, @request)
+        rescue Exception => proc_exception
+          @exception = proc_exception
+        end
+        response ||= self.response_from_proc(result)
       end
-      self.response_from_proc(result) || self.response_from_exception(@exception)
+      response || self.response_from_exception(@exception)
     end
 
     protected
