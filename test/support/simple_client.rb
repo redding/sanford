@@ -47,6 +47,7 @@ class SimpleClient
     connection = Sanford::Protocol::Connection.new(socket)
     sleep(@delay) if @delay
     socket.send(bytes, 0)
+    socket.close_write
     Sanford::Protocol::Response.parse(connection.read)
   ensure
     socket.close rescue false
