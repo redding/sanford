@@ -1,6 +1,6 @@
 class FakeConnection
 
-  attr_reader :read_data, :response
+  attr_reader :read_data, :response, :write_stream_closed
 
   def self.with_request(version, name, params = {}, raise_on_write = false)
     request = Sanford::Protocol::Request.new(version, name, params)
@@ -27,6 +27,10 @@ class FakeConnection
       raise 'test fail'
     end
     @response = Sanford::Protocol::Response.parse(data)
+  end
+
+  def close_write
+    @write_stream_closed = true
   end
 
 end

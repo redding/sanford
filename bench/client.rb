@@ -16,6 +16,7 @@ module Bench
       connection = Sanford::Protocol::Connection.new(socket)
       request = Sanford::Protocol::Request.new(version, name, params)
       connection.write(request.to_hash)
+      connection.close_write
       if IO.select([ socket ], nil, nil, 10)
         Sanford::Protocol::Response.parse(connection.read)
       else

@@ -40,6 +40,12 @@ class RequestHandlingTest < Assert::Context
       assert_equal 'test',  response.data
     end
 
+    should "have cloased the connection's write stream" do
+      assert_nothing_raised{ @worker.run }
+
+      assert_equal true, @connection.write_stream_closed
+    end
+
   end
 
   class MissingServiceVersionTest < FakeConnectionTest
