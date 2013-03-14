@@ -61,6 +61,7 @@ module Sanford
         service = self.handle_exception(service, exception)
         @connection.write_data service.response.to_hash
       end
+      @connection.close_write
       service
     end
 
