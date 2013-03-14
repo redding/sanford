@@ -25,7 +25,7 @@ module Sanford
       benchmark = Benchmark.measure do
         processed_service = self.run!
       end
-      processed_service.time_taken = self.round_time(benchmark.real)
+      processed_service.time_taken = RoundedTime.new(benchmark.real)
       self.log_complete(processed_service)
       self.raise_if_debugging!(processed_service.exception)
       processed_service
@@ -77,65 +77,63 @@ module Sanford
     end
 
     def log_received
-      self.logger.verbose.info("===== Received request =====")
+      log_verbose "===== Received request ====="
     end
 
     def log_request(request)
-      self.logger.verbose.info("  Version: #{request.version.inspect}")
-      self.logger.verbose.info("  Service: #{request.name.inspect}")
-      self.logger.verbose.info("  Params:  #{request.params.inspect}")
+      log_verbose "  Version: #{request.version.inspect}"
+      log_verbose "  Service: #{request.name.inspect}"
+      log_verbose "  Params:  #{request.params.inspect}"
     end
 
     def log_handler_class(handler_class)
-      self.logger.verbose.info("  Handler: #{handler_class}")
+      log_verbose "  Handler: #{handler_class}"
     end
 
     def log_complete(processed_service)
-      self.logger.verbose.info "===== Completed in #{processed_service.time_taken}ms " \
-        "#{processed_service.response.status} ====="
-      self.logger.summary.info self.summary_line(processed_service).to_s
+      log_verbose "===== Completed in #{processed_service.time_taken}ms " \
+                  "#{processed_service.response.status} ====="
+      summary_line_args = {
+        'time'    => processed_service.time_taken,
+        'handler' => processed_service.handler_class
+      }
+      if processed_service.response
+        summary_line_args['status'] = processed_service.response.code
+      end
+      if (request = processed_service.request)
+        summary_line_args['version'] = request.version
+        summary_line_args['service'] = request.name
+        summary_line_args['params']  = request.params
+      end
+      log_summary SummaryLine.new(summary_line_args)
     end
 
     def log_exception(exception)
-      self.logger.verbose.error("#{exception.class}: #{exception.message}")
-      self.logger.verbose.error(exception.backtrace.join("\n"))
+      log_verbose("#{exception.class}: #{exception.message}", :error)
+      log_verbose(exception.backtrace.join("\n"), :error)
     end
 
-    def summary_line(processed_service)
-      SummaryLine.new.tap do |line|
-        if (request = processed_service.request)
-          line.add 'version', request.version
-          line.add 'service', request.name
-          line.add 'params',  request.params
-        end
-        line.add 'handler',   processed_service.handler_class
-        line.add 'status',    processed_service.response.code if processed_service.response
-        line.add 'duration',  processed_service.time_taken
+    def log_verbose(message, level = :info)
+      self.logger.verbose.send(level, "[Sanford] #{message}")
+    end
+
+    def log_summary(message, level = :info)
+      self.logger.summary.send(level, "[Sanford] #{message}")
+    end
+
+    module RoundedTime
+      ROUND_PRECISION = 2
+      ROUND_MODIFIER = 10 ** ROUND_PRECISION
+      def self.new(time_in_seconds)
+        (time_in_seconds * 1000 * ROUND_MODIFIER).to_i / ROUND_MODIFIER.to_f
       end
     end
 
-    ROUND_PRECISION = 2
-    ROUND_MODIFIER = 10 ** ROUND_PRECISION
-    def round_time(time_in_seconds)
-      (time_in_seconds * 1000 * ROUND_MODIFIER).to_i / ROUND_MODIFIER.to_f
-    end
-
-    class SummaryLine
-
-      def initialize
-        @hash = {}
+    module SummaryLine
+      def self.new(line_attrs)
+        attr_keys = %w{time status handler version service params}
+        attr_keys.map{ |k| "#{k}=#{line_attrs[k].inspect}" }.join(' ')
       end
-
-      def add(key, value)
-        @hash[key] = value.inspect if value
-      end
-
-      def to_s
-        [ 'version', 'service', 'handler', 'status', 'duration', 'params' ].map do |key|
-          "#{key}=#{@hash[key]}" if @hash[key]
-        end.compact.join(" ")
-      end
-
     end
 
   end
