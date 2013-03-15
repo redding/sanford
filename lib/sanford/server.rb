@@ -73,6 +73,10 @@ module Sanford
         @connection.peek(@timeout)
       end
 
+      def close_write
+        @connection.close_write
+      end
+
     end
 
     module TCPCork
