@@ -16,7 +16,7 @@ class TestHost
   logger(Logger.new(File.expand_path("../../../log/test.log", __FILE__)).tap do |logger|
     logger.level = Logger::DEBUG
   end)
-  verbose_logging true
+  verbose_logging false
 
   error do |exception, host_data, request|
     if exception.kind_of?(::MyCustomError)
