@@ -2,7 +2,7 @@ require 'assert'
 
 class Sanford::ErrorHandler
 
-  class BaseTest < Assert::Context
+  class BaseTests < Assert::Context
     desc "Sanford::ErrorHandler"
     setup do
       @exception = RuntimeError.new('test')
@@ -28,7 +28,7 @@ class Sanford::ErrorHandler
 
   end
 
-  class ResponseFromProcTest < BaseTest
+  class ResponseFromProcTests < BaseTests
     desc "generating a respone from an error proc"
     setup do
       @host_defaults = { :ip => "localhost", :port => 8000 }
@@ -94,7 +94,7 @@ class Sanford::ErrorHandler
 
   end
 
-  class ResponseFromExceptionTest < BaseTest
+  class ResponseFromExceptionTests < BaseTests
     desc "generating a respone from an exception"
 
     should "build a 400 response with a protocol BadMessageError" do
@@ -130,7 +130,7 @@ class Sanford::ErrorHandler
 
   end
 
-  class MultipleErrorProcsTest < ResponseFromProcTest
+  class MultipleErrorProcsTests < ResponseFromProcTests
     desc "with multiple error procs"
     setup do
       @first_called, @second_called, @third_called = nil, nil, nil

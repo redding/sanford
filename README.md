@@ -1,8 +1,8 @@
 # Sanford
 
-Sanford: simple hosts for Sanford services.  Define hosts for versioned services.  Setup handlers for the services.  Run the host as a daemon.
+Sanford TCP protocol server for hosting services.  Define hosts for versioned services.  Setup handlers for the services.  Run the host as a daemon.
 
-Sanford uses [Sanford::Protocol](https://github.com/redding/sanford-protocol) to communicate with clients.
+Sanford uses [Sanford::Protocol](https://github.com/redding/sanford-protocol) to communicate with clients.  Check out [AndSon](https://github.com/redding/and-son) for a Ruby Sanford protocol client.
 
 ## Usage
 

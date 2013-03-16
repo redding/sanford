@@ -9,7 +9,9 @@ module Sanford
 
   class Worker
 
-    ProcessedService = Struct.new(:request, :handler_class, :response, :exception, :time_taken)
+    ProcessedService = Struct.new(*[
+      :request, :handler_class, :response, :exception, :time_taken
+    ])
 
     attr_reader :logger
 

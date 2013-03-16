@@ -1,11 +1,10 @@
+require 'assert'
+require 'sanford-protocol/test/fake_socket'
+
 # These tests are intended as a high level test against Sanford's server. They
 # use fake and real connections to test how Sanford behaves.
 
-require 'assert'
-
-require 'sanford-protocol/test/fake_socket'
-
-class RequestHandlingTest < Assert::Context
+class RequestHandlingTests < Assert::Context
   desc "Sanford's handling of requests"
   setup do
     @env_sanford_protocol_debug = ENV['SANFORD_PROTOCOL_DEBUG']
@@ -18,13 +17,13 @@ class RequestHandlingTest < Assert::Context
     ENV['SANFORD_PROTOCOL_DEBUG'] = @env_sanford_protocol_debug
   end
 
-  class FakeConnectionTest < RequestHandlingTest
+  class FakeConnectionTests < RequestHandlingTests
     setup do
       @host_data = Sanford::HostData.new(TestHost)
     end
   end
 
-  class EchoTest < FakeConnectionTest
+  class EchoTests < FakeConnectionTests
     desc "running a request for the echo server"
     setup do
       @connection = FakeConnection.with_request('v1', 'echo', { :message => 'test' })
@@ -48,7 +47,7 @@ class RequestHandlingTest < Assert::Context
 
   end
 
-  class MissingServiceVersionTest < FakeConnectionTest
+  class MissingServiceVersionTests < FakeConnectionTests
     desc "running a request with no service version"
     setup do
       request_hash = Sanford::Protocol::Request.new('v1', 'what', {}).to_hash
@@ -71,7 +70,7 @@ class RequestHandlingTest < Assert::Context
 
   end
 
-  class MissingServiceNameTest < FakeConnectionTest
+  class MissingServiceNameTests < FakeConnectionTests
     desc "running a request with no service name"
     setup do
       request_hash = Sanford::Protocol::Request.new('v1', 'what', {}).to_hash
@@ -94,7 +93,7 @@ class RequestHandlingTest < Assert::Context
 
   end
 
-  class NotFoundServiceTest < FakeConnectionTest
+  class NotFoundServiceTests < FakeConnectionTests
     desc "running a request with no matching service name"
     setup do
       @connection = FakeConnection.with_request('v1', 'what', {})
@@ -114,7 +113,7 @@ class RequestHandlingTest < Assert::Context
 
   end
 
-  class ErrorServiceTest < FakeConnectionTest
+  class ErrorServiceTests < FakeConnectionTests
     desc "running a request that errors on the server"
     setup do
       @connection = FakeConnection.with_request('v1', 'bad', {})
@@ -134,7 +133,7 @@ class RequestHandlingTest < Assert::Context
 
   end
 
-  class HaltTest < FakeConnectionTest
+  class HaltTests < FakeConnectionTests
     desc "running a request that halts"
     setup do
       @connection = FakeConnection.with_request('v1', 'halt_it', {})
@@ -152,7 +151,7 @@ class RequestHandlingTest < Assert::Context
 
   end
 
-  class AuthorizeRequestTest < FakeConnectionTest
+  class AuthorizeRequestTests < FakeConnectionTests
     desc "running a request that halts in a callback"
     setup do
       @connection = FakeConnection.with_request('v1', 'authorized', {})
@@ -170,7 +169,7 @@ class RequestHandlingTest < Assert::Context
 
   end
 
-  class WithCustomErrorHandlerTest < FakeConnectionTest
+  class WithCustomErrorHandlerTests < FakeConnectionTests
     desc "running a request that triggers our custom error handler"
     setup do
       @connection = FakeConnection.with_request('v1', 'custom_error', {})
@@ -188,7 +187,7 @@ class RequestHandlingTest < Assert::Context
 
   end
 
-  class WithBadResponseHashTest < FakeConnectionTest
+  class WithBadResponseHashTests < FakeConnectionTests
     desc "running a request that builds an object that can't be encoded"
     setup do
       @connection = FakeConnection.with_request('v1', 'echo', { :message => 'cant encode' }, true)
@@ -213,7 +212,7 @@ class RequestHandlingTest < Assert::Context
     end
   end
 
-  class WithAKeepAliveTest < FakeConnectionTest
+  class WithAKeepAliveTests < FakeConnectionTests
     desc "receiving a keep-alive connection"
     setup do
       @server = Sanford::Server.new(TestHost, {
@@ -238,12 +237,12 @@ class RequestHandlingTest < Assert::Context
 
   end
 
-  class ForkedServerTest < RequestHandlingTest
+  class ForkedServerTests < RequestHandlingTests
     include Test::SpawnServerHelper
   end
 
   # Simple service test that echos back the params sent to it
-  class EchoServerTest < ForkedServerTest
+  class EchoServerTests < ForkedServerTests
     desc "when hitting an echo service"
 
     should "return a successful response and echo the params sent to it" do
@@ -260,7 +259,7 @@ class RequestHandlingTest < Assert::Context
   end
 
   # Sending the server a completely wrong stream of bytes
-  class BadMessageTest < ForkedServerTest
+  class BadMessageTests < ForkedServerTests
     desc "when sent a invalid request stream"
 
     should "return a bad request response with an error message" do
@@ -276,7 +275,7 @@ class RequestHandlingTest < Assert::Context
   end
 
   # Sending the server a protocol version that doesn't match it's version
-  class WrongProtocolVersionTest < ForkedServerTest
+  class WrongProtocolVersionTests < ForkedServerTests
     desc "when sent a request with a wrong protocol version"
 
     should "return a bad request response with an error message" do
@@ -292,7 +291,7 @@ class RequestHandlingTest < Assert::Context
   end
 
   # Sending the server a body that it can't parse
-  class BadBodyTest < ForkedServerTest
+  class BadBodyTests < ForkedServerTests
     desc "when sent a request with an invalid body"
 
     should "return a bad request response with an error message" do
@@ -306,7 +305,7 @@ class RequestHandlingTest < Assert::Context
     end
   end
 
-  class HangingRequestTest < ForkedServerTest
+  class HangingRequestTests < ForkedServerTests
     desc "when a client connects but doesn't send anything for to long"
     setup do
       ENV['SANFORD_TIMEOUT'] = '0.1'

@@ -1,10 +1,9 @@
 require 'assert'
-
 require 'sanford/server'
 
 class Sanford::Server
 
-  class BaseTest < Assert::Context
+  class BaseTests < Assert::Context
     desc "Sanford::Server"
     setup do
       @server = Sanford::Server.new(TestHost, { :keep_alive => true })
@@ -26,7 +25,7 @@ class Sanford::Server
 
   end
 
-  class RunTest < BaseTest
+  class RunTests < BaseTests
     desc "run"
     setup do
       @server.listen(TestHost.ip, TestHost.port)

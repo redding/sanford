@@ -1,15 +1,13 @@
-module Sanford; end
-
 require 'ns-options'
 require 'pathname'
 require 'set'
 
+require 'sanford/version'
 require 'sanford/host'
 require 'sanford/logger'
 require 'sanford/runner'
 require 'sanford/server'
 require 'sanford/service_handler'
-require 'sanford/version'
 
 ENV['SANFORD_SERVICES_FILE'] ||= 'config/services'
 

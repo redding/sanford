@@ -1,10 +1,9 @@
 require 'assert'
-
 require 'sanford-protocol/test/helpers'
 
 class Sanford::Worker
 
-  class BaseTest < Assert::Context
+  class BaseTests < Assert::Context
     include Sanford::Protocol::Test::Helpers
 
     desc "Sanford::Worker"

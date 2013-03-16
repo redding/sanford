@@ -25,6 +25,7 @@ module Sanford
     # communication, we have all the information we need to send up front and
     # are closing the connection, so it doesn't need to buffer.
     # See http://linux.die.net/man/7/tcp
+
     def configure_tcp_server(tcp_server)
       tcp_server.setsockopt(::Socket::IPPROTO_TCP, ::Socket::TCP_NODELAY, true)
     end
@@ -37,6 +38,7 @@ module Sanford
     # a new instance of the handler for every request.
     # When using TCP_CORK, you "cork" the socket, handle it and then "uncork"
     # it, see the `TCPCork` module for more info.
+
     def serve(socket)
       TCPCork.apply(socket)
       connection = Connection.new(socket)
@@ -88,6 +90,7 @@ module Sanford
       # to HTTP, it doesn't receive sporadic packets, it has all it's data
       # come in at once.
       # For more information: http://baus.net/on-tcp_cork
+
       if RUBY_PLATFORM =~ /linux/
         # 3 == TCP_CORK
         def self.apply(socket)

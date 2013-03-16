@@ -2,7 +2,7 @@ require 'assert'
 
 class Sanford::Hosts
 
-  class BaseTest < Assert::Context
+  class BaseTests < Assert::Context
     desc "Sanford::hosts"
     setup do
       @hosts = Sanford::Hosts.new
@@ -13,7 +13,7 @@ class Sanford::Hosts
 
   end
 
-  class FindTest < BaseTest
+  class FindTests < BaseTests
     desc "find"
     setup do
       @hosts.add ::NotNamedHost
