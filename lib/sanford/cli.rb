@@ -232,8 +232,16 @@ module Sanford
     end
 
     class PIDFile
+      DEF_FILE = '/dev/null'
+
       def initialize(path)
-        @path = (path || '/dev/null').to_s
+        @path = (path || DEF_FILE).to_s
+        return if @path == DEF_FILE
+
+        path_dir = File.dirname(@path)
+        unless File.exists?(path_dir) && File.writable?(path_dir)
+          raise RuntimeError, "PID file dir `#{path_dir}` is not writeable"
+        end
       end
 
       def pid
