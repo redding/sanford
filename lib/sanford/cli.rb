@@ -96,27 +96,32 @@ module Sanford
       def run!(daemonize = false)
         daemonize!(true) if daemonize
         Sanford::Server.new(@host, @server_options).tap do |server|
-          log "Starting server for #{@host.name}"
+          log "Starting #{@host.name} server..."
 
           server.listen(*@config.listen_args)
-          log "Listening on #{server.ip}:#{server.port}"
-          log "PID: #{Process.pid}"
-
           $0 = ProcessName.new(@host.name, server.ip, server.port)
+          log "Listening on #{server.ip}:#{server.port}"
+
           @config.pid_file.write
+          log "PID: #{Process.pid}"
 
           Signal.trap("TERM"){ self.stop!(server) }
           Signal.trap("INT"){  self.halt!(server) }
           Signal.trap("USR2"){ self.restart!(server) }
 
-          server.run(@config.client_file_descriptors).join
+          server_thread = server.run(@config.client_file_descriptors)
+          log "#{@host.name} server started and ready."
+          server_thread.join
         end
+      rescue RuntimeError => err
+        log "Error: #{err.message}"
+        log "#{@host.name} server never started."
       ensure
         @config.pid_file.remove
       end
 
       def restart!(server)
-        log "Restarting the server..."
+        log "Restarting #{@host.name} server..."
         server.pause
         log "server paused"
 
@@ -124,21 +129,21 @@ module Sanford
         ENV['SANFORD_SERVER_FD']   = server.file_descriptor.to_s
         ENV['SANFORD_CLIENT_FDS']  = server.client_file_descriptors.join(',')
 
-        @logger.info "calling exec ..."
+        log "calling exec ..."
         Dir.chdir @restart_cmd.dir
         Kernel.exec(*@restart_cmd.argv)
       end
 
       def stop!(server)
-        log "Stopping the server..."
+        log "Stopping #{@host.name} server..."
         server.stop
-        log "Done"
+        log "#{@host.name} server stopped."
       end
 
       def halt!(server)
-        log "Halting the server..."
+        log "Halting #{@host.name} server..."
         server.halt false
-        log "Done"
+        log "#{@host.name} server halted."
       end
 
       # Full explanation: http://www.steve.org.uk/Reference/Unix/faq_2.html#SEC16
@@ -236,12 +241,6 @@ module Sanford
 
       def initialize(path)
         @path = (path || DEF_FILE).to_s
-        return if @path == DEF_FILE
-
-        path_dir = File.dirname(@path)
-        unless File.exists?(path_dir) && File.writable?(path_dir)
-          raise RuntimeError, "PID file dir `#{path_dir}` is not writeable"
-        end
       end
 
       def pid
@@ -250,7 +249,13 @@ module Sanford
       end
 
       def write
-        File.open(@path, 'w'){|f| f.puts Process.pid }
+        begin
+          File.open(@path, 'w'){|f| f.puts Process.pid }
+        rescue Errno::ENOENT => err
+          e = RuntimeError.new("Can't write pid to file `#{@path}`")
+          e.set_backtrace(err.backtrace)
+          raise e
+        end
       end
 
       def remove
