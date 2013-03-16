@@ -1,5 +1,4 @@
 require 'assert'
-
 require 'sanford-protocol/test/helpers'
 
 class Sanford::Worker

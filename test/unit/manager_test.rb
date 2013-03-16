@@ -1,5 +1,4 @@
 require 'assert'
-
 require 'sanford/cli'
 
 module Sanford::Manager

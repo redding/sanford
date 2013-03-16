@@ -1,5 +1,4 @@
 module Test
-
   module SpawnServerHelper
 
     def start_server(host, &block)
@@ -15,5 +14,4 @@ module Test
     end
 
   end
-
 end

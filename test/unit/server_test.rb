@@ -1,5 +1,4 @@
 require 'assert'
-
 require 'sanford/server'
 
 class Sanford::Server

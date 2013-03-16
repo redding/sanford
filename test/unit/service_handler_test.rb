@@ -1,5 +1,4 @@
 require 'assert'
-
 require 'sanford/test_runner'
 
 module Sanford::ServiceHandler

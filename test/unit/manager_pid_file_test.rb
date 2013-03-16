@@ -1,5 +1,4 @@
 require 'assert'
-
 require 'sanford/cli'
 
 class Sanford::Manager::PIDFile

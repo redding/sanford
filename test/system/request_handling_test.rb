@@ -1,9 +1,8 @@
+require 'assert'
+require 'sanford-protocol/test/fake_socket'
+
 # These tests are intended as a high level test against Sanford's server. They
 # use fake and real connections to test how Sanford behaves.
-
-require 'assert'
-
-require 'sanford-protocol/test/fake_socket'
 
 class RequestHandlingTest < Assert::Context
   desc "Sanford's handling of requests"
