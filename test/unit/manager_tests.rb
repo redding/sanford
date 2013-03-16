@@ -3,7 +3,7 @@ require 'sanford/cli'
 
 module Sanford::Manager
 
-  class BaseTest < Assert::Context
+  class BaseTests < Assert::Context
     desc "Sanford::Manager"
     subject{ Sanford::Manager }
 
@@ -18,7 +18,7 @@ module Sanford::Manager
 
   end
 
-  class ServerHandlerTest < BaseTest
+  class ServerHandlerTests < BaseTests
     desc "ServerHandler"
     setup do
       @handler = Sanford::Manager::ServerHandler.new({ :host => 'TestHost' })
@@ -41,7 +41,7 @@ module Sanford::Manager
 
   end
 
-  class SignalHandlertest < BaseTest
+  class SignalHandlertests < BaseTests
     desc "SignalHandler"
     setup do
       @handler = Sanford::Manager::SignalHandler.new({ :pid => -1 })
@@ -57,7 +57,7 @@ module Sanford::Manager
     end
   end
 
-  class ConfigTest < BaseTest
+  class ConfigTests < BaseTests
     desc "Config"
     setup do
       @config = Sanford::Manager::Config.new({ :host => 'TestHost' })
@@ -114,7 +114,7 @@ module Sanford::Manager
 
   end
 
-  class EnvVarsTest < ConfigTest
+  class EnvVarsTests < ConfigTests
     desc "with env vars set"
     setup do
       ENV['SANFORD_HOST'] = 'TestHost'

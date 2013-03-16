@@ -2,7 +2,7 @@ require 'assert'
 
 module Sanford::Host
 
-  class BaseTest < Assert::Context
+  class BaseTests < Assert::Context
     desc "Sanford::Host"
     setup do
       @configuration = MyHost.configuration.to_hash
@@ -31,7 +31,7 @@ module Sanford::Host
 
   end
 
-  class ClassMethodsTest < Assert::Context
+  class ClassMethodsTests < Assert::Context
     desc "Sanford::Host class"
     subject{ MyHost }
 

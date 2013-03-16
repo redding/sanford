@@ -3,7 +3,7 @@ require 'sanford/cli'
 
 class Sanford::Manager::PIDFile
 
-  class BaseTest < Assert::Context
+  class BaseTests < Assert::Context
     desc "Sanford::Manager::PIDFile"
     setup do
       @pid_file_path = File.join(ROOT, "tmp/my.pid")
