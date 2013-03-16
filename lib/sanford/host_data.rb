@@ -11,6 +11,7 @@ module Sanford
 
     # NOTE: The `name` attribute shouldn't be removed, it is used to identify
     # a `HostData`, particularly in error handlers
+
     attr_reader :name, :logger, :verbose, :keep_alive, :runner, :error_procs
 
     def initialize(service_host, options = nil)
