@@ -19,6 +19,7 @@ module Sanford
     # we override the `run` method because the TestRunner wants to control
     # storing any generated response. If `init` generated a response, we don't
     # want to `run` at all.
+
     def run
       @response ||= build_response catch_halt{ @handler.run }
     end

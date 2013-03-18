@@ -1,6 +1,6 @@
 #!/usr/bin/env ruby
 #
-# Copyright (c) 2013 Collin Redding & Kelly Redding
+# Copyright (c) 2012 Collin Redding & Kelly Redding
 #
 
 require 'sanford/cli'

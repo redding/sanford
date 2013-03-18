@@ -1,5 +1,7 @@
 *.gem
+*.log
 *.rbc
+.rbx/
 .bundle
 .config
 .yardoc
@@ -15,5 +17,3 @@ spec/reports
 test/tmp
 test/version_tmp
 tmp
-log/*.output
-.pid

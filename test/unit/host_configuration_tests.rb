@@ -2,7 +2,7 @@ require 'assert'
 
 class Sanford::Host::Configuration
 
-  class BaseTest < Assert::Context
+  class BaseTests < Assert::Context
     desc "Sanford::Host::Configuration"
     setup do
       @configuration = Sanford::Host::Configuration.new(EmptyHost.instance)

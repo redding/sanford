@@ -2,7 +2,7 @@ require 'assert'
 
 module Sanford::Config
 
-  class BaseTest < Assert::Context
+  class BaseTests < Assert::Context
     desc "Sanford::Config"
     subject{ Sanford::Config }
 

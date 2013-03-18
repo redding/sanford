@@ -1,10 +1,9 @@
 require 'assert'
-
 require 'sanford/test_runner'
 
 module Sanford::ServiceHandler
 
-  class BaseTest < Assert::Context
+  class BaseTests < Assert::Context
     include Sanford::TestRunner::Helpers
 
     desc "Sanford::ServiceHandler"
@@ -31,7 +30,7 @@ module Sanford::ServiceHandler
 
   end
 
-  class RunHandlerTest < BaseTest
+  class RunHandlerTests < BaseTests
     desc "run_handler helper"
 
     should "allow easily running another handler" do
@@ -40,7 +39,7 @@ module Sanford::ServiceHandler
     end
   end
 
-  class WithMethodFlagsTest < BaseTest
+  class WithMethodFlagsTests < BaseTests
     setup do
       @handler = test_runner(FlagServiceHandler).handler
     end
@@ -67,7 +66,7 @@ module Sanford::ServiceHandler
 
   end
 
-  class HaltTest < BaseTest
+  class HaltTests < BaseTests
     desc "halt"
 
     should "return a response with the status code and the passed data" do
@@ -96,7 +95,7 @@ module Sanford::ServiceHandler
 
   end
 
-  class HaltingTest < BaseTest
+  class HaltingTests < BaseTests
     desc "halting at different points"
 
     should "not call `init!, `after_init`, `run!` or run's callbacks when `before_init` halts" do

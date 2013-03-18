@@ -2,7 +2,7 @@ require 'assert'
 
 module Sanford::Runner
 
-  class BaseTest < Assert::Context
+  class BaseTests < Assert::Context
     desc "Sanford::Runner"
     setup do
       request = Sanford::Protocol::Request.new('v1', 'test', {})

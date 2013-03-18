@@ -2,7 +2,7 @@ require 'assert'
 
 class Sanford::HostData
 
-  class BaseTest < Assert::Context
+  class BaseTests < Assert::Context
     desc "Sanford::HostData"
     setup do
       TestHost.init_has_been_called = false

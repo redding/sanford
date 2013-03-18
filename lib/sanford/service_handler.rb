@@ -52,17 +52,10 @@ module Sanford
 
     protected
 
-    def before_init
-    end
-
-    def after_init
-    end
-
-    def before_run
-    end
-
-    def after_run
-    end
+    def before_init; end
+    def after_init;  end
+    def before_run;  end
+    def after_run;   end
 
     # Helpers
 
@@ -70,21 +63,10 @@ module Sanford
       handler_class.run(params || {}, self.logger)
     end
 
-    def halt(*args)
-      @sanford_runner.halt(*args)
-    end
-
-    def request
-      @sanford_runner.request
-    end
-
-    def params
-      self.request.params
-    end
-
-    def logger
-      @sanford_runner.logger
-    end
+    def halt(*args); @sanford_runner.halt(*args); end
+    def request;     @sanford_runner.request;     end
+    def params;      self.request.params;         end
+    def logger;      @sanford_runner.logger;      end
 
     def run_callback(callback)
       self.send(callback.to_s)
