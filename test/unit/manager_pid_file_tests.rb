@@ -40,12 +40,13 @@ class Sanford::Manager::PIDFile
       assert_not File.exists?(@pid_file_path)
     end
 
-    should "complain nicely if the pid file dir doesn't exist or isn't writeable" do
+    should "complain nicely if it can't write the pid file" do
       pid_file_path = 'does/not/exist.pid'
+      pid_file = Sanford::Manager::PIDFile.new(pid_file_path)
 
       err = nil
       begin
-        Sanford::Manager::PIDFile.new(pid_file_path)
+        pid_file.write
       rescue Exception => err
       end
 
