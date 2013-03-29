@@ -84,7 +84,7 @@ module Sanford
       end
 
       def run
-        self.run!
+        self.run! false
       end
 
       def start
@@ -94,7 +94,7 @@ module Sanford
       protected
 
       def run!(daemonize = false)
-        daemonize!(true) if daemonize
+        daemonize!(true) if daemonize && !ENV['SANFORD_SKIP_DAEMONIZE']
         Sanford::Server.new(@host, @server_options).tap do |server|
           log "Starting #{@host.name} server..."
 
@@ -125,9 +125,10 @@ module Sanford
         server.pause
         log "server paused"
 
-        ENV['SANFORD_HOST']        = @host.name
-        ENV['SANFORD_SERVER_FD']   = server.file_descriptor.to_s
-        ENV['SANFORD_CLIENT_FDS']  = server.client_file_descriptors.join(',')
+        ENV['SANFORD_HOST']           = @host.name
+        ENV['SANFORD_SERVER_FD']      = server.file_descriptor.to_s
+        ENV['SANFORD_CLIENT_FDS']     = server.client_file_descriptors.join(',')
+        ENV['SANFORD_SKIP_DAEMONIZE'] = 'yes'
 
         log "calling exec ..."
         Dir.chdir @restart_cmd.dir
