@@ -34,12 +34,12 @@ module Sanford
       @sanford_host_data = Sanford::HostData.new(@sanford_host, @sanford_host_options)
     end
 
-    # `serve` can be called at the same time by multiple threads. Thus we create
-    # a new instance of the handler for every request.
+    # `serve!` can be called at the same time by multiple threads. Thus we
+    # create a new instance of the handler for every request.
     # When using TCP_CORK, you "cork" the socket, handle it and then "uncork"
     # it, see the `TCPCork` module for more info.
 
-    def serve(socket)
+    def serve!(socket)
       TCPCork.apply(socket)
       connection = Connection.new(socket)
       if !self.keep_alive_connection?(connection)
