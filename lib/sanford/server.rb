@@ -40,12 +40,10 @@ module Sanford
     # it, see the `TCPCork` module for more info.
 
     def serve!(socket)
-      TCPCork.apply(socket)
       connection = Connection.new(socket)
       if !self.keep_alive_connection?(connection)
         Sanford::Worker.new(@sanford_host_data, connection).run
       end
-      TCPCork.remove(socket)
     end
 
     protected
@@ -59,7 +57,8 @@ module Sanford
       DEFAULT_TIMEOUT = 1
 
       def initialize(socket)
-        @connection = Sanford::Protocol::Connection.new(socket)
+        @socket     = socket
+        @connection = Sanford::Protocol::Connection.new(@socket)
         @timeout    = (ENV['SANFORD_TIMEOUT'] || DEFAULT_TIMEOUT).to_f
       end
 
@@ -68,7 +67,9 @@ module Sanford
       end
 
       def write_data(data)
+        TCPCork.apply(@socket)
         @connection.write data
+        TCPCork.remove(@socket)
       end
 
       def peek_data
