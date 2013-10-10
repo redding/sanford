@@ -2,8 +2,8 @@ require 'sanford-protocol/test/fake_socket'
 
 class SimpleClient
 
-  def self.call_with_request(service_host, version, name, params)
-    self.new(service_host).call_with_request(version, name, params)
+  def self.call_with_request(service_host, name, params)
+    self.new(service_host).call_with_request(name, params)
   end
 
   def self.call_with_msg_body(service_host, *args)

@@ -27,8 +27,8 @@ module Sanford
       @runner      = configuration[:runner]
       @error_procs = configuration[:error_procs]
 
-      @handlers = service_host.versioned_services.inject({}) do |hash, (version, services)|
-        hash.merge({ version => self.constantize_services(services) })
+      @handlers = service_host.services.inject({}) do |h, (name, handler_class_name)|
+        h.merge({ name => self.constantize(handler_class_name) })
       end
     end
 
@@ -36,18 +36,11 @@ module Sanford
       self.runner.new(handler_class, request, self.logger).run
     end
 
-    def handler_class_for(version, service)
-      version_group = @handlers[version] || {}
-      version_group[service] || raise(Sanford::NotFoundError)
+    def handler_class_for(service)
+      @handlers[service] || raise(Sanford::NotFoundError)
     end
 
     protected
-
-    def constantize_services(services)
-      services.inject({}) do |hash, (name, handler_class_name)|
-        hash.merge({ name => self.constantize(handler_class_name) })
-      end
-    end
 
     def constantize(handler_class_name)
       Sanford::ServiceHandler.constantize(handler_class_name) ||

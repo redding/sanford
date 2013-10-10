@@ -27,7 +27,7 @@ module Sanford
     protected
 
     def test_request(params)
-      Sanford::Protocol::Request.new('version', 'name', params)
+      Sanford::Protocol::Request.new('name', params)
     end
 
     def build_response(response_args)

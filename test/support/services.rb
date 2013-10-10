@@ -24,16 +24,14 @@ class TestHost
     end
   end
 
-  version 'v1' do
-    service_handler_ns 'TestHost'
+  service_handler_ns 'TestHost'
 
-    service 'echo',         'Echo'
-    service 'bad',          'Bad'
-    service 'multiply',     'Multiply'
-    service 'halt_it',      '::TestHost::HaltIt'
-    service 'authorized',   'Authorized'
-    service 'custom_error', 'CustomError'
-  end
+  service 'echo',         'Echo'
+  service 'bad',          'Bad'
+  service 'multiply',     'Multiply'
+  service 'halt_it',      '::TestHost::HaltIt'
+  service 'authorized',   'Authorized'
+  service 'custom_error', 'CustomError'
 
   class Echo
     include Sanford::ServiceHandler
@@ -116,9 +114,8 @@ class UndefinedHandlersHost
 
   port 12345
 
-  version 'v1' do
-    service 'undefined', 'ThisIsNotDefined'
-  end
+  service 'undefined', 'ThisIsNotDefined'
+
 end
 
 class EmptyHost
