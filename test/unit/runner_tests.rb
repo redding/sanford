@@ -5,7 +5,7 @@ module Sanford::Runner
   class BaseTests < Assert::Context
     desc "Sanford::Runner"
     setup do
-      request = Sanford::Protocol::Request.new('v1', 'test', {})
+      request = Sanford::Protocol::Request.new('test', {})
       @runner = Sanford::DefaultRunner.new(BasicServiceHandler, request)
     end
     subject{ @runner }

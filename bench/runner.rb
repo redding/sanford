@@ -10,7 +10,7 @@ module Bench
     HOST_AND_PORT = [ '127.0.0.1', 59284 ]
 
     REQUESTS = [
-      [ 'v1', 'simple', {}, 10000 ]
+      [ 'simple', {}, 10000 ]
     ]
 
     TIME_MODIFIER = 10 ** 4 # 4 decimal places
@@ -24,19 +24,19 @@ module Bench
     def build_report
       output "Running benchmark report..."
 
-      REQUESTS.each do |version, name, params, times|
-        self.benchmark_service(version, name, params, times, false)
+      REQUESTS.each do |name, params, times|
+        self.benchmark_service(name, params, times, false)
       end
 
       output "Done running benchmark report"
     end
 
-    def benchmark_service(version, name, params, times, show_result = false)
+    def benchmark_service(name, params, times, show_result = false)
       benchmarks = []
 
       output "\nHitting #{name.inspect} service with #{params.inspect}, #{times} times"
       [*(1..times.to_i)].each do |index|
-        benchmark = self.hit_service(version, name, params.merge({ :request_number => index }), show_result)
+        benchmark = self.hit_service(name, params.merge({ :request_number => index }), show_result)
         benchmarks << self.round_time(benchmark.real * 1000.to_f)
         output('.', false) if ((index - 1) % 100 == 0) && !show_result
       end
@@ -73,11 +73,11 @@ module Bench
     end
 
 
-    def hit_service(version, name, params, show_result)
+    def hit_service(name, params, show_result)
       Benchmark.measure do
         begin
           client = Bench::Client.new(*HOST_AND_PORT)
-          response = client.call(version, name, params)
+          response = client.call(name, params)
           if show_result
             output "Got a response:"
             output "  #{response.status}"

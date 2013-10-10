@@ -2,8 +2,8 @@ class FakeConnection
 
   attr_reader :read_data, :response, :write_stream_closed
 
-  def self.with_request(version, name, params = {}, raise_on_write = false)
-    request = Sanford::Protocol::Request.new(version, name, params)
+  def self.with_request(name, params = {}, raise_on_write = false)
+    request = Sanford::Protocol::Request.new(name, params)
     self.new(request.to_hash, raise_on_write)
   end
 

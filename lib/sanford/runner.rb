@@ -54,7 +54,7 @@ module Sanford
     module ClassMethods
 
       def run(handler_class, params = nil, logger = nil)
-        request = Sanford::Protocol::Request.new('version', 'name', params || {})
+        request = Sanford::Protocol::Request.new('name', params || {})
         self.new(handler_class, request, logger).run
       end
 
