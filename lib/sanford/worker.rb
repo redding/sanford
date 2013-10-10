@@ -42,7 +42,7 @@ module Sanford
         self.log_request(request)
         service.request = request
 
-        handler_class = @host_data.handler_class_for(request.version, request.name)
+        handler_class = @host_data.handler_class_for(request.name)
         self.log_handler_class(handler_class)
         service.handler_class = handler_class
 
@@ -84,7 +84,6 @@ module Sanford
     end
 
     def log_request(request)
-      log_verbose "  Version: #{request.version.inspect}"
       log_verbose "  Service: #{request.name.inspect}"
       log_verbose "  Params:  #{request.params.inspect}"
     end
@@ -104,7 +103,6 @@ module Sanford
         summary_line_args['status'] = processed_service.response.code
       end
       if (request = processed_service.request)
-        summary_line_args['version'] = request.version
         summary_line_args['service'] = request.name
         summary_line_args['params']  = request.params
       end

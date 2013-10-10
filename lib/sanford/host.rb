@@ -43,11 +43,12 @@ module Sanford
       Sanford.register(host_class)
     end
 
-    attr_reader :configuration, :versioned_services
+    attr_reader :configuration, :services
 
     def initialize
       @configuration = Configuration.new(self)
-      @versioned_services = {}
+      @service_handler_ns = nil
+      @services = {}
     end
 
     def name(*args)
@@ -90,9 +91,16 @@ module Sanford
       self.configuration.init_proc = block
     end
 
-    def version(name, &block)
-      version_group = Sanford::Host::VersionGroup.new(name, &block)
-      @versioned_services.merge!(version_group.to_hash)
+    def service_handler_ns(value = nil)
+      @service_handler_ns = value if value
+      @service_handler_ns
+    end
+
+    def service(service_name, handler_class_name)
+      if @service_handler_ns && !(handler_class_name =~ /^::/)
+        handler_class_name = "#{@service_handler_ns}::#{handler_class_name}"
+      end
+      @services[service_name] = handler_class_name
     end
 
     def inspect
@@ -102,33 +110,6 @@ module Sanford
     end
 
     protected
-
-    class VersionGroup
-      attr_reader :name, :services
-
-      def initialize(name, &definition_block)
-        @name = name
-        @services = {}
-        self.instance_eval(&definition_block)
-      end
-
-      def service_handler_ns(value = nil)
-        @service_handler_ns = value if value
-        @service_handler_ns
-      end
-
-      def service(service_name, handler_class_name)
-        if self.service_handler_ns && !(handler_class_name =~ /^::/)
-          handler_class_name = "#{self.service_handler_ns}::#{handler_class_name}"
-        end
-        @services[service_name] = handler_class_name
-      end
-
-      def to_hash
-        { self.name => self.services }
-      end
-
-    end
 
     module ClassMethods
 
