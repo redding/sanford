@@ -34,20 +34,20 @@ class Sanford::HostData
 
     should "constantize a host's handlers" do
       handlers = subject.instance_variable_get("@handlers")
-      assert_equal TestHost::Authorized,  handlers['v1']['authorized']
-      assert_equal TestHost::Bad,         handlers['v1']['bad']
-      assert_equal TestHost::Echo,        handlers['v1']['echo']
-      assert_equal TestHost::HaltIt,      handlers['v1']['halt_it']
-      assert_equal TestHost::Multiply,    handlers['v1']['multiply']
+      assert_equal TestHost::Authorized,  handlers['authorized']
+      assert_equal TestHost::Bad,         handlers['bad']
+      assert_equal TestHost::Echo,        handlers['echo']
+      assert_equal TestHost::HaltIt,      handlers['halt_it']
+      assert_equal TestHost::Multiply,    handlers['multiply']
     end
 
     should "look up handler classes with #handler_class_for" do
-      assert_equal TestHost::Echo, subject.handler_class_for('v1', 'echo')
+      assert_equal TestHost::Echo, subject.handler_class_for('echo')
     end
 
     should "raise a custom error when handler_class_for is called with an unknown service" do
       assert_raises(Sanford::NotFoundError) do
-        subject.handler_class_for('not', 'defined')
+        subject.handler_class_for('not_defined')
       end
     end
 

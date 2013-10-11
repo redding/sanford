@@ -7,9 +7,7 @@ class BenchHost
   logger           Logger.new(STDOUT)
   verbose_logging  false
 
-  version 'v1' do
-    service 'simple', 'BenchHost::Simple'
-  end
+  service 'simple', 'BenchHost::Simple'
 
   class Simple
     include Sanford::ServiceHandler

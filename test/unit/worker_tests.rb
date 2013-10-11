@@ -9,7 +9,7 @@ class Sanford::Worker
     desc "Sanford::Worker"
     setup do
       @host_data = Sanford::HostData.new(TestHost)
-      @connection = FakeConnection.with_request('version', 'service', {})
+      @connection = FakeConnection.with_request('service', {})
       @worker = Sanford::Worker.new(@host_data, @connection)
     end
     subject{ @worker }

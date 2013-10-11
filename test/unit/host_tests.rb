@@ -13,8 +13,8 @@ module Sanford::Host
     subject{ MyHost.instance }
 
     should have_instance_methods :configuration, :name, :ip, :port, :pid_file,
-      :logger, :verbose_logging, :runner, :error, :init, :version,
-      :versioned_services
+      :logger, :verbose_logging, :runner, :error, :init, :service_handler_ns,
+      :service, :services
 
     should "get and set it's configuration options with their matching methods" do
       subject.name 'my_awesome_host'
@@ -23,10 +23,18 @@ module Sanford::Host
       assert_equal subject.configuration.port,  subject.port
     end
 
-    should "add a version group with #version" do
-      subject.version('v1'){ }
+    should "allow adding a service with #service" do
+      subject.service_handler_ns 'MyNamespace'
+      subject.service('test', 'MyServiceHandler')
 
-      assert_equal({}, subject.versioned_services["v1"])
+      assert_equal 'MyNamespace::MyServiceHandler', subject.services['test']
+    end
+
+    should "ignore a namespace when a service class has leading colons" do
+      subject.service_handler_ns 'MyNamespace'
+      subject.service('test', '::MyServiceHandler')
+
+      assert_equal '::MyServiceHandler', subject.services['test']
     end
 
   end

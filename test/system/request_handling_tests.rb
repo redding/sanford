@@ -26,7 +26,7 @@ class RequestHandlingTests < Assert::Context
   class EchoTests < FakeConnectionTests
     desc "running a request for the echo server"
     setup do
-      @connection = FakeConnection.with_request('v1', 'echo', { :message => 'test' })
+      @connection = FakeConnection.with_request('echo', { :message => 'test' })
       @worker = Sanford::Worker.new(@host_data, @connection)
     end
 
@@ -47,33 +47,10 @@ class RequestHandlingTests < Assert::Context
 
   end
 
-  class MissingServiceVersionTests < FakeConnectionTests
-    desc "running a request with no service version"
-    setup do
-      request_hash = Sanford::Protocol::Request.new('v1', 'what', {}).to_hash
-      request_hash.delete('version')
-      @connection = FakeConnection.new(request_hash)
-      @worker = Sanford::Worker.new(@host_data, @connection)
-    end
-
-    should "return a bad request response" do
-      assert_raises(Sanford::Protocol::BadRequestError) do
-        @worker.run
-      end
-      response = @connection.response
-
-      assert_equal 400,       response.code
-      assert_match "request", response.status.message
-      assert_match "version", response.status.message
-      assert_equal nil,       response.data
-    end
-
-  end
-
   class MissingServiceNameTests < FakeConnectionTests
     desc "running a request with no service name"
     setup do
-      request_hash = Sanford::Protocol::Request.new('v1', 'what', {}).to_hash
+      request_hash = Sanford::Protocol::Request.new('what', {}).to_hash
       request_hash.delete('name')
       @connection = FakeConnection.new(request_hash)
       @worker = Sanford::Worker.new(@host_data, @connection)
@@ -96,7 +73,7 @@ class RequestHandlingTests < Assert::Context
   class NotFoundServiceTests < FakeConnectionTests
     desc "running a request with no matching service name"
     setup do
-      @connection = FakeConnection.with_request('v1', 'what', {})
+      @connection = FakeConnection.with_request('what', {})
       @worker = Sanford::Worker.new(@host_data, @connection)
     end
 
@@ -116,7 +93,7 @@ class RequestHandlingTests < Assert::Context
   class ErrorServiceTests < FakeConnectionTests
     desc "running a request that errors on the server"
     setup do
-      @connection = FakeConnection.with_request('v1', 'bad', {})
+      @connection = FakeConnection.with_request('bad', {})
       @worker = Sanford::Worker.new(@host_data, @connection)
     end
 
@@ -136,7 +113,7 @@ class RequestHandlingTests < Assert::Context
   class HaltTests < FakeConnectionTests
     desc "running a request that halts"
     setup do
-      @connection = FakeConnection.with_request('v1', 'halt_it', {})
+      @connection = FakeConnection.with_request('halt_it', {})
       @worker = Sanford::Worker.new(@host_data, @connection)
     end
 
@@ -154,7 +131,7 @@ class RequestHandlingTests < Assert::Context
   class AuthorizeRequestTests < FakeConnectionTests
     desc "running a request that halts in a callback"
     setup do
-      @connection = FakeConnection.with_request('v1', 'authorized', {})
+      @connection = FakeConnection.with_request('authorized', {})
       @worker = Sanford::Worker.new(@host_data, @connection)
     end
 
@@ -172,7 +149,7 @@ class RequestHandlingTests < Assert::Context
   class WithCustomErrorHandlerTests < FakeConnectionTests
     desc "running a request that triggers our custom error handler"
     setup do
-      @connection = FakeConnection.with_request('v1', 'custom_error', {})
+      @connection = FakeConnection.with_request('custom_error', {})
       @worker = Sanford::Worker.new(@host_data, @connection)
     end
 
@@ -190,7 +167,7 @@ class RequestHandlingTests < Assert::Context
   class WithBadResponseHashTests < FakeConnectionTests
     desc "running a request that builds an object that can't be encoded"
     setup do
-      @connection = FakeConnection.with_request('v1', 'echo', { :message => 'cant encode' }, true)
+      @connection = FakeConnection.with_request('echo', { :message => 'cant encode' }, true)
       @worker = Sanford::Worker.new(@host_data, @connection)
     end
 
@@ -247,7 +224,7 @@ class RequestHandlingTests < Assert::Context
 
     should "return a successful response and echo the params sent to it" do
       self.start_server(TestHost) do
-        response = SimpleClient.call_with_request(TestHost, 'v1', 'echo', {
+        response = SimpleClient.call_with_request(TestHost, 'echo', {
           :message => 'test'
         })
 
@@ -317,7 +294,7 @@ class RequestHandlingTests < Assert::Context
     should "timeout" do
       self.start_server(TestHost) do
         client = SimpleClient.new(TestHost, :with_delay => 1)
-        response = client.call_with_request('v1', 'echo', { :message => 'test' })
+        response = client.call_with_request('echo', { :message => 'test' })
 
         assert_equal 408,   response.code
         assert_equal nil,   response.status.message
