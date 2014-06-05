@@ -2,6 +2,7 @@ require 'assert'
 require 'sanford/service_handler'
 
 require 'sanford/test_helpers'
+require 'test/support/service_handlers'
 
 module Sanford::ServiceHandler
 
@@ -69,7 +70,7 @@ module Sanford::ServiceHandler
   end
 
   class HaltTests < UnitTests
-    desc "halt"
+    desc "when halted"
 
     should "return a response with the status code and the passed data" do
       runner = test_runner(HaltServiceHandler, {
@@ -98,7 +99,7 @@ module Sanford::ServiceHandler
   end
 
   class HaltingTests < UnitTests
-    desc "halting at different points"
+    desc "when halted at different points"
 
     should "not call `init!, `after_init`, `run!` or run's callbacks when `before_init` halts" do
       runner = test_runner(HaltingBehaviorServiceHandler, {
@@ -194,6 +195,17 @@ module Sanford::ServiceHandler
       assert_equal true, response.data[:after_run_called]
 
       assert_equal 'after_run halting', runner.response.status.message
+    end
+
+  end
+
+  class InvalidHandlerTests < UnitTests
+    desc "that is invalid"
+
+    should "raise a custom error when initialized in a test" do
+      assert_raises Sanford::InvalidServiceHandlerError do
+        test_handler(InvalidServiceHandler)
+      end
     end
 
   end
