@@ -9,6 +9,7 @@ module Sanford
 
   class Server
     include DatTCP::Server
+
     attr_reader :sanford_host, :sanford_host_data, :sanford_host_options
 
     def initialize(host, options = nil)

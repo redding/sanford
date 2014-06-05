@@ -1,8 +1,11 @@
 require 'assert'
+require 'sanford/host_data'
+
+require 'test/support/services'
 
 class Sanford::HostData
 
-  class BaseTests < Assert::Context
+  class UnitTests < Assert::Context
     desc "Sanford::HostData"
     setup do
       TestHost.init_has_been_called = false
@@ -13,14 +16,27 @@ class Sanford::HostData
     end
     subject{ @host_data }
 
-    should have_instance_methods :name, :logger, :verbose, :keep_alive, :runner,
-      :error_procs, :run, :handler_class_for
+    should have_readers :name, :logger, :verbose, :keep_alive, :runner, :error_procs
+    should have_imeths :handler_class_for, :run
 
-    should "default it's configuration from the service host, but allow overrides" do
+    should "call the setup proc" do
+      assert_equal true, TestHost.init_has_been_called
+    end
+
+    should "default its attrs from the host configuration" do
+      assert_equal TestHost.configuration.name,                subject.name
+      assert_equal TestHost.configuration.logger.class,        subject.logger.class
+      assert_equal TestHost.configuration.verbose_logging,     subject.verbose
+      assert_equal TestHost.configuration.receives_keep_alive, subject.keep_alive
+      assert_equal TestHost.configuration.runner.class,        subject.runner.class
+      assert_equal TestHost.configuration.error_procs,         subject.error_procs
+    end
+
+    should "allow overriding host configuration attrs" do
       host_data = Sanford::HostData.new(TestHost, :verbose_logging => false)
 
+      assert_false host_data.verbose
       assert_equal TestHost.receives_keep_alive, host_data.keep_alive
-      assert_equal false, host_data.verbose
     end
 
     should "ignore nil values passed as overrides" do
@@ -28,17 +44,13 @@ class Sanford::HostData
       assert_not_nil host_data.verbose
     end
 
-    should "have called the setup proc" do
-      assert_equal true, TestHost.init_has_been_called
-    end
-
     should "constantize a host's handlers" do
       handlers = subject.instance_variable_get("@handlers")
-      assert_equal TestHost::Authorized,  handlers['authorized']
-      assert_equal TestHost::Bad,         handlers['bad']
-      assert_equal TestHost::Echo,        handlers['echo']
-      assert_equal TestHost::HaltIt,      handlers['halt_it']
-      assert_equal TestHost::Multiply,    handlers['multiply']
+      assert_equal TestHost::Authorized, handlers['authorized']
+      assert_equal TestHost::Bad,        handlers['bad']
+      assert_equal TestHost::Echo,       handlers['echo']
+      assert_equal TestHost::HaltIt,     handlers['halt_it']
+      assert_equal TestHost::Multiply,   handlers['multiply']
     end
 
     should "look up handler classes with #handler_class_for" do

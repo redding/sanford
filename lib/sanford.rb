@@ -13,14 +13,6 @@ ENV['SANFORD_SERVICES_FILE'] ||= 'config/services'
 
 module Sanford
 
-  def self.register(host)
-    @hosts.add(host)
-  end
-
-  def self.hosts
-    @hosts
-  end
-
   def self.config
     Sanford::Config
   end
@@ -33,6 +25,14 @@ module Sanford
   def self.init
     @hosts ||= Hosts.new
     require self.config.services_file
+  end
+
+  def self.register(host)
+    @hosts.add(host)
+  end
+
+  def self.hosts
+    @hosts
   end
 
   module Config
@@ -48,11 +48,21 @@ module Sanford
       @set = Set.new(values)
     end
 
+    def method_missing(method, *args, &block)
+      @set.send(method, *args, &block)
+    end
+
+    def respond_to?(method)
+      super || @set.respond_to?(method)
+    end
+
     # We want class names to take precedence over a configured name, so that if
     # a user specifies a specific class, they always get it
     def find(name)
-      self.find_by_class_name(name) || self.find_by_name(name)
+      find_by_class_name(name) || find_by_name(name)
     end
+
+    private
 
     def find_by_class_name(class_name)
       @set.detect{|host_class| host_class.to_s == class_name.to_s }
@@ -60,14 +70,6 @@ module Sanford
 
     def find_by_name(name)
       @set.detect{|host_class| host_class.name == name.to_s }
-    end
-
-    def method_missing(method, *args, &block)
-      @set.send(method, *args, &block)
-    end
-
-    def respond_to?(method)
-      super || @set.respond_to?(method)
     end
 
   end

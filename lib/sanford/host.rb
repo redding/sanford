@@ -18,16 +18,16 @@ module Sanford
       # effects (messing up someone's `initialize`). Thus, the `Configuration`
       # is a separate class and not on the `Host` directly.
 
-      option :name,                 String
-      option :ip,                   String,   :default => '0.0.0.0'
-      option :port,                 Integer
-      option :pid_file,             Pathname
-      option :logger,                         :default => proc{ Sanford.config.logger }
-      option :verbose_logging,                :default => true
-      option :receives_keep_alive,            :default => false
-      option :runner,                         :default => proc{ Sanford.config.runner }
-      option :error_procs,          Array,    :default => []
-      option :init_proc,            Proc,     :default => proc{ }
+      option :name,                String
+      option :ip,                  String,  :default => '0.0.0.0'
+      option :port,                Integer
+      option :pid_file,            Pathname
+      option :logger,                       :default => proc{ Sanford.config.logger }
+      option :verbose_logging,              :default => true
+      option :receives_keep_alive,          :default => false
+      option :runner,                       :default => proc{ Sanford.config.runner }
+      option :error_procs,         Array,   :default => []
+      option :init_proc,           Proc,    :default => proc{ }
 
       def initialize(host)
         self.name = host.class.to_s
@@ -108,8 +108,6 @@ module Sanford
       "#<#{self.class}:#{reference} ip=#{self.configuration.ip.inspect} " \
       "port=#{self.configuration.port.inspect}>"
     end
-
-    protected
 
     module ClassMethods
 

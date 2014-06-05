@@ -1,6 +1,3 @@
-require 'sanford-protocol'
-require 'sanford/runner'
-
 module Sanford
 
   module ServiceHandler
@@ -18,58 +15,63 @@ module Sanford
     def self.included(klass)
       klass.class_eval do
         extend ClassMethods
+        include InstanceMethods
       end
     end
 
-    def initialize(runner)
-      @sanford_runner = runner
-    end
+    module InstanceMethods
 
-    def init
-      self.run_callback 'before_init'
-      self.init!
-      self.run_callback 'after_init'
-    end
+      def initialize(runner)
+        @sanford_runner = runner
+      end
 
-    def init!
-    end
+      def init
+        self.run_callback 'before_init'
+        self.init!
+        self.run_callback 'after_init'
+      end
 
-    def run
-      self.run_callback 'before_run'
-      data = self.run!
-      self.run_callback 'after_run'
-      [ 200, data ]
-    end
+      def init!
+      end
 
-    def run!
-      raise NotImplementedError
-    end
+      def run
+        self.run_callback 'before_run'
+        data = self.run!
+        self.run_callback 'after_run'
+        [ 200, data ]
+      end
 
-    def inspect
-      reference = '0x0%x' % (self.object_id << 1)
-      "#<#{self.class}:#{reference} @request=#{self.request.inspect}>"
-    end
+      def run!
+        raise NotImplementedError
+      end
 
-    protected
+      def inspect
+        reference = '0x0%x' % (self.object_id << 1)
+        "#<#{self.class}:#{reference} @request=#{self.request.inspect}>"
+      end
 
-    def before_init; end
-    def after_init;  end
-    def before_run;  end
-    def after_run;   end
+      protected
 
-    # Helpers
+      def before_init; end
+      def after_init;  end
+      def before_run;  end
+      def after_run;   end
 
-    def run_handler(handler_class, params = nil)
-      handler_class.run(params || {}, self.logger)
-    end
+      # Helpers
 
-    def halt(*args); @sanford_runner.halt(*args); end
-    def request;     @sanford_runner.request;     end
-    def params;      self.request.params;         end
-    def logger;      @sanford_runner.logger;      end
+      def run_handler(handler_class, params = nil)
+        handler_class.run(params || {}, self.logger)
+      end
 
-    def run_callback(callback)
-      self.send(callback.to_s)
+      def halt(*args); @sanford_runner.halt(*args); end
+      def request;     @sanford_runner.request;     end
+      def params;      self.request.params;         end
+      def logger;      @sanford_runner.logger;      end
+
+      def run_callback(callback)
+        self.send(callback.to_s)
+      end
+
     end
 
     module ClassMethods

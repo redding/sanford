@@ -1,8 +1,9 @@
 require 'assert'
+require 'sanford/error_handler'
 
 class Sanford::ErrorHandler
 
-  class BaseTests < Assert::Context
+  class UnitTests < Assert::Context
     desc "Sanford::ErrorHandler"
     setup do
       @exception = RuntimeError.new('test')
@@ -11,7 +12,7 @@ class Sanford::ErrorHandler
     end
     subject{ @error_handler }
 
-    should have_instance_methods :exception, :host_data, :request, :run
+    should have_imeths :exception, :host_data, :request, :run
 
     should "return a Sanford::Protocol::Response with `run`" do
       assert_instance_of Sanford::Protocol::Response, subject.run
@@ -28,7 +29,7 @@ class Sanford::ErrorHandler
 
   end
 
-  class ResponseFromProcTests < BaseTests
+  class ResponseFromProcTests < UnitTests
     desc "generating a respone from an error proc"
     setup do
       @host_defaults = { :ip => "localhost", :port => 8000 }
@@ -43,9 +44,9 @@ class Sanford::ErrorHandler
       }))
       response = Sanford::ErrorHandler.new(@exception, host_data).run
 
-      assert_equal 567,               response.code
-      assert_equal 'custom message',  response.status.message
-      assert_equal 'custom data',     response.data
+      assert_equal 567, response.code
+      assert_equal 'custom message', response.status.message
+      assert_equal 'custom data', response.data
     end
 
     should "use an integer returned by the error proc to generate a protocol response" do
@@ -76,12 +77,12 @@ class Sanford::ErrorHandler
       }))
       response = Sanford::ErrorHandler.new(@exception, host_data).run
 
-      assert_equal 500,                             response.code
+      assert_equal 500, response.code
       assert_equal 'An unexpected error occurred.', response.status.message
     end
 
     should "use the default behavior for an exception raised by the error proc " \
-      "and ignore the original exception" do
+           "and ignore the original exception" do
       host_data = Sanford::HostData.new(EmptyHost, @host_defaults.merge({
         :error_procs => [ proc{ raise Sanford::NotFoundError } ]
       }))
@@ -94,14 +95,14 @@ class Sanford::ErrorHandler
 
   end
 
-  class ResponseFromExceptionTests < BaseTests
+  class ResponseFromExceptionTests < UnitTests
     desc "generating a respone from an exception"
 
     should "build a 400 response with a protocol BadMessageError" do
       exception = generate_exception(Sanford::Protocol::BadMessageError, 'bad message')
       response = Sanford::ErrorHandler.new(exception, @host_data).run
 
-      assert_equal 400,           response.code
+      assert_equal 400, response.code
       assert_equal 'bad message', response.status.message
     end
 
@@ -109,7 +110,7 @@ class Sanford::ErrorHandler
       exception = generate_exception(Sanford::Protocol::BadRequestError, 'bad request')
       response = Sanford::ErrorHandler.new(exception, @host_data).run
 
-      assert_equal 400,           response.code
+      assert_equal 400, response.code
       assert_equal 'bad request', response.status.message
     end
 
@@ -124,7 +125,7 @@ class Sanford::ErrorHandler
     should "build a 500 response with all other exceptions" do
       response = Sanford::ErrorHandler.new(RuntimeError.new('test'), @host_data).run
 
-      assert_equal 500,                             response.code
+      assert_equal 500, response.code
       assert_equal 'An unexpected error occurred.', response.status.message
     end
 
