@@ -1,12 +1,23 @@
 require 'sanford-protocol'
 require 'sanford/runner'
+require 'sanford/service_handler'
 
 module Sanford
+
+  InvalidServiceHandlerError = Class.new(RuntimeError)
 
   class TestRunner
     include Sanford::Runner
 
     attr_reader :handler, :response
+
+    def initialize(handler_class, *args)
+      if !handler_class.include?(Sanford::ServiceHandler)
+        raise InvalidServiceHandlerError, "#{handler_class.inspect} is not a"\
+                                          " Sanford::ServiceHandler"
+      end
+      super
+    end
 
     def init!
       if !@request.kind_of?(Sanford::Protocol::Request)

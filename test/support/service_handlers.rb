@@ -62,6 +62,8 @@ class HaltServiceHandler
 
 end
 
+class InvalidServiceHandler; end
+
 class HaltingBehaviorServiceHandler < FlagServiceHandler
 
   def before_init
