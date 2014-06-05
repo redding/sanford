@@ -12,6 +12,47 @@ class BasicServiceHandler
 
 end
 
+class SanitzeDataServiceHandler
+  include Sanford::ServiceHandler
+
+  # return data that needs to be sanitized for BSON
+  # BSON errors if it is sent date/datetime values
+  def run!
+    sani_data = {
+      'date' => Date.today,
+      'datetime' => DateTime.now
+    }
+    nested_sani_data = {
+      'date' => Date.today,
+      'datetime' => DateTime.now
+    }
+    listed_sani_data = {
+      'date' => Date.today,
+      'datetime' => DateTime.now
+    }
+
+    sani_data.merge({
+      'nested' => nested_sani_data,
+      'listed' => [listed_sani_data]
+    })
+  end
+
+end
+
+class SanitzeHaltDataServiceHandler
+  include Sanford::ServiceHandler
+
+  # return data that needs to be sanitized for BSON
+  # BSON errors if it is sent date/datetime values
+  def run!
+    halt 200, 'data' => {
+      'date' => Date.today,
+      'datetime' => DateTime.now
+    }
+  end
+
+end
+
 class FlagServiceHandler
   include Sanford::ServiceHandler
 
