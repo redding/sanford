@@ -7,6 +7,19 @@ class BasicServiceHandler
 
 end
 
+class SerializeErrorServiceHandler
+  include Sanford::ServiceHandler
+
+  # return data that fails BSON serialization
+  # BSON errors if it is sent date/datetime values
+  def run!
+    { 'date' => Date.today,
+      'datetime' => DateTime.now
+    }
+  end
+
+end
+
 module CallbackServiceHandler
 
   def self.included(receiver)
