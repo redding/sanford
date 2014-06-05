@@ -34,7 +34,10 @@ module Sanford
 
       def run
         response_args = catch_halt{ self.run!(@handler) }
-        Sanford::Protocol::Response.new(response_args.status, response_args.data)
+        Sanford::Protocol::Response.new(
+          response_args.status,
+          sanitize_response_data(response_args.data)
+        )
       end
 
       def run!
@@ -54,6 +57,45 @@ module Sanford
 
       def catch_halt(&block)
         catch(:halt){ ResponseArgs.new(*block.call) }
+      end
+
+      private
+
+      # BSON errors serializing certain data types, specifically Date and DateTime
+      # this recursively sanitizes any data types that cause BSON to error
+      def sanitize_response_data(data)
+        if data.kind_of?(::DateTime)
+          sanitize_datetime_data(data)
+        elsif data.kind_of?(::Date)
+          sanitize_date_data(data)
+        elsif data.kind_of?(::Array)
+          data.map{ |v| sanitize_response_data(v) }
+        elsif data.kind_of?(::Hash)
+          data.each{ |k, v| data[k] = sanitize_response_data(v) }
+          data
+        else
+          data
+        end
+      end
+
+      def sanitize_date_data(date)
+        ::Time.utc(
+          date.year,
+          date.month,
+          date.day
+        ) # copied from activesupport
+      end
+
+      def sanitize_datetime_data(datetime)
+        ::Time.utc(
+          datetime.year,
+          datetime.month,
+          datetime.day,
+          datetime.hour,
+          datetime.min,
+          datetime.sec,
+          datetime.sec_fraction * (RUBY_VERSION < '1.9' ? 86400000000 : 1000000)
+        ) # copied from activesupport
       end
 
     end

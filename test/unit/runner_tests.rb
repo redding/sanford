@@ -1,15 +1,15 @@
 require 'assert'
 require 'sanford/runner'
 
-require 'test/support/services'
+require 'test/support/service_handlers'
 
 module Sanford::Runner
 
   class UnitTests < Assert::Context
     desc "Sanford::Runner"
     setup do
-      request = Sanford::Protocol::Request.new('test', {})
-      @runner = Sanford::DefaultRunner.new(BasicServiceHandler, request)
+      @request = Sanford::Protocol::Request.new('test', {})
+      @runner = Sanford::DefaultRunner.new(BasicServiceHandler, @request)
     end
     subject{ @runner }
 
@@ -32,6 +32,41 @@ module Sanford::Runner
       end
 
       assert_equal 200, response.code
+    end
+
+  end
+
+  class SanitizeResponseDataTests < UnitTests
+    desc "with response data that needs sanitizing"
+    setup do
+      @runner = Sanford::DefaultRunner.new(SanitzeDataServiceHandler, @request)
+      @response = @runner.run
+    end
+
+    should "recursively sanitize any date values" do
+      assert_kind_of ::Time, @response.data['date']
+      assert_kind_of ::Time, @response.data['nested']['date']
+      assert_kind_of ::Time, @response.data['listed'].first['date']
+    end
+
+    should "recursively sanitize any datetime values" do
+      assert_kind_of ::Time, @response.data['datetime']
+      assert_kind_of ::Time, @response.data['nested']['datetime']
+      assert_kind_of ::Time, @response.data['listed'].first['datetime']
+    end
+
+  end
+
+  class SanitizeHaltResponseDataTests < UnitTests
+    desc "halted with response data that needs sanitizing"
+    setup do
+      @runner = Sanford::DefaultRunner.new(SanitzeHaltDataServiceHandler, @request)
+      @response = @runner.run
+    end
+
+    should "sanitize its values" do
+      assert_kind_of ::Time, @response.data['date']
+      assert_kind_of ::Time, @response.data['datetime']
     end
 
   end
