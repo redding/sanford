@@ -1,11 +1,12 @@
 require 'assert'
-require 'sanford-protocol/test/helpers'
+require 'sanford/worker'
+
+require 'sanford/host_data'
+require 'test/support/fake_connection'
 
 class Sanford::Worker
 
-  class BaseTests < Assert::Context
-    include Sanford::Protocol::Test::Helpers
-
+  class UnitTests < Assert::Context
     desc "Sanford::Worker"
     setup do
       @host_data = Sanford::HostData.new(TestHost)
@@ -14,7 +15,7 @@ class Sanford::Worker
     end
     subject{ @worker }
 
-    should have_instance_methods :logger, :run
+    should have_imeths :logger, :run
 
   end
 

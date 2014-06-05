@@ -1,8 +1,11 @@
 require 'assert'
+require 'sanford/runner'
+
+require 'test/support/services'
 
 module Sanford::Runner
 
-  class BaseTests < Assert::Context
+  class UnitTests < Assert::Context
     desc "Sanford::Runner"
     setup do
       request = Sanford::Protocol::Request.new('test', {})
@@ -10,8 +13,8 @@ module Sanford::Runner
     end
     subject{ @runner }
 
-    should have_instance_methods :handler_class, :request, :logger, :run
-    should have_class_methods :run
+    should have_cmeths :run
+    should have_readers :handler_class, :request, :logger, :run
 
     should "run the handler and return the response it generates when `run` is called" do
       response = subject.run

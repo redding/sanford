@@ -1,20 +1,22 @@
 require 'assert'
 require 'sanford/server'
 
+require 'test/support/services'
+
 class Sanford::Server
 
-  class BaseTests < Assert::Context
+  class UnitTests < Assert::Context
     desc "Sanford::Server"
     setup do
-      @server = Sanford::Server.new(TestHost, { :keep_alive => true })
+      @server = Sanford::Server.new(TestHost, :keep_alive => true)
     end
     subject{ @server }
 
-    should have_instance_methods :sanford_host, :sanford_host_data, :sanford_host_options
-    should have_instance_methods :on_run
+    should have_readers :sanford_host, :sanford_host_data, :sanford_host_options
+    should have_imeths :on_run
 
     should "include DatTCP::Server" do
-      assert_includes DatTCP::Server, subject.class.included_modules
+      assert_includes DatTCP::Server, subject.class
     end
 
     should "save it's host and host options but not initialize a host data yet" do
@@ -25,7 +27,7 @@ class Sanford::Server
 
   end
 
-  class RunTests < BaseTests
+  class RunTests < UnitTests
     desc "run"
     setup do
       @server.listen(TestHost.ip, TestHost.port)

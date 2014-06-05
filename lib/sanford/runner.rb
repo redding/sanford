@@ -7,48 +7,55 @@ module Sanford
 
     ResponseArgs = Struct.new(:status, :data)
 
-    attr_reader :handler_class, :request, :logger
-
     def self.included(klass)
-      klass.class_eval{ extend ClassMethods }
+      klass.class_eval do
+        extend ClassMethods
+        include InstanceMethods
+      end
     end
 
-    def initialize(handler_class, request, logger = nil)
-      @handler_class, @request = handler_class, request
-      @logger = logger || Sanford.config.logger
-      @handler = @handler_class.new(self)
-      self.init
-    end
+    module InstanceMethods
 
-    def init
-      self.init!
-    end
+      attr_reader :handler_class, :request, :logger
 
-    def init!
-    end
+      def initialize(handler_class, request, logger = nil)
+        @handler_class, @request = handler_class, request
+        @logger = logger || Sanford.config.logger
+        @handler = @handler_class.new(self)
+        self.init
+      end
 
-    def run
-      response_args = catch_halt{ self.run!(@handler) }
-      Sanford::Protocol::Response.new(response_args.status, response_args.data)
-    end
+      def init
+        self.init!
+      end
 
-    def run!
-      raise NotImplementedError
-    end
+      def init!
+      end
 
-    # It's best to keep what `halt` and `catch_halt` return in the same format.
-    # Currently this is a `ResponseArgs` object. This is so no matter how the
-    # block returns (either by throwing or running normally), you get the same
-    # thing kind of object.
+      def run
+        response_args = catch_halt{ self.run!(@handler) }
+        Sanford::Protocol::Response.new(response_args.status, response_args.data)
+      end
 
-    def halt(status, options = nil)
-      options = OpenStruct.new(options || {})
-      response_status = [ status, options.message ]
-      throw :halt, ResponseArgs.new(response_status, options.data)
-    end
+      def run!
+        raise NotImplementedError
+      end
 
-    def catch_halt(&block)
-      catch(:halt){ ResponseArgs.new(*block.call) }
+      # It's best to keep what `halt` and `catch_halt` return in the same format.
+      # Currently this is a `ResponseArgs` object. This is so no matter how the
+      # block returns (either by throwing or running normally), you get the same
+      # thing kind of object.
+
+      def halt(status, options = nil)
+        options = OpenStruct.new(options || {})
+        response_status = [ status, options.message ]
+        throw :halt, ResponseArgs.new(response_status, options.data)
+      end
+
+      def catch_halt(&block)
+        catch(:halt){ ResponseArgs.new(*block.call) }
+      end
+
     end
 
     module ClassMethods

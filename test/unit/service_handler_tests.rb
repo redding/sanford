@@ -1,19 +1,21 @@
 require 'assert'
-require 'sanford/test_runner'
+require 'sanford/service_handler'
+
+require 'sanford/test_helpers'
 
 module Sanford::ServiceHandler
 
-  class BaseTests < Assert::Context
-    include Sanford::TestRunner::Helpers
+  class UnitTests < Assert::Context
+    include Sanford::TestHelpers
 
     desc "Sanford::ServiceHandler"
     setup do
-      @handler = test_runner(TestServiceHandler).handler
+      @handler = test_handler(TestServiceHandler)
     end
     subject{ @handler }
 
-    should have_instance_methods :init, :init!, :run, :run!
-    should have_class_methods :run
+    should have_cmeths :run
+    should have_imeths :init, :init!, :run, :run!
 
     should "raise a NotImplementedError if run! is not overwritten" do
       assert_raises(NotImplementedError){ subject.run! }
@@ -30,7 +32,7 @@ module Sanford::ServiceHandler
 
   end
 
-  class RunHandlerTests < BaseTests
+  class RunHandlerTests < UnitTests
     desc "run_handler helper"
 
     should "allow easily running another handler" do
@@ -39,15 +41,15 @@ module Sanford::ServiceHandler
     end
   end
 
-  class WithMethodFlagsTests < BaseTests
+  class WithMethodFlagsTests < UnitTests
     setup do
       @handler = test_runner(FlagServiceHandler).handler
     end
 
     should "have called `init!` and it's callbacks" do
-      assert_equal true, subject.before_init_called
-      assert_equal true, subject.init_bang_called
-      assert_equal true, subject.after_init_called
+      assert_true subject.before_init_called
+      assert_true subject.init_bang_called
+      assert_true subject.after_init_called
     end
 
     should "not have called `run!` or it's callbacks when initialized" do
@@ -59,14 +61,14 @@ module Sanford::ServiceHandler
     should "call `run!` and it's callbacks when it's `run`" do
       subject.run
 
-      assert_equal true, subject.before_run_called
-      assert_equal true, subject.run_bang_called
-      assert_equal true, subject.after_run_called
+      assert_true subject.before_run_called
+      assert_true subject.run_bang_called
+      assert_true subject.after_run_called
     end
 
   end
 
-  class HaltTests < BaseTests
+  class HaltTests < UnitTests
     desc "halt"
 
     should "return a response with the status code and the passed data" do
@@ -76,8 +78,8 @@ module Sanford::ServiceHandler
       })
       runner.run
 
-      assert_equal 648,   runner.response.code
-      assert_equal true,  runner.response.data
+      assert_equal 648, runner.response.code
+      assert_true runner.response.data
       assert_nil runner.response.status.message
     end
 
@@ -88,14 +90,14 @@ module Sanford::ServiceHandler
       })
       runner.run
 
-      assert_equal 200,             runner.response.code
-      assert_equal 'test message',  runner.response.status.message
+      assert_equal 200, runner.response.code
+      assert_equal 'test message', runner.response.status.message
       assert_nil runner.response.data
     end
 
   end
 
-  class HaltingTests < BaseTests
+  class HaltingTests < UnitTests
     desc "halting at different points"
 
     should "not call `init!, `after_init`, `run!` or run's callbacks when `before_init` halts" do
@@ -104,12 +106,12 @@ module Sanford::ServiceHandler
       })
       response = runner.response
 
-      assert_equal true,  response.data[:before_init_called]
-      assert_equal nil,   response.data[:init_bang_called]
-      assert_equal nil,   response.data[:after_init_called]
-      assert_equal nil,   response.data[:before_run_called]
-      assert_equal nil,   response.data[:run_bang_called]
-      assert_equal nil,   response.data[:after_run_called]
+      assert_equal true, response.data[:before_init_called]
+      assert_equal nil,  response.data[:init_bang_called]
+      assert_equal nil,  response.data[:after_init_called]
+      assert_equal nil,  response.data[:before_run_called]
+      assert_equal nil,  response.data[:run_bang_called]
+      assert_equal nil,  response.data[:after_run_called]
 
       assert_equal 'before_init halting', response.status.message
     end
@@ -120,12 +122,12 @@ module Sanford::ServiceHandler
       })
       response = runner.response
 
-      assert_equal true,  response.data[:before_init_called]
-      assert_equal true,  response.data[:init_bang_called]
-      assert_equal nil,   response.data[:after_init_called]
-      assert_equal nil,   response.data[:before_run_called]
-      assert_equal nil,   response.data[:run_bang_called]
-      assert_equal nil,   response.data[:after_run_called]
+      assert_equal true, response.data[:before_init_called]
+      assert_equal true, response.data[:init_bang_called]
+      assert_equal nil,  response.data[:after_init_called]
+      assert_equal nil,  response.data[:before_run_called]
+      assert_equal nil,  response.data[:run_bang_called]
+      assert_equal nil,  response.data[:after_run_called]
 
       assert_equal 'init! halting', response.status.message
     end
@@ -136,12 +138,12 @@ module Sanford::ServiceHandler
       })
       response = runner.response
 
-      assert_equal true,  response.data[:before_init_called]
-      assert_equal true,  response.data[:init_bang_called]
-      assert_equal true,  response.data[:after_init_called]
-      assert_equal nil,   response.data[:before_run_called]
-      assert_equal nil,   response.data[:run_bang_called]
-      assert_equal nil,   response.data[:after_run_called]
+      assert_equal true, response.data[:before_init_called]
+      assert_equal true, response.data[:init_bang_called]
+      assert_equal true, response.data[:after_init_called]
+      assert_equal nil,  response.data[:before_run_called]
+      assert_equal nil,  response.data[:run_bang_called]
+      assert_equal nil,  response.data[:after_run_called]
 
       assert_equal 'after_init halting', response.status.message
     end
@@ -152,12 +154,12 @@ module Sanford::ServiceHandler
       })
       response = runner.run
 
-      assert_equal true,  response.data[:before_init_called]
-      assert_equal true,  response.data[:init_bang_called]
-      assert_equal true,  response.data[:after_init_called]
-      assert_equal true,  response.data[:before_run_called]
-      assert_equal nil,   response.data[:run_bang_called]
-      assert_equal nil,   response.data[:after_run_called]
+      assert_equal true, response.data[:before_init_called]
+      assert_equal true, response.data[:init_bang_called]
+      assert_equal true, response.data[:after_init_called]
+      assert_equal true, response.data[:before_run_called]
+      assert_equal nil,  response.data[:run_bang_called]
+      assert_equal nil,  response.data[:after_run_called]
 
       assert_equal 'before_run halting', runner.response.status.message
     end
@@ -168,12 +170,12 @@ module Sanford::ServiceHandler
       })
       response = runner.run
 
-      assert_equal true,  response.data[:before_init_called]
-      assert_equal true,  response.data[:init_bang_called]
-      assert_equal true,  response.data[:after_init_called]
-      assert_equal true,  response.data[:before_run_called]
-      assert_equal true,  response.data[:run_bang_called]
-      assert_equal nil,   response.data[:after_run_called]
+      assert_equal true, response.data[:before_init_called]
+      assert_equal true, response.data[:init_bang_called]
+      assert_equal true, response.data[:after_init_called]
+      assert_equal true, response.data[:before_run_called]
+      assert_equal true, response.data[:run_bang_called]
+      assert_equal nil,  response.data[:after_run_called]
 
       assert_equal 'run! halting', runner.response.status.message
     end
@@ -184,12 +186,12 @@ module Sanford::ServiceHandler
       })
       response = runner.run
 
-      assert_equal true,  response.data[:before_init_called]
-      assert_equal true,  response.data[:init_bang_called]
-      assert_equal true,  response.data[:after_init_called]
-      assert_equal true,  response.data[:before_run_called]
-      assert_equal true,  response.data[:run_bang_called]
-      assert_equal true,  response.data[:after_run_called]
+      assert_equal true, response.data[:before_init_called]
+      assert_equal true, response.data[:init_bang_called]
+      assert_equal true, response.data[:after_init_called]
+      assert_equal true, response.data[:before_run_called]
+      assert_equal true, response.data[:run_bang_called]
+      assert_equal true, response.data[:after_run_called]
 
       assert_equal 'after_run halting', runner.response.status.message
     end

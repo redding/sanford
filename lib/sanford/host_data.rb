@@ -32,12 +32,12 @@ module Sanford
       end
     end
 
-    def run(handler_class, request)
-      self.runner.new(handler_class, request, self.logger).run
-    end
-
     def handler_class_for(service)
       @handlers[service] || raise(Sanford::NotFoundError)
+    end
+
+    def run(handler_class, request)
+      self.runner.new(handler_class, request, self.logger).run
     end
 
     protected
@@ -57,8 +57,8 @@ module Sanford
 
   class NoHandlerClassError < RuntimeError
     def initialize(handler_class_name)
-      super "Sanford couldn't find the service handler '#{handler_class_name}'. " \
-        "It doesn't exist or hasn't been required in yet."
+      super "Sanford couldn't find the service handler '#{handler_class_name}'."\
+            " It doesn't exist or hasn't been required in yet."
     end
   end
 

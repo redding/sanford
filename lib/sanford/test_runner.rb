@@ -1,5 +1,4 @@
 require 'sanford-protocol'
-
 require 'sanford/runner'
 
 module Sanford
@@ -27,20 +26,11 @@ module Sanford
     protected
 
     def test_request(params)
-      Sanford::Protocol::Request.new('name', params)
+      Sanford::Protocol::Request.new('name', params || {})
     end
 
     def build_response(response_args)
       Sanford::Protocol::Response.new(response_args.status, response_args.data) if response_args
-    end
-
-    module Helpers
-      module_function
-
-      def test_runner(handler_class, params = nil, logger = nil)
-        TestRunner.new(handler_class, params || {}, logger)
-      end
-
     end
 
   end
