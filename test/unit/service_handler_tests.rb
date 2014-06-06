@@ -13,20 +13,16 @@ module Sanford::ServiceHandler
     desc "Sanford::ServiceHandler"
     setup do
       @handler_class = Class.new{ include Sanford::ServiceHandler }
-      @handler = test_handler(@handler_class)
     end
-    subject{ @handler }
+    subject{ @handler_class }
 
-    should have_cmeths :run
-    should have_cmeths :before_init, :before_init_callbacks
-    should have_cmeths :after_init,  :after_init_callbacks
-    should have_cmeths :before_run,  :before_run_callbacks
-    should have_cmeths :after_run,   :after_run_callbacks
-    should have_imeths :init, :init!, :run, :run!
-
-    should "raise a NotImplementedError if run! is not overwritten" do
-      assert_raises(NotImplementedError){ subject.run! }
-    end
+    should have_imeths :run
+    should have_imeths :before_init_callbacks, :after_init_callbacks
+    should have_imeths :before_run_callbacks,  :after_run_callbacks
+    should have_imeths :before_init, :after_init
+    should have_imeths :before_run,  :after_run
+    should have_imeths :prepend_before_init, :prepend_after_init
+    should have_imeths :prepend_before_run,  :prepend_after_run
 
     should "allow running a handler class with the class method #run" do
       response = HaltServiceHandler.run({
@@ -37,48 +33,92 @@ module Sanford::ServiceHandler
       assert_equal true,  response.data
     end
 
-    should "store procs in #before_init_callbacks with #before_init" do
-      before_init_proc = proc{ }
-      @handler_class.before_init(&before_init_proc)
-
-      assert_includes before_init_proc, @handler_class.before_init_callbacks
+    should "return an empty array by default using `before_init_callbacks`" do
+      assert_equal [], subject.before_init_callbacks
     end
 
-    should "store procs in #after_init_callbacks with #after_init" do
-      after_init_proc = proc{ }
-      @handler_class.after_init(&after_init_proc)
-
-      assert_includes after_init_proc, @handler_class.after_init_callbacks
+    should "return an empty array by default using `after_init_callbacks`" do
+      assert_equal [], subject.after_init_callbacks
     end
 
-    should "store procs in #before_run_callbacks with #before_run" do
-      before_run_proc = proc{ }
-      @handler_class.before_run(&before_run_proc)
-
-      assert_includes before_run_proc, @handler_class.before_run_callbacks
+    should "return an empty array by default using `before_run_callbacks`" do
+      assert_equal [], subject.before_run_callbacks
     end
 
-    should "store procs in #after_run_callbacks with #after_run" do
-      after_run_proc = proc{ }
-      @handler_class.after_run(&after_run_proc)
+    should "return an empty array by default using `after_run_callbacks`" do
+      assert_equal [], subject.after_run_callbacks
+    end
 
-      assert_includes after_run_proc, @handler_class.after_run_callbacks
+    should "append a block to the before init callbacks using `before_init`" do
+      subject.before_init_callbacks << proc{ }
+      block = Proc.new{}
+      subject.before_init(&block)
+      assert_equal block, subject.before_init_callbacks.last
+    end
+
+    should "append a block to the after init callbacks using `after_init`" do
+      subject.after_init_callbacks << proc{ }
+      block = Proc.new{}
+      subject.after_init(&block)
+      assert_equal block, subject.after_init_callbacks.last
+    end
+
+    should "append a block to the before run callbacks using `before_run`" do
+      subject.before_run_callbacks << proc{ }
+      block = Proc.new{}
+      subject.before_run(&block)
+      assert_equal block, subject.before_run_callbacks.last
+    end
+
+    should "append a block to the after run callbacks using `after_run`" do
+      subject.after_run_callbacks << proc{ }
+      block = Proc.new{}
+      subject.after_run(&block)
+      assert_equal block, subject.after_run_callbacks.last
+    end
+
+    should "prepend a block to the before init callbacks using `prepend_before_init`" do
+      subject.before_init_callbacks << proc{ }
+      block = Proc.new{}
+      subject.prepend_before_init(&block)
+      assert_equal block, subject.before_init_callbacks.first
+    end
+
+    should "prepend a block to the after init callbacks using `prepend_after_init`" do
+      subject.after_init_callbacks << proc{ }
+      block = Proc.new{}
+      subject.prepend_after_init(&block)
+      assert_equal block, subject.after_init_callbacks.first
+    end
+
+    should "prepend a block to the before run callbacks using `prepend_before_run`" do
+      subject.before_run_callbacks << proc{ }
+      block = Proc.new{}
+      subject.prepend_before_run(&block)
+      assert_equal block, subject.before_run_callbacks.first
+    end
+
+    should "prepend a block to the after run callbacks using `prepend_after_run`" do
+      subject.after_run_callbacks << proc{ }
+      block = Proc.new{}
+      subject.prepend_after_run(&block)
+      assert_equal block, subject.after_run_callbacks.first
     end
 
   end
 
-  class RunHandlerTests < UnitTests
-    desc "run_handler helper"
-
-    should "allow easily running another handler" do
-      response = test_runner(RunOtherHandler).run
-      assert_equal 'RunOtherHandler', response.data
-    end
-  end
-
-  class WithMethodFlagsTests < UnitTests
+  class InitTests < UnitTests
+    desc "when init"
     setup do
       @handler = test_runner(FlagServiceHandler).handler
+    end
+    subject{ @handler }
+
+    should have_imeths :init, :init!, :run, :run!
+
+    should "raise a NotImplementedError if run! is not overwritten" do
+      handler = test_handler(@handler_class)
+      assert_raises(NotImplementedError){ handler.run! }
     end
 
     should "have called `init!` and it's callbacks" do
@@ -104,6 +144,15 @@ module Sanford::ServiceHandler
       assert_true subject.second_after_run_called
     end
 
+  end
+
+  class RunHandlerTests < UnitTests
+    desc "run_handler helper"
+
+    should "allow easily running another handler" do
+      response = test_runner(RunOtherHandler).run
+      assert_equal 'RunOtherHandler', response.data
+    end
   end
 
   class HaltTests < UnitTests
