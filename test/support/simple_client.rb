@@ -1,4 +1,4 @@
-require 'sanford-protocol/test/fake_socket'
+require 'sanford-protocol/fake_socket'
 
 class SimpleClient
 
@@ -56,7 +56,7 @@ class SimpleClient
   protected
 
   def call_using_fake_socket(method, *args)
-    self.call(Sanford::Protocol::Test::FakeSocket.send(method, *args).in)
+    self.call(Sanford::Protocol::FakeSocket.send(method, *args).in)
   end
 
 end

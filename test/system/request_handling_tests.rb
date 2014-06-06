@@ -1,5 +1,5 @@
 require 'assert'
-require 'sanford-protocol/test/fake_socket'
+require 'sanford-protocol/fake_socket'
 
 # These tests are intended as a high level test against Sanford's server. They
 # use fake and real connections to test how Sanford behaves.
@@ -197,7 +197,7 @@ class RequestHandlingTests < Assert::Context
         :keep_alive    => true
       })
       @server.on_run
-      @socket = Sanford::Protocol::Test::FakeSocket.new
+      @socket = Sanford::Protocol::FakeSocket.new
       @fake_connection = FakeProtocolConnection.new(@socket)
       Sanford::Protocol::Connection.stubs(:new).with(@socket).returns(@fake_connection)
     end
