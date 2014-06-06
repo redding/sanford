@@ -76,7 +76,7 @@ class TestHost
   class Authorized
     include Sanford::ServiceHandler
 
-    def before_run
+    before_run do
       halt 401, :message => "Not authorized"
     end
 
