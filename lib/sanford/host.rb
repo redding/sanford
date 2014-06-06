@@ -100,7 +100,7 @@ module Sanford
       if @service_handler_ns && !(handler_class_name =~ /^::/)
         handler_class_name = "#{@service_handler_ns}::#{handler_class_name}"
       end
-      @services[service_name] = handler_class_name
+      @services[service_name.to_s] = handler_class_name
     end
 
     def inspect

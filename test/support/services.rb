@@ -26,7 +26,7 @@ class TestHost
 
   service_handler_ns 'TestHost'
 
-  service 'echo',         'Echo'
+  service :echo,          'Echo'
   service 'bad',          'Bad'
   service 'multiply',     'Multiply'
   service 'halt_it',      '::TestHost::HaltIt'
