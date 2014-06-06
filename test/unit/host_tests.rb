@@ -66,10 +66,10 @@ module Sanford::Host
       assert_not_empty subject.configuration.error_procs
     end
 
-    should "set the configuration init proc" do
-      assert_nil subject.configuration.init_proc.call
-      subject.init &proc{ 1 }
-      assert_equal 1, subject.configuration.init_proc.call
+    should "add init procs to the configuration" do
+      assert_empty subject.configuration.init_procs
+      subject.init &proc{}
+      assert_not_empty subject.configuration.init_procs
     end
 
     should "get/set its service_handler_ns" do
@@ -117,7 +117,7 @@ module Sanford::Host
     subject{ @configuration }
 
     should have_imeths :name, :ip, :port, :pid_file, :logger, :verbose_logging
-    should have_imeths :receives_keep_alive, :runner, :error_procs, :init_proc
+    should have_imeths :receives_keep_alive, :runner, :error_procs, :init_procs
 
     should "default name to the class name of the host" do
       assert_equal @host_class.name, subject.name
@@ -132,7 +132,7 @@ module Sanford::Host
       assert_false subject.receives_keep_alive
       assert_equal Sanford.config.runner, subject.runner
       assert_empty subject.error_procs
-      assert_kind_of ::Proc, subject.init_proc
+      assert_empty subject.init_procs
     end
 
   end

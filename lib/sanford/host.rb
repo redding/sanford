@@ -27,7 +27,7 @@ module Sanford
       option :receives_keep_alive,          :default => false
       option :runner,                       :default => proc{ Sanford.config.runner }
       option :error_procs,         Array,   :default => []
-      option :init_proc,           Proc,    :default => proc{ }
+      option :init_procs,          Array,   :default => []
 
       def initialize(host)
         self.name = host.class.to_s
@@ -88,7 +88,7 @@ module Sanford
     end
 
     def init(&block)
-      self.configuration.init_proc = block
+      self.configuration.init_procs << block
     end
 
     def service_handler_ns(value = nil)
