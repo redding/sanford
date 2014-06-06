@@ -85,6 +85,12 @@ module Sanford::Host
       assert_equal 'MyNamespace::MyServiceHandler', subject.services['test']
     end
 
+    should "force string names when adding services" do
+      subject.service(:another_service, 'MyServiceHandler')
+      assert_nil subject.services[:another_service]
+      assert_equal 'MyServiceHandler', subject.services['another_service']
+    end
+
     should "ignore a namespace when a service class has leading colons" do
       subject.service_handler_ns 'MyNamespace'
       subject.service('test', '::MyServiceHandler')
