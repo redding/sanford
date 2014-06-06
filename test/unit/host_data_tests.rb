@@ -19,7 +19,7 @@ class Sanford::HostData
     should have_readers :name, :logger, :verbose, :keep_alive, :runner, :error_procs
     should have_imeths :handler_class_for, :run
 
-    should "call the setup proc" do
+    should "call the init procs" do
       assert_equal true, TestHost.init_has_been_called
     end
 
