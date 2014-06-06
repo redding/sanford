@@ -1,6 +1,7 @@
 require 'assert'
 require 'sanford/service_handler'
 
+require 'bson'
 require 'sanford/test_helpers'
 require 'test/support/service_handlers'
 
@@ -241,6 +242,17 @@ module Sanford::ServiceHandler
     should "raise a custom error when initialized in a test" do
       assert_raises Sanford::InvalidServiceHandlerError do
         test_handler(InvalidServiceHandler)
+      end
+    end
+
+  end
+
+  class SerializeErrorTests < UnitTests
+    desc "that failse to serialize to BSON"
+
+    should "raise a BSON error when run in a test" do
+      assert_raises BSON::InvalidDocument do
+        test_runner(SerializeErrorServiceHandler).run
       end
     end
 

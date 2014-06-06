@@ -31,7 +31,11 @@ module Sanford
     # want to `run` at all.
 
     def run
-      @response ||= build_response catch_halt{ @handler.run }
+      @response ||= build_response(catch_halt{ @handler.run }).tap do |response|
+        # attempt to serialize (and then throw away) the response data
+        # this will error on the developer if BSON can't serialize their response
+        Sanford::Protocol::BsonBody.new.encode(response.to_hash)
+      end
     end
 
     protected
