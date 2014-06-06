@@ -11,11 +11,16 @@ module Sanford::ServiceHandler
 
     desc "Sanford::ServiceHandler"
     setup do
-      @handler = test_handler(TestServiceHandler)
+      @handler_class = Class.new{ include Sanford::ServiceHandler }
+      @handler = test_handler(@handler_class)
     end
     subject{ @handler }
 
     should have_cmeths :run
+    should have_cmeths :before_init, :before_init_callbacks
+    should have_cmeths :after_init,  :after_init_callbacks
+    should have_cmeths :before_run,  :before_run_callbacks
+    should have_cmeths :after_run,   :after_run_callbacks
     should have_imeths :init, :init!, :run, :run!
 
     should "raise a NotImplementedError if run! is not overwritten" do
@@ -29,6 +34,34 @@ module Sanford::ServiceHandler
       })
       assert_equal 648,   response.code
       assert_equal true,  response.data
+    end
+
+    should "store procs in #before_init_callbacks with #before_init" do
+      before_init_proc = proc{ }
+      @handler_class.before_init(&before_init_proc)
+
+      assert_includes before_init_proc, @handler_class.before_init_callbacks
+    end
+
+    should "store procs in #after_init_callbacks with #after_init" do
+      after_init_proc = proc{ }
+      @handler_class.after_init(&after_init_proc)
+
+      assert_includes after_init_proc, @handler_class.after_init_callbacks
+    end
+
+    should "store procs in #before_run_callbacks with #before_run" do
+      before_run_proc = proc{ }
+      @handler_class.before_run(&before_run_proc)
+
+      assert_includes before_run_proc, @handler_class.before_run_callbacks
+    end
+
+    should "store procs in #after_run_callbacks with #after_run" do
+      after_run_proc = proc{ }
+      @handler_class.after_run(&after_run_proc)
+
+      assert_includes after_run_proc, @handler_class.after_run_callbacks
     end
 
   end
@@ -49,6 +82,7 @@ module Sanford::ServiceHandler
 
     should "have called `init!` and it's callbacks" do
       assert_true subject.before_init_called
+      assert_true subject.second_before_init_called
       assert_true subject.init_bang_called
       assert_true subject.after_init_called
     end
@@ -57,6 +91,7 @@ module Sanford::ServiceHandler
       assert_nil subject.before_run_called
       assert_nil subject.run_bang_called
       assert_nil subject.after_run_called
+      assert_nil subject.second_after_run_called
     end
 
     should "call `run!` and it's callbacks when it's `run`" do
@@ -65,6 +100,7 @@ module Sanford::ServiceHandler
       assert_true subject.before_run_called
       assert_true subject.run_bang_called
       assert_true subject.after_run_called
+      assert_true subject.second_after_run_called
     end
 
   end

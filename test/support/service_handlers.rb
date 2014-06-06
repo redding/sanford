@@ -1,8 +1,3 @@
-class TestServiceHandler
-  include Sanford::ServiceHandler
-
-end
-
 class BasicServiceHandler
   include Sanford::ServiceHandler
 
@@ -12,34 +7,99 @@ class BasicServiceHandler
 
 end
 
-class FlagServiceHandler
-  include Sanford::ServiceHandler
+module CallbackServiceHandler
 
-  attr_reader :before_init_called, :init_bang_called, :after_init_called,
-    :before_run_called, :run_bang_called, :after_run_called
+  def self.included(receiver)
+    receiver.class_eval do
+      attr_reader :before_init_called, :init_bang_called, :after_init_called
+      attr_reader :before_run_called, :run_bang_called, :after_run_called
+      attr_reader :second_before_init_called, :second_after_run_called
 
-  def before_init
-    @before_init_called = true
+      before_init do
+        @before_init_called = true
+      end
+      before_init do
+        @second_before_init_called = true
+      end
+
+      after_init do
+        @after_init_called = true
+      end
+
+      before_run do
+        @before_run_called = true
+      end
+
+      after_run do
+        @after_run_called = true
+      end
+      after_run do
+        @second_after_run_called = true
+      end
+
+    end
+
   end
 
   def init!
     @init_bang_called = true
   end
 
-  def after_init
-    @after_init_called = true
-  end
-
-  def before_run
-    @before_run_called = true
-  end
-
   def run!
     @run_bang_called = true
   end
 
-  def after_run
-    @after_run_called = true
+end
+
+class FlagServiceHandler
+  include Sanford::ServiceHandler
+  include CallbackServiceHandler
+
+end
+
+class HaltingBehaviorServiceHandler
+  include Sanford::ServiceHandler
+  include CallbackServiceHandler
+
+  before_init do
+    halt_when('before_init')
+  end
+
+  def init!
+    super
+    halt_when('init!')
+  end
+
+  after_init do
+    halt_when('after_init')
+  end
+
+  before_run do
+    halt_when('before_run')
+  end
+
+  def run!
+    super
+    halt_when('run!')
+  end
+
+  after_run do
+    halt_when('after_run')
+  end
+
+  def halt_when(method_name)
+    return if ![*params['when']].include?(method_name)
+    halt(200, {
+      :message  => "#{method_name} halting",
+      :data     => {
+        :before_init_called => @before_init_called,
+        :init_bang_called   => @init_bang_called,
+        :after_init_called  => @after_init_called,
+        :before_run_called  => @before_run_called,
+        :run_bang_called    => @run_bang_called,
+        :after_run_called   => @after_run_called
+      }
+    })
   end
 
 end
@@ -63,52 +123,3 @@ class HaltServiceHandler
 end
 
 class InvalidServiceHandler; end
-
-class HaltingBehaviorServiceHandler < FlagServiceHandler
-
-  def before_init
-    super
-    halt_when('before_init')
-  end
-
-  def init!
-    super
-    halt_when('init!')
-  end
-
-  def after_init
-    super
-    halt_when('after_init')
-  end
-
-  def before_run
-    super
-    halt_when('before_run')
-  end
-
-  def run!
-    super
-    halt_when('run!')
-  end
-
-  def after_run
-    super
-    halt_when('after_run')
-  end
-
-  def halt_when(method_name)
-    return if ![*params['when']].include?(method_name)
-    halt(200, {
-      :message  => "#{method_name} halting",
-      :data     => {
-        :before_init_called => @before_init_called,
-        :init_bang_called   => @init_bang_called,
-        :after_init_called  => @after_init_called,
-        :before_run_called  => @before_run_called,
-        :run_bang_called    => @run_bang_called,
-        :after_run_called   => @after_run_called
-      }
-    })
-  end
-
-end
