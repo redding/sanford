@@ -1,4 +1,5 @@
 require 'sanford'
+require 'sanford/manager'
 require 'sanford/version'
 
 module Sanford
