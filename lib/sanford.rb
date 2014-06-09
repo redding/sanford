@@ -1,6 +1,7 @@
 require 'sanford/version'
 require 'sanford/config'
 require 'sanford/hosts'
+require 'sanford/host'
 require 'sanford/service_handler'
 
 ENV['SANFORD_SERVICES_FILE'] ||= 'config/services'

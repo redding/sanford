@@ -55,4 +55,21 @@ class Sanford::TemplateSource
 
   end
 
+  class NullTemplateSourceTests < Assert::Context
+    desc "Sanford::NullTemplateSource"
+    setup do
+      @source = Sanford::NullTemplateSource.new
+    end
+    subject{ @source }
+
+    should "be a template source" do
+      assert_kind_of Sanford::TemplateSource, subject
+    end
+
+    should "have an empty path string" do
+      assert_equal '', subject.path
+    end
+
+  end
+
 end

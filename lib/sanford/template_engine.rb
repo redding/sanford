@@ -11,7 +11,7 @@ module Sanford
       @source_path = Pathname.new(@opts['source_path'].to_s)
     end
 
-    def render(path, scope)
+    def render(path, service_handler, locals)
       raise NotImplementedError
     end
 
@@ -19,7 +19,7 @@ module Sanford
 
   class NullTemplateEngine < TemplateEngine
 
-    def render(path, scope)
+    def render(path, service_handler, locals)
       template_file = self.source_path.join(path).to_s
       unless File.exists?(template_file)
         raise ArgumentError, "template file `#{template_file}` does not exist"

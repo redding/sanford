@@ -1,8 +1,6 @@
 require 'assert'
 require 'sanford/runner'
 
-require 'test/support/services'
-
 module Sanford::Runner
 
   class UnitTests < Assert::Context

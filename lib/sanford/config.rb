@@ -17,7 +17,7 @@ module Sanford
 
     def initialize
       super
-      @template_source = nil
+      @template_source = NullTemplateSource.new
     end
 
     def set_template_source(path, &block)

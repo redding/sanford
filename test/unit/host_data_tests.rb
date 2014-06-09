@@ -1,8 +1,6 @@
 require 'assert'
 require 'sanford/host_data'
 
-require 'test/support/services'
-
 class Sanford::HostData
 
   class UnitTests < Assert::Context

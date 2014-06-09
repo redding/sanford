@@ -1,8 +1,6 @@
 require 'assert'
 require 'sanford/server'
 
-require 'test/support/services'
-
 class Sanford::Server
 
   class UnitTests < Assert::Context
