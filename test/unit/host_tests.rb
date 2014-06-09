@@ -133,7 +133,7 @@ module Sanford::Host
       assert_equal '0.0.0.0', subject.ip
       assert_nil subject.port
       assert_nil subject.pid_file
-      assert_equal Sanford.config.logger, subject.logger
+      assert_equal Sanford.config.logger.class, subject.logger.class
       assert_true  subject.verbose_logging
       assert_false subject.receives_keep_alive
       assert_equal Sanford.config.runner, subject.runner
