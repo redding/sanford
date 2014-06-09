@@ -7,13 +7,9 @@ ENV['SANFORD_SERVICES_FILE'] ||= 'config/services'
 
 module Sanford
 
-  def self.config
-    Sanford::Config
-  end
-
+  def self.config; @config ||= Config.new; end
   def self.configure(&block)
-    self.config.define(&block)
-    self.config
+    block.call(self.config)
   end
 
   def self.init
