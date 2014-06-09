@@ -6,4 +6,4 @@ gem 'rake'
 gem 'pry'
 
 gem 'bson'
-gem 'bson_ext', '~>1.7'
+gem 'bson_ext'
