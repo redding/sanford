@@ -11,7 +11,8 @@ class Sanford::TemplateEngine
     setup do
       @source_path = Factory.path
       @path = Factory.path
-      @scope = proc{}
+      @service_handler = 'a-service-handler'
+      @locals = {}
       @engine = Sanford::TemplateEngine.new('some' => 'opts')
     end
     subject{ @engine }
@@ -40,7 +41,7 @@ class Sanford::TemplateEngine
 
     should "raise NotImplementedError on `render`" do
       assert_raises NotImplementedError do
-        subject.render(@path, @scope)
+        subject.render(@path, @service_handler, @locals)
       end
     end
 
@@ -60,13 +61,13 @@ class Sanford::TemplateEngine
     should "read and return the given path in its source path on `render" do
       exists_file = 'test/support/template.json'
       exp = File.read(subject.source_path.join(exists_file).to_s)
-      assert_equal exp, subject.render(exists_file, @scope)
+      assert_equal exp, subject.render(exists_file, @service_handler, @locals)
     end
 
     should "complain if given a path that does not exist in its source path" do
       no_exists_file = '/does/not/exists'
       assert_raises ArgumentError do
-        subject.render(no_exists_file, @scope)
+        subject.render(no_exists_file, @service_handler, @locals)
       end
     end
 

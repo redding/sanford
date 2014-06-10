@@ -5,6 +5,7 @@ require 'ns-options/assert_macros'
 require 'ns-options/proxy'
 require 'sanford/logger'
 require 'sanford/runner'
+require 'sanford/template_source'
 require 'test/support/factory'
 
 class Sanford::Config
@@ -39,8 +40,8 @@ class Sanford::Config
       assert_equal Sanford::DefaultRunner, subject.runner
     end
 
-    should "have no template source by default" do
-      assert_nil subject.template_source
+    should "have a null template source by default" do
+      assert_kind_of Sanford::NullTemplateSource, subject.template_source
     end
 
     should "set a new template source" do

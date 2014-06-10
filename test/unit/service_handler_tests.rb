@@ -146,15 +146,6 @@ module Sanford::ServiceHandler
 
   end
 
-  class RunHandlerTests < UnitTests
-    desc "run_handler helper"
-
-    should "allow easily running another handler" do
-      response = test_runner(RunOtherHandler).run
-      assert_equal 'RunOtherHandler', response.data
-    end
-  end
-
   class HaltTests < UnitTests
     desc "when halted"
 
@@ -281,6 +272,26 @@ module Sanford::ServiceHandler
       assert_equal true, response.data[:after_run_called]
 
       assert_equal 'after_run halting', runner.response.status.message
+    end
+
+  end
+
+  class RenderHandlerTests < UnitTests
+    desc "render helper method"
+
+    should "render template files" do
+      response = test_runner(RenderHandler).run
+      assert_equal ['test_template', 'RenderHandler', {}], response.data
+    end
+
+  end
+
+  class RunHandlerTests < UnitTests
+    desc "run_handler helper"
+
+    should "allow easily running another handler" do
+      response = test_runner(RunOtherHandler).run
+      assert_equal 'RunOtherHandler', response.data
     end
 
   end

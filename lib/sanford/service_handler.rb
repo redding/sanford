@@ -54,6 +54,15 @@ module Sanford
 
       # Helpers
 
+      def render(path, options = nil)
+        options ||= {}
+        get_engine(path, options['source'] || Sanford.config.template_source).render(
+          path,
+          self,
+          options['locals'] || {}
+        )
+      end
+
       def run_handler(handler_class, params = nil)
         handler_class.run(params || {}, self.logger)
       end
@@ -67,6 +76,16 @@ module Sanford
         (self.class.send("#{callback}_callbacks") || []).each do |callback|
           self.instance_eval(&callback)
         end
+      end
+
+      private
+
+      def get_engine(path, source)
+        source.engines[File.extname(get_template(path, source))[1..-1] || '']
+      end
+
+      def get_template(path, source)
+        Dir.glob("#{Pathname.new(source.path).join(path.to_s)}.*").first.to_s
       end
 
     end

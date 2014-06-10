@@ -5,5 +5,4 @@ gemspec
 gem 'rake'
 gem 'pry'
 
-gem 'bson'
 gem 'bson_ext'

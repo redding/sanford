@@ -19,4 +19,12 @@ module Sanford
 
   end
 
+  class NullTemplateSource < TemplateSource
+
+    def initialize
+      super('')
+    end
+
+  end
+
 end

@@ -117,6 +117,14 @@ class HaltingBehaviorServiceHandler
 
 end
 
+class RenderHandler
+  include Sanford::ServiceHandler
+
+  def run!
+    render 'test_template'
+  end
+end
+
 class RunOtherHandler
   include Sanford::ServiceHandler
 
