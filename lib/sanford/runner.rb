@@ -16,7 +16,7 @@ module Sanford
 
     module InstanceMethods
 
-      attr_reader :handler_class, :request, :logger
+      attr_reader :handler_class, :request, :logger, :handler
 
       def initialize(handler_class, request, logger = nil)
         @handler_class, @request = handler_class, request
@@ -33,8 +33,7 @@ module Sanford
       end
 
       def run
-        response_args = catch_halt{ self.run!(@handler) }
-        Sanford::Protocol::Response.new(response_args.status, response_args.data)
+        build_response catch_halt{ self.run! }
       end
 
       def run!
@@ -56,6 +55,12 @@ module Sanford
         catch(:halt){ ResponseArgs.new(*block.call) }
       end
 
+      protected
+
+      def build_response(args)
+        Sanford::Protocol::Response.new(args.status, args.data) if args
+      end
+
     end
 
     module ClassMethods
@@ -65,16 +70,6 @@ module Sanford
         self.new(handler_class, request, logger).run
       end
 
-    end
-
-  end
-
-  class DefaultRunner
-    include Sanford::Runner
-
-    def run!(handler)
-      handler.init
-      handler.run
     end
 
   end

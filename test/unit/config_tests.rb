@@ -19,7 +19,7 @@ class Sanford::Config
     end
     subject{ @config }
 
-    should have_options :services_file, :logger, :runner
+    should have_options :services_file, :logger
     should have_readers :template_source
     should have_imeths :set_template_source
 
@@ -34,10 +34,6 @@ class Sanford::Config
 
     should "default its logger to a NullLogger" do
       assert_kind_of Sanford::NullLogger, subject.logger
-    end
-
-    should "default its runner to a DefaultRunner" do
-      assert_equal Sanford::DefaultRunner, subject.runner
     end
 
     should "have a null template source by default" do

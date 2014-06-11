@@ -9,20 +9,18 @@ module Sanford
   class TestRunner
     include Sanford::Runner
 
-    attr_reader :handler, :response
+    attr_reader :response
 
-    def initialize(handler_class, *args)
+    def initialize(handler_class, request_or_params, *args)
       if !handler_class.include?(Sanford::ServiceHandler)
         raise InvalidServiceHandlerError, "#{handler_class.inspect} is not a"\
                                           " Sanford::ServiceHandler"
       end
-      super
+
+      super handler_class, build_request(request_or_params), *args
     end
 
     def init!
-      if !@request.kind_of?(Sanford::Protocol::Request)
-        @request = test_request(@request)
-      end
       @response = build_response catch(:halt){ @handler.init; nil }
     end
 
@@ -31,21 +29,25 @@ module Sanford
     # want to `run` at all.
 
     def run
-      @response ||= build_response(catch_halt{ @handler.run }).tap do |response|
+      @response ||= super.tap do |response|
         # attempt to serialize (and then throw away) the response data
         # this will error on the developer if BSON can't serialize their response
         Sanford::Protocol::BsonBody.new.encode(response.to_hash)
       end
     end
 
-    protected
+    def run!
+      self.handler.run
+    end
+
+    private
+
+    def build_request(req)
+      !req.kind_of?(Sanford::Protocol::Request) ? test_request(req) : req
+    end
 
     def test_request(params)
       Sanford::Protocol::Request.new('name', params || {})
-    end
-
-    def build_response(response_args)
-      Sanford::Protocol::Response.new(response_args.status, response_args.data) if response_args
     end
 
   end

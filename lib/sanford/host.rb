@@ -25,7 +25,6 @@ module Sanford
       option :logger,                       :default => proc{ Sanford.config.logger }
       option :verbose_logging,              :default => true
       option :receives_keep_alive,          :default => false
-      option :runner,                       :default => proc{ Sanford.config.runner }
       option :error_procs,         Array,   :default => []
       option :init_procs,          Array,   :default => []
 
@@ -77,10 +76,6 @@ module Sanford
 
     def receives_keep_alive(*args)
       self.configuration.receives_keep_alive *args
-    end
-
-    def runner(*args)
-      self.configuration.runner *args
     end
 
     def error(&block)

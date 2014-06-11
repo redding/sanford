@@ -11,7 +11,6 @@ module Sanford
 
     option :services_file,  Pathname, :default => proc{ ENV['SANFORD_SERVICES_FILE'] }
     option :logger,                   :default => proc{ Sanford::NullLogger.new }
-    option :runner,                   :default => proc{ Sanford::DefaultRunner }
 
     attr_reader :template_source
 
