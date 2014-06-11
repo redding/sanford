@@ -15,7 +15,7 @@ module Sanford::Host
 
     should have_readers :configuration, :services
     should have_imeths :name, :ip, :port, :pid_file, :logger, :verbose_logging
-    should have_imeths :runner, :error, :init, :service_handler_ns, :service
+    should have_imeths :error, :init, :service_handler_ns, :service
 
     should "know its configuration" do
       assert_kind_of Configuration, subject.configuration
@@ -54,10 +54,6 @@ module Sanford::Host
       subject.receives_keep_alive true
       assert_equal true, subject.receives_keep_alive
       assert_equal subject.receives_keep_alive, subject.configuration.receives_keep_alive
-
-      subject.runner Sanford::DefaultRunner
-      assert_equal Sanford::DefaultRunner, subject.runner
-      assert_equal subject.runner, subject.configuration.runner
     end
 
     should "add error procs to the configuration" do
@@ -123,7 +119,7 @@ module Sanford::Host
     subject{ @configuration }
 
     should have_imeths :name, :ip, :port, :pid_file, :logger, :verbose_logging
-    should have_imeths :receives_keep_alive, :runner, :error_procs, :init_procs
+    should have_imeths :receives_keep_alive, :error_procs, :init_procs
 
     should "default name to the class name of the host" do
       assert_equal @host_class.name, subject.name
@@ -136,7 +132,6 @@ module Sanford::Host
       assert_equal Sanford.config.logger.class, subject.logger.class
       assert_true  subject.verbose_logging
       assert_false subject.receives_keep_alive
-      assert_equal Sanford.config.runner, subject.runner
       assert_empty subject.error_procs
       assert_empty subject.init_procs
     end

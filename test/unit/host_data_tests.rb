@@ -14,7 +14,7 @@ class Sanford::HostData
     end
     subject{ @host_data }
 
-    should have_readers :name, :logger, :verbose, :keep_alive, :runner, :error_procs
+    should have_readers :name, :logger, :verbose, :keep_alive, :error_procs
     should have_imeths :handler_class_for, :run
 
     should "call the init procs" do
@@ -26,7 +26,6 @@ class Sanford::HostData
       assert_equal TestHost.configuration.logger.class,        subject.logger.class
       assert_equal TestHost.configuration.verbose_logging,     subject.verbose
       assert_equal TestHost.configuration.receives_keep_alive, subject.keep_alive
-      assert_equal TestHost.configuration.runner.class,        subject.runner.class
       assert_equal TestHost.configuration.error_procs,         subject.error_procs
     end
 

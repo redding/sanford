@@ -93,7 +93,7 @@ module Sanford
     module ClassMethods
 
       def run(params = nil, logger = nil)
-        Sanford.config.runner.run(self, params || {}, logger)
+        SanfordRunner.run(self, params || {}, logger)
       end
 
       def before_init_callbacks; @before_init_callbacks ||= []; end

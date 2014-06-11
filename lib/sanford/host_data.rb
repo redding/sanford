@@ -1,4 +1,5 @@
 require 'sanford/service_handler'
+require 'sanford/sanford_runner'
 
 module Sanford
 
@@ -12,7 +13,7 @@ module Sanford
     # NOTE: The `name` attribute shouldn't be removed, it is used to identify
     # a `HostData`, particularly in error handlers
 
-    attr_reader :name, :logger, :verbose, :keep_alive, :runner, :error_procs
+    attr_reader :name, :logger, :verbose, :keep_alive, :error_procs
 
     def initialize(service_host, options = nil)
       service_host.configuration.init_procs.each(&:call)
@@ -24,7 +25,6 @@ module Sanford
       @logger      = configuration[:logger]
       @verbose     = configuration[:verbose_logging]
       @keep_alive  = configuration[:receives_keep_alive]
-      @runner      = configuration[:runner]
       @error_procs = configuration[:error_procs]
 
       @handlers = service_host.services.inject({}) do |h, (name, handler_class_name)|
@@ -37,7 +37,7 @@ module Sanford
     end
 
     def run(handler_class, request)
-      self.runner.new(handler_class, request, self.logger).run
+      SanfordRunner.new(handler_class, request, self.logger).run
     end
 
     protected
