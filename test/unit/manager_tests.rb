@@ -112,7 +112,7 @@ module Sanford::Manager
 
     should have_imeths :pid, :to_s, :write, :remove
 
-    should "return it's path with #to_s" do
+    should "return its path with #to_s" do
       assert_equal @pid_file_path, subject.to_s
     end
 

@@ -106,7 +106,7 @@ module Sanford
 
     module ClassMethods
 
-      # the class level of a `Host` should just proxy it's methods down to it's
+      # the class level of a `Host` should just proxy its methods down to its
       # instance (it's a `Singleton`)
 
       # `name` is defined by all objects, so we can't rely on `method_missing`

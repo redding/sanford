@@ -89,7 +89,7 @@ module Sanford
       # packetizes our stream. This improves both latency and throughput.
       # TCP_CORK disables Nagle's algorithm, which is ideal for sporadic
       # traffic (like Telnet) but is less optimal for HTTP. Sanford is similar
-      # to HTTP, it doesn't receive sporadic packets, it has all it's data
+      # to HTTP, it doesn't receive sporadic packets, it has all its data
       # come in at once.
       # For more information: http://baus.net/on-tcp_cork
 
