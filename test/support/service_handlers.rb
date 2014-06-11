@@ -129,7 +129,7 @@ class RenderHandler
   include Sanford::ServiceHandler
 
   def run!
-    render 'test_template'
+    render params['template_name']
   end
 end
 

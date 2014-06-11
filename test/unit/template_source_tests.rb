@@ -7,6 +7,16 @@ class Sanford::TemplateSource
 
   class UnitTests < Assert::Context
     desc "Sanford::TemplateSource"
+    subject{ Sanford::TemplateSource }
+
+    should "disallow certain engine extensions" do
+      exp = [ '.rb' ]
+      assert_equal exp, subject::DISALLOWED_ENGINE_EXTS
+    end
+
+  end
+
+  class InitTests < Assert::Context
     setup do
       @source_path = File.join(ROOT, 'test/support')
       @source = Sanford::TemplateSource.new(@source_path)
@@ -22,7 +32,7 @@ class Sanford::TemplateSource
 
   end
 
-  class EngineRegistrationTests < UnitTests
+  class EngineRegistrationTests < InitTests
     desc "when registering an engine"
     setup do
       @empty_engine = Class.new(Sanford::TemplateEngine) do
@@ -51,6 +61,14 @@ class Sanford::TemplateSource
       subject.engine 'empty', @empty_engine, 'source_path' => 'something'
       exp_opts = { 'source_path' => 'something' }
       assert_equal exp_opts, subject.engines['empty'].opts
+    end
+
+    should "complain if registering a disallowed temp" do
+      assert_kind_of Sanford::NullTemplateEngine, subject.engines['rb']
+      assert_raises DisallowedEngineExtError do
+        subject.engine 'rb', @empty_engine
+      end
+      assert_kind_of Sanford::NullTemplateEngine, subject.engines['rb']
     end
 
   end

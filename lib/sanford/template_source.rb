@@ -4,6 +4,10 @@ module Sanford
 
   class TemplateSource
 
+    DISALLOWED_ENGINE_EXTS = [ '.rb' ]
+
+    DisallowedEngineExtError = Class.new(ArgumentError)
+
     attr_reader :path, :engines
 
     def initialize(path)
@@ -13,6 +17,10 @@ module Sanford
     end
 
     def engine(input_ext, engine_class, registered_opts = nil)
+      if DISALLOWED_ENGINE_EXTS.include?(".#{input_ext}")
+        raise DisallowedEngineExtError, "`#{input_ext}` is disallowed as an"\
+                                        " engine extension."
+      end
       engine_opts = @default_opts.merge(registered_opts || {})
       @engines[input_ext.to_s] = engine_class.new(engine_opts)
     end

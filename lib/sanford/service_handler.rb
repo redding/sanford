@@ -1,6 +1,11 @@
+require 'sanford/sanford_runner'
+require 'sanford/template_source'
+
 module Sanford
 
   module ServiceHandler
+
+    DISALLOWED_TEMPLATE_EXTS = Sanford::TemplateSource::DISALLOWED_ENGINE_EXTS
 
     def self.constantize(class_name)
       names = class_name.to_s.split('::').reject{|name| name.empty? }
@@ -85,7 +90,9 @@ module Sanford
       end
 
       def get_template(path, source)
-        Dir.glob("#{Pathname.new(source.path).join(path.to_s)}.*").first.to_s
+        files = Dir.glob("#{Pathname.new(source.path).join(path.to_s)}.*")
+        files = files.reject{ |p| DISALLOWED_TEMPLATE_EXTS.include?(File.extname(p)) }
+        files.first.to_s
       end
 
     end
