@@ -17,7 +17,7 @@ class Sanford::Server
       assert_includes DatTCP::Server, subject.class
     end
 
-    should "save it's host and host options but not initialize a host data yet" do
+    should "save its host and host options but not initialize a host data yet" do
       assert_equal TestHost, subject.sanford_host
       assert_equal true, subject.sanford_host_options[:receives_keep_alive]
       assert_nil subject.sanford_host_data

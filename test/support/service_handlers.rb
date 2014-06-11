@@ -24,9 +24,17 @@ module CallbackServiceHandler
 
   def self.included(receiver)
     receiver.class_eval do
+      attr_reader :before_called, :after_called
       attr_reader :before_init_called, :init_bang_called, :after_init_called
       attr_reader :before_run_called, :run_bang_called, :after_run_called
       attr_reader :second_before_init_called, :second_after_run_called
+
+      before do
+        @before_called = true
+      end
+      after do
+        @after_called = true
+      end
 
       before_init do
         @before_init_called = true

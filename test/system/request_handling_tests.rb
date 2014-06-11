@@ -251,7 +251,7 @@ class RequestHandlingTests < Assert::Context
     end
   end
 
-  # Sending the server a protocol version that doesn't match it's version
+  # Sending the server a protocol version that doesn't match its version
   class WrongProtocolVersionTests < ForkedServerTests
     desc "when sent a request with a wrong protocol version"
 

@@ -17,10 +17,13 @@ module Sanford::ServiceHandler
     subject{ @handler_class }
 
     should have_imeths :run
+    should have_imeths :before_callbacks, :after_callbacks
     should have_imeths :before_init_callbacks, :after_init_callbacks
     should have_imeths :before_run_callbacks,  :after_run_callbacks
+    should have_imeths :before, :after
     should have_imeths :before_init, :after_init
     should have_imeths :before_run,  :after_run
+    should have_imeths :prepend_before, :prepend_after
     should have_imeths :prepend_before_init, :prepend_after_init
     should have_imeths :prepend_before_run,  :prepend_after_run
 
@@ -31,6 +34,14 @@ module Sanford::ServiceHandler
       })
       assert_equal 648,   response.code
       assert_equal true,  response.data
+    end
+
+    should "return an empty array by default using `before_callbacks`" do
+      assert_equal [], subject.before_callbacks
+    end
+
+    should "return an empty array by default using `after_callbacks`" do
+      assert_equal [], subject.after_callbacks
     end
 
     should "return an empty array by default using `before_init_callbacks`" do
@@ -47,6 +58,20 @@ module Sanford::ServiceHandler
 
     should "return an empty array by default using `after_run_callbacks`" do
       assert_equal [], subject.after_run_callbacks
+    end
+
+    should "append a block to the before callbacks using `before`" do
+      subject.before_callbacks << proc{ }
+      block = Proc.new{}
+      subject.before(&block)
+      assert_equal block, subject.before_callbacks.last
+    end
+
+    should "append a block to the after callbacks using `after`" do
+      subject.after_callbacks << proc{ }
+      block = Proc.new{}
+      subject.after(&block)
+      assert_equal block, subject.after_callbacks.last
     end
 
     should "append a block to the before init callbacks using `before_init`" do
@@ -75,6 +100,20 @@ module Sanford::ServiceHandler
       block = Proc.new{}
       subject.after_run(&block)
       assert_equal block, subject.after_run_callbacks.last
+    end
+
+    should "prepend a block to the before callbacks using `prepend_before`" do
+      subject.before_callbacks << proc{ }
+      block = Proc.new{}
+      subject.prepend_before(&block)
+      assert_equal block, subject.before_callbacks.first
+    end
+
+    should "prepend a block to the after callbacks using `prepend_after`" do
+      subject.after_callbacks << proc{ }
+      block = Proc.new{}
+      subject.prepend_after(&block)
+      assert_equal block, subject.after_callbacks.first
     end
 
     should "prepend a block to the before init callbacks using `prepend_before_init`" do
@@ -121,27 +160,36 @@ module Sanford::ServiceHandler
       assert_raises(NotImplementedError){ handler.run! }
     end
 
-    should "have called `init!` and it's callbacks" do
+    should "not call `before` callbacks when using a test runner" do
+      assert_nil subject.before_called
+    end
+
+    should "have called `init!` and its callbacks" do
       assert_true subject.before_init_called
       assert_true subject.second_before_init_called
       assert_true subject.init_bang_called
       assert_true subject.after_init_called
     end
 
-    should "not have called `run!` or it's callbacks when initialized" do
+    should "not have called `run!` or its callbacks when initialized" do
       assert_nil subject.before_run_called
       assert_nil subject.run_bang_called
       assert_nil subject.after_run_called
       assert_nil subject.second_after_run_called
     end
 
-    should "call `run!` and it's callbacks when it's `run`" do
+    should "call `run!` and its callbacks when its run" do
       subject.run
 
       assert_true subject.before_run_called
       assert_true subject.run_bang_called
       assert_true subject.after_run_called
       assert_true subject.second_after_run_called
+    end
+
+    should "not call `after` callbacks when run using a test runner" do
+      subject.run
+      assert_nil subject.after_called
     end
 
   end
@@ -194,7 +242,7 @@ module Sanford::ServiceHandler
       assert_equal 'before_init halting', response.status.message
     end
 
-    should "not call `after_init`, `run!` or it's callbacks when `init!` halts" do
+    should "not call `after_init`, `run!` or its callbacks when `init!` halts" do
       runner = test_runner(HaltingBehaviorServiceHandler, {
         'when' => 'init!'
       })
@@ -210,7 +258,7 @@ module Sanford::ServiceHandler
       assert_equal 'init! halting', response.status.message
     end
 
-    should "not call `run!` or it's callbacks when `after_init` halts" do
+    should "not call `run!` or its callbacks when `after_init` halts" do
       runner = test_runner(HaltingBehaviorServiceHandler, {
         'when' => 'after_init'
       })
