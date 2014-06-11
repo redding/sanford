@@ -2,6 +2,7 @@ require 'assert'
 require 'sanford/service_handler'
 
 require 'bson'
+require 'sanford/template_source'
 require 'sanford/test_helpers'
 require 'test/support/service_handlers'
 
@@ -26,6 +27,11 @@ module Sanford::ServiceHandler
     should have_imeths :prepend_before, :prepend_after
     should have_imeths :prepend_before_init, :prepend_after_init
     should have_imeths :prepend_before_run,  :prepend_after_run
+
+    should "disallow certain template extensions" do
+      exp = Sanford::TemplateSource::DISALLOWED_ENGINE_EXTS
+      assert_equal exp, subject::DISALLOWED_TEMPLATE_EXTS
+    end
 
     should "allow running a handler class with the class method #run" do
       response = HaltServiceHandler.run({
@@ -328,8 +334,14 @@ module Sanford::ServiceHandler
     desc "render helper method"
 
     should "render template files" do
-      response = test_runner(RenderHandler).run
+      response = test_runner(RenderHandler, 'template_name' => 'test_template').run
       assert_equal ['test_template', 'RenderHandler', {}], response.data
+    end
+
+    should "not render any template files with a disallowed template ext" do
+      assert_raises ArgumentError do
+        test_runner(RenderHandler, 'template_name' => 'test_disallowed_template').run
+      end
     end
 
   end
