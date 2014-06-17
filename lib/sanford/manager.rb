@@ -1,5 +1,5 @@
 require 'sanford/cli'
-require 'sanford/server'
+require 'sanford/server_old'
 
 module Sanford
 
@@ -123,7 +123,7 @@ module Sanford
 
       def run!(daemonize = false)
         daemonize!(true) if daemonize && !ENV['SANFORD_SKIP_DAEMONIZE']
-        Sanford::Server.new(@host, @server_options).tap do |server|
+        Sanford::ServerOld.new(@host, @server_options).tap do |server|
           log "Starting #{@host.name} server..."
 
           server.listen(*@config.listen_args)
@@ -137,7 +137,7 @@ module Sanford
           Signal.trap("INT"){  self.halt!(server) }
           Signal.trap("USR2"){ self.restart!(server) }
 
-          server_thread = server.run(@config.client_file_descriptors)
+          server_thread = server.start(@config.client_file_descriptors)
           log "#{@host.name} server started and ready."
           server_thread.join
         end
