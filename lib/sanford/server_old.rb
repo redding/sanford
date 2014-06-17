@@ -7,8 +7,7 @@ require 'sanford/worker'
 
 module Sanford
 
-  class Server
-    include DatTCP::Server
+  class ServerOld
 
     attr_reader :sanford_host, :sanford_host_data, :sanford_host_options
 
@@ -19,7 +18,34 @@ module Sanford
         :receives_keep_alive => options.delete(:keep_alive),
         :verbose_logging     => options.delete(:verbose)
       }
-      super options
+      @dat_tcp_server = DatTCP::Server.new(options){ |socket| serve(socket) }
+    end
+
+    def ip
+      @dat_tcp_server.ip
+    end
+
+    def port
+      @dat_tcp_server.port
+    end
+
+    def listen(*args)
+      @dat_tcp_server.listen(*args) do |tcp_server|
+        configure_tcp_server(tcp_server)
+      end
+    end
+
+    def start(*args)
+      self.on_run
+      @dat_tcp_server.start(*args)
+    end
+
+    def stop(*args)
+      @dat_tcp_server.stop(*args)
+    end
+
+    def halt(*args)
+      @dat_tcp_server.halt(*args)
     end
 
     # TCP_NODELAY is set to disable buffering. In the case of Sanford
@@ -32,15 +58,15 @@ module Sanford
     end
 
     def on_run
-      @sanford_host_data = Sanford::HostData.new(@sanford_host, @sanford_host_options)
+      @sanford_host_data ||= Sanford::HostData.new(@sanford_host, @sanford_host_options)
     end
 
-    # `serve!` can be called at the same time by multiple threads. Thus we
+    # `serve` can be called at the same time by multiple threads. Thus we
     # create a new instance of the handler for every request.
     # When using TCP_CORK, you "cork" the socket, handle it and then "uncork"
     # it, see the `TCPCork` module for more info.
 
-    def serve!(socket)
+    def serve(socket)
       connection = Connection.new(socket)
       if !self.keep_alive_connection?(connection)
         Sanford::Worker.new(@sanford_host_data, connection).run
