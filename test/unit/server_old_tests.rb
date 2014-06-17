@@ -1,21 +1,18 @@
 require 'assert'
-require 'sanford/server'
+require 'sanford/server_old'
 
-class Sanford::Server
+class Sanford::ServerOld
 
   class UnitTests < Assert::Context
-    desc "Sanford::Server"
+    desc "Sanford::ServerOld"
     setup do
-      @server = Sanford::Server.new(TestHost, :keep_alive => true)
+      @server = Sanford::ServerOld.new(TestHost, :keep_alive => true)
     end
     subject{ @server }
 
     should have_readers :sanford_host, :sanford_host_data, :sanford_host_options
-    should have_imeths :on_run
-
-    should "include DatTCP::Server" do
-      assert_includes DatTCP::Server, subject.class
-    end
+    should have_imeths :on_run, :ip, :port
+    should have_imeths :listen, :start, :stop, :halt
 
     should "save its host and host options but not initialize a host data yet" do
       assert_equal TestHost, subject.sanford_host
@@ -29,7 +26,7 @@ class Sanford::Server
     desc "run"
     setup do
       @server.listen(TestHost.ip, TestHost.port)
-      @server.run
+      @server.start
     end
     teardown do
       @server.stop
@@ -41,7 +38,7 @@ class Sanford::Server
 
   end
 
-  # Sanford::Server#serve is tested in test/system/request_handling_test.rb,
+  # Sanford::ServerOld#serve is tested in test/system/request_handling_test.rb,
   # it requires multiple parts of Sanford and basically tests a large portion of
   # the entire system
 

@@ -1,4 +1,7 @@
 require 'assert'
+require 'sanford'
+require 'sanford/server_old'
+
 require 'sanford-protocol/fake_socket'
 
 # These tests are intended as a high level test against Sanford's server. They
@@ -192,7 +195,7 @@ class RequestHandlingTests < Assert::Context
   class WithAKeepAliveTests < FakeConnectionTests
     desc "receiving a keep-alive connection"
     setup do
-      @server = Sanford::Server.new(TestHost, {
+      @server = Sanford::ServerOld.new(TestHost, {
         :ready_timeout => 0.1,
         :keep_alive    => true
       })
