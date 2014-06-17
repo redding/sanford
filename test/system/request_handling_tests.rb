@@ -199,10 +199,7 @@ class RequestHandlingTests < Assert::Context
       @server.on_run
       @socket = Sanford::Protocol::FakeSocket.new
       @fake_connection = FakeProtocolConnection.new(@socket)
-      Sanford::Protocol::Connection.stubs(:new).with(@socket).returns(@fake_connection)
-    end
-    teardown do
-      Sanford::Protocol::Connection.unstub(:new)
+      Assert.stub(Sanford::Protocol::Connection, :new).with(@socket){ @fake_connection }
     end
 
     should "not error and nothing should be written" do
