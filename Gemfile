@@ -6,3 +6,5 @@ gem 'rake'
 gem 'pry', "~> 0.9.0"
 
 gem 'bson_ext'
+
+gem 'dat-tcp', :path => "~/Projects/redding/gems/dat-tcp/"
