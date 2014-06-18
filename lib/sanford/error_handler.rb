@@ -5,12 +5,12 @@ module Sanford
 
   class ErrorHandler
 
-    attr_reader :exception, :host_data, :request
+    attr_reader :exception, :config_data, :request
+    attr_reader :error_procs
 
-    def initialize(exception, host_data = nil, request = nil)
-      @exception, @host_data, @request = exception, host_data, request
-      @keep_alive  = @host_data ? @host_data.keep_alive : false
-      @error_procs = @host_data ? @host_data.error_procs.reverse : []
+    def initialize(exception, config_data = nil, request = nil)
+      @exception, @config_data, @request = exception, config_data, request
+      @error_procs = @config_data ? @config_data.error_procs.reverse : []
     end
 
     # The exception that we are generating a response for can change in the case
@@ -24,8 +24,8 @@ module Sanford
       @error_procs.each do |error_proc|
         result = nil
         begin
-          result = error_proc.call(@exception, @host_data, @request)
-        rescue Exception => proc_exception
+          result = error_proc.call(@exception, @config_data, @request)
+        rescue StandardError => proc_exception
           @exception = proc_exception
         end
         response ||= self.response_from_proc(result)
