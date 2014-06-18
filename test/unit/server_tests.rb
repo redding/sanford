@@ -2,6 +2,7 @@ require 'assert'
 require 'sanford/server'
 
 require 'ns-options/assert_macros'
+require 'sanford/route'
 
 module Sanford::Server
 
@@ -99,6 +100,109 @@ module Sanford::Server
       subject.set_template_source(new_path){ |s| yielded = s }
       assert_equal new_path, subject.configuration.template_source.path
       assert_equal subject.configuration.template_source, yielded
+    end
+
+  end
+
+  class WithConfigurationSetTests < UnitTests
+    setup do
+      @server_class.name Factory.string
+      @server_class.ip Factory.string
+      @server_class.port Factory.integer
+      @server_class.pid_file Factory.string
+    end
+
+  end
+
+  class InitTests < WithConfigurationSetTests
+    desc "when init"
+    setup do
+      @server = @server_class.new
+    end
+    subject{ @server }
+
+    attr_reader :config_data
+
+    should "have validated its configuration" do
+      assert_true subject.class.configuration.valid?
+    end
+
+    should "know its config data" do
+      assert_instance_of ConfigData, subject.config_data
+      configuration = subject.class.configuration
+      assert_equal configuration.name, subject.config_data.name
+    end
+
+  end
+
+  class ConfigDataTests < UnitTests
+    desc "ConfigData"
+    setup do
+      @name = Factory.string
+      @ip = Factory.string
+      @port = Factory.integer
+      @logger = Factory.string
+      @verbose_logging = Factory.boolean
+      @receives_keep_alive = Factory.boolean
+      @error_procs = [ proc{ } ]
+      @route = Sanford::Route.new(Factory.string, TestHandler.to_s).tap(&:validate!)
+
+      @config_data = ConfigData.new({
+        :name => @name,
+        :ip => @ip,
+        :port => @port,
+        :logger => @logger,
+        :verbose_logging => @verbose_logging,
+        :receives_keep_alive => @receives_keep_alive,
+        :error_procs => @error_procs,
+        :routes => [ @route ]
+      })
+    end
+    subject{ @config_data }
+
+    should have_readers :name
+    should have_readers :ip, :port
+    should have_readers :logger, :verbose_logging
+    should have_readers :receives_keep_alive
+    should have_readers :error_procs
+    should have_readers :routes
+
+    should "know its attributes" do
+      assert_equal @name, subject.name
+      assert_equal @ip, subject.ip
+      assert_equal @port, subject.port
+      assert_equal @logger, subject.logger
+      assert_equal @verbose_logging, subject.verbose_logging
+      assert_equal @receives_keep_alive, subject.receives_keep_alive
+      assert_equal @error_procs, subject.error_procs
+    end
+
+    should "build a routes lookup hash" do
+      expected = { @route.name => @route }
+      assert_equal expected, subject.routes
+    end
+
+    should "allow lookup a route using `route_for`" do
+      route = subject.route_for(@route.name)
+      assert_equal @route, route
+    end
+
+    should "raise a not found error using `route_for` with an invalid name" do
+      assert_raises(Sanford::NotFoundError) do
+        subject.route_for(Factory.string)
+      end
+    end
+
+    should "default its attributes when they aren't provided" do
+      config_data = ConfigData.new
+      assert_nil config_data.name
+      assert_nil config_data.ip
+      assert_nil config_data.port
+      assert_nil config_data.logger
+      assert_false config_data.verbose_logging
+      assert_false config_data.receives_keep_alive
+      assert_equal [], config_data.error_procs
+      assert_equal({}, config_data.routes)
     end
 
   end
