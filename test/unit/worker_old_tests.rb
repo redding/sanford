@@ -1,17 +1,17 @@
 require 'assert'
-require 'sanford/worker'
+require 'sanford/worker_old'
 
 require 'sanford/host_data'
 require 'test/support/fake_connection'
 
-class Sanford::Worker
+class Sanford::WorkerOld
 
   class UnitTests < Assert::Context
-    desc "Sanford::Worker"
+    desc "Sanford::WorkerOld"
     setup do
       @host_data = Sanford::HostData.new(TestHost)
       @connection = FakeConnection.with_request('service', {})
-      @worker = Sanford::Worker.new(@host_data, @connection)
+      @worker = Sanford::WorkerOld.new(@host_data, @connection)
     end
     subject{ @worker }
 
@@ -19,6 +19,6 @@ class Sanford::Worker
 
   end
 
-  # `Worker`'s logic is tested in the system test: `request_handling_test.rb`
+  # `WorkerOld`'s logic is tested in the system test: `request_handling_test.rb`
 
 end

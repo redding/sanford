@@ -3,7 +3,7 @@ require 'ostruct'
 require 'sanford-protocol'
 
 require 'sanford/host_data'
-require 'sanford/worker'
+require 'sanford/worker_old'
 
 module Sanford
 
@@ -69,7 +69,7 @@ module Sanford
     def serve(socket)
       connection = Connection.new(socket)
       if !self.keep_alive_connection?(connection)
-        Sanford::Worker.new(@sanford_host_data, connection).run
+        Sanford::WorkerOld.new(@sanford_host_data, connection).run
       end
     end
 

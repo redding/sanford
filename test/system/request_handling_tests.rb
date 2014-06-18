@@ -30,7 +30,7 @@ class RequestHandlingTests < Assert::Context
     desc "running a request for the echo server"
     setup do
       @connection = FakeConnection.with_request('echo', { :message => 'test' })
-      @worker = Sanford::Worker.new(@host_data, @connection)
+      @worker = Sanford::WorkerOld.new(@host_data, @connection)
     end
 
     should "return a successful response and echo the params sent to it" do
@@ -56,7 +56,7 @@ class RequestHandlingTests < Assert::Context
       request_hash = Sanford::Protocol::Request.new('what', {}).to_hash
       request_hash.delete('name')
       @connection = FakeConnection.new(request_hash)
-      @worker = Sanford::Worker.new(@host_data, @connection)
+      @worker = Sanford::WorkerOld.new(@host_data, @connection)
     end
 
     should "return a bad request response" do
@@ -77,7 +77,7 @@ class RequestHandlingTests < Assert::Context
     desc "running a request with no matching service name"
     setup do
       @connection = FakeConnection.with_request('what', {})
-      @worker = Sanford::Worker.new(@host_data, @connection)
+      @worker = Sanford::WorkerOld.new(@host_data, @connection)
     end
 
     should "return a bad request response" do
@@ -97,7 +97,7 @@ class RequestHandlingTests < Assert::Context
     desc "running a request that errors on the server"
     setup do
       @connection = FakeConnection.with_request('bad', {})
-      @worker = Sanford::Worker.new(@host_data, @connection)
+      @worker = Sanford::WorkerOld.new(@host_data, @connection)
     end
 
     should "return a bad request response" do
@@ -117,7 +117,7 @@ class RequestHandlingTests < Assert::Context
     desc "running a request that halts"
     setup do
       @connection = FakeConnection.with_request('halt_it', {})
-      @worker = Sanford::Worker.new(@host_data, @connection)
+      @worker = Sanford::WorkerOld.new(@host_data, @connection)
     end
 
     should "return the response that was halted" do
@@ -135,7 +135,7 @@ class RequestHandlingTests < Assert::Context
     desc "running a request that halts in a callback"
     setup do
       @connection = FakeConnection.with_request('authorized', {})
-      @worker = Sanford::Worker.new(@host_data, @connection)
+      @worker = Sanford::WorkerOld.new(@host_data, @connection)
     end
 
     should "return the response that was halted" do
@@ -153,7 +153,7 @@ class RequestHandlingTests < Assert::Context
     desc "running a request that triggers our custom error handler"
     setup do
       @connection = FakeConnection.with_request('custom_error', {})
-      @worker = Sanford::Worker.new(@host_data, @connection)
+      @worker = Sanford::WorkerOld.new(@host_data, @connection)
     end
 
     should "return the response that was halted" do
@@ -171,7 +171,7 @@ class RequestHandlingTests < Assert::Context
     desc "running a request that builds an object that can't be encoded"
     setup do
       @connection = FakeConnection.with_request('echo', { :message => 'cant encode' }, true)
-      @worker = Sanford::Worker.new(@host_data, @connection)
+      @worker = Sanford::WorkerOld.new(@host_data, @connection)
     end
 
     should "return the response that was halted" do
