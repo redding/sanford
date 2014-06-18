@@ -76,7 +76,7 @@ module Sanford
     protected
 
     def keep_alive_connection?(connection)
-      @sanford_host_data.keep_alive && connection.peek_data.empty?
+      @sanford_host_data.receives_keep_alive && connection.peek_data.empty?
     end
 
     class Connection

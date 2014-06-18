@@ -9,16 +9,16 @@ module Sanford
 
   class Worker
 
-    ProcessedService = Struct.new(*[
+    ProcessedService = Struct.new(
       :request, :handler_class, :response, :exception, :time_taken
-    ])
+    )
 
     attr_reader :logger
 
     def initialize(host_data, connection)
-      @host_data, @connection = host_data, connection
-
-      @logger = Sanford::Logger.new(@host_data.logger, @host_data.verbose)
+      @host_data  = host_data
+      @connection = connection
+      @logger = Sanford::Logger.new(@host_data.logger, @host_data.verbose_logging)
     end
 
     def run
