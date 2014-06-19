@@ -1,6 +1,5 @@
 require 'benchmark'
 require 'sanford-protocol'
-
 require 'sanford/error_handler'
 require 'sanford/logger'
 require 'sanford/runner'
@@ -13,12 +12,16 @@ module Sanford
       :request, :handler_class, :response, :exception, :time_taken
     )
 
+    attr_reader :config_data, :connection
     attr_reader :logger
 
-    def initialize(host_data, connection)
-      @host_data  = host_data
+    def initialize(config_data, connection)
+      @config_data = config_data
       @connection = connection
-      @logger = Sanford::Logger.new(@host_data.logger, @host_data.verbose_logging)
+      @logger = Sanford::Logger.new(
+        @config_data.logger,
+        @config_data.verbose_logging
+      )
     end
 
     def run
@@ -42,14 +45,14 @@ module Sanford
         self.log_request(request)
         service.request = request
 
-        handler_class = @host_data.handler_class_for(request.name)
-        self.log_handler_class(handler_class)
-        service.handler_class = handler_class
+        route = @config_data.route_for(request.name)
+        self.log_handler_class(route.handler_class)
+        service.handler_class = route.handler_class
 
-        response = @host_data.run(handler_class, request)
+        response = route.run(request, @config_data.logger)
         service.response = response
-      rescue Exception => exception
-        self.handle_exception(service, exception, @host_data)
+      rescue StandardError => exception
+        self.handle_exception(service, exception, @config_data)
       ensure
         self.write_response(service)
       end
@@ -59,7 +62,7 @@ module Sanford
     def write_response(service)
       begin
         @connection.write_data service.response.to_hash
-      rescue Exception => exception
+      rescue StandardError => exception
         service = self.handle_exception(service, exception)
         @connection.write_data service.response.to_hash
       end
@@ -67,8 +70,12 @@ module Sanford
       service
     end
 
-    def handle_exception(service, exception, host_data = nil)
-      error_handler = Sanford::ErrorHandler.new(exception, host_data, service.request)
+    def handle_exception(service, exception, config_data = nil)
+      error_handler = Sanford::ErrorHandler.new(
+        exception,
+        config_data,
+        service.request
+      )
       service.response  = error_handler.run
       service.exception = error_handler.exception
       self.log_exception(service.exception)
@@ -110,8 +117,9 @@ module Sanford
     end
 
     def log_exception(exception)
-      log_verbose("#{exception.class}: #{exception.message}", :error)
-      log_verbose(exception.backtrace.join("\n"), :error)
+      backtrace = exception.backtrace.join("\n")
+      message = "#{exception.class}: #{exception.message}\n#{backtrace}"
+      log_verbose(message, :error)
     end
 
     def log_verbose(message, level = :info)
@@ -132,7 +140,7 @@ module Sanford
 
     module SummaryLine
       def self.new(line_attrs)
-        attr_keys = %w{time status handler version service params}
+        attr_keys = %w{time status handler service params}
         attr_keys.map{ |k| "#{k}=#{line_attrs[k].inspect}" }.join(' ')
       end
     end
