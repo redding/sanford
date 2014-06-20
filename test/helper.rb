@@ -27,5 +27,3 @@ Sanford.init
 require 'test/support/factory'
 require 'test/support/fake_connection'
 require 'test/support/service_handlers'
-require 'test/support/simple_client'
-require 'test/support/helpers'
