@@ -1,5 +1,5 @@
 require 'sanford/cli'
-require 'sanford/server_old'
+require 'sanford/server'
 
 module Sanford
 
@@ -123,7 +123,27 @@ module Sanford
 
       def run!(daemonize = false)
         daemonize!(true) if daemonize && !ENV['SANFORD_SKIP_DAEMONIZE']
-        Sanford::ServerOld.new(@host, @server_options).tap do |server|
+
+        options = @host.configuration.to_hash.merge(@server_options)
+        server_class = Class.new do
+          include Sanford::Server
+          name     options[:name]
+          ip       options[:ip]
+          port     options[:port]
+          pid_file options[:pid_file]
+
+          logger          options[:logger]
+          verbose_logging options[:verbose_logging]
+
+          receives_keep_alive options[:receives_keep_alive]
+        end
+        server_class.configuration.init_procs = options[:init_procs]
+        server_class.configuration.error_procs = options[:error_procs]
+        @host.services.each do |name, handler_class_name|
+          server_class.router.service(name, handler_class_name)
+        end
+
+        server_class.new.tap do |server|
           log "Starting #{@host.name} server..."
 
           server.listen(*@config.listen_args)
@@ -137,9 +157,9 @@ module Sanford
           Signal.trap("INT"){  self.halt!(server) }
           Signal.trap("USR2"){ self.restart!(server) }
 
-          server_thread = server.start(@config.client_file_descriptors)
+          @server_thread = server.start(@config.client_file_descriptors)
           log "#{@host.name} server started and ready."
-          server_thread.join
+          @server_thread.join
         end
       rescue RuntimeError => err
         log "Error: #{err.message}"
@@ -152,6 +172,10 @@ module Sanford
         log "Restarting #{@host.name} server..."
         server.pause
         log "server paused"
+
+        if @server_thread && @server_thread.alive?
+          @server_thread.join
+        end
 
         ENV['SANFORD_HOST']           = @host.name
         ENV['SANFORD_SERVER_FD']      = server.file_descriptor.to_s
