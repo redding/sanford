@@ -1,8 +1,12 @@
+require 'dat-tcp'
 require 'ns-options'
 require 'ns-options/boolean'
+require 'sanford-protocol'
+require 'socket'
 require 'sanford/logger'
 require 'sanford/router'
 require 'sanford/template_source'
+require 'sanford/worker'
 
 module Sanford
 
@@ -17,11 +21,73 @@ module Sanford
 
     module InstanceMethods
 
-      attr_reader :config_data
+      attr_reader :config_data, :dat_tcp_server
 
       def initialize
         self.class.configuration.validate!
         @config_data = ConfigData.new(self.class.configuration.to_hash)
+        @dat_tcp_server = DatTCP::Server.new{ |socket| serve(socket) }
+      end
+
+      def ip
+        @dat_tcp_server.ip
+      end
+
+      def port
+        @dat_tcp_server.port
+      end
+
+      def file_descriptor
+        @dat_tcp_server.file_descriptor
+      end
+
+      def client_file_descriptors
+        @dat_tcp_server.client_file_descriptors
+      end
+
+      def listen(*args)
+        args = [ @config_data.ip, @config_data.port ] if args.empty?
+        @dat_tcp_server.listen(*args) do |server_socket|
+          configure_tcp_server(server_socket)
+        end
+      end
+
+      def start(*args)
+        @dat_tcp_server.start(*args)
+      end
+
+      def pause(*args)
+        @dat_tcp_server.pause(*args)
+      end
+
+      def stop(*args)
+        @dat_tcp_server.stop(*args)
+      end
+
+      def halt(*args)
+        @dat_tcp_server.halt(*args)
+      end
+
+      private
+
+      def serve(socket)
+        connection = Connection.new(socket)
+        if !keep_alive_connection?(connection)
+          Sanford::Worker.new(@config_data, connection).run
+        end
+      end
+
+      def keep_alive_connection?(connection)
+        @config_data.receives_keep_alive && connection.peek_data.empty?
+      end
+
+      # TCP_NODELAY is set to disable buffering. In the case of Sanford
+      # communication, we have all the information we need to send up front and
+      # are closing the connection, so it doesn't need to buffer.
+      # See http://linux.die.net/man/7/tcp
+
+      def configure_tcp_server(tcp_server)
+        tcp_server.setsockopt(::Socket::IPPROTO_TCP, ::Socket::TCP_NODELAY, true)
       end
 
     end
@@ -68,8 +134,9 @@ module Sanford
         self.configuration.error_procs << block
       end
 
-      def router(value = nil)
+      def router(value = nil, &block)
         self.configuration.router = value if !value.nil?
+        self.configuration.router.instance_eval(&block) if block
         self.configuration.router
       end
 
@@ -77,6 +144,63 @@ module Sanford
         self.configuration.set_template_source(path, &block)
       end
 
+    end
+
+    class Connection
+      DEFAULT_TIMEOUT = 1
+
+      attr_reader :timeout
+
+      def initialize(socket)
+        @socket     = socket
+        @connection = Sanford::Protocol::Connection.new(@socket)
+        @timeout    = (ENV['SANFORD_TIMEOUT'] || DEFAULT_TIMEOUT).to_f
+      end
+
+      def read_data
+        @connection.read(@timeout)
+      end
+
+      def write_data(data)
+        TCPCork.apply(@socket)
+        @connection.write data
+        TCPCork.remove(@socket)
+      end
+
+      def peek_data
+        @connection.peek(@timeout)
+      end
+
+      def close_write
+        @connection.close_write
+      end
+    end
+
+    module TCPCork
+      # On Linux, use TCP_CORK to better control how the TCP stack
+      # packetizes our stream. This improves both latency and throughput.
+      # TCP_CORK disables Nagle's algorithm, which is ideal for sporadic
+      # traffic (like Telnet) but is less optimal for HTTP. Sanford is similar
+      # to HTTP, it doesn't receive sporadic packets, it has all its data
+      # come in at once.
+      # For more information: http://baus.net/on-tcp_cork
+
+      if RUBY_PLATFORM =~ /linux/
+        # 3 == TCP_CORK
+        def self.apply(socket)
+          socket.setsockopt(::Socket::IPPROTO_TCP, 3, true)
+        end
+
+        def self.remove(socket)
+          socket.setsockopt(::Socket::IPPROTO_TCP, 3, false)
+        end
+      else
+        def self.apply(socket)
+        end
+
+        def self.remove(socket)
+        end
+      end
     end
 
     class ConfigData
@@ -144,6 +268,13 @@ module Sanford
 
       def routes
         @router.routes
+      end
+
+      def to_hash
+        super.merge({
+          :error_procs => self.error_procs,
+          :routes => self.routes
+        })
       end
 
       def valid?

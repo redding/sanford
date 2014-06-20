@@ -1,7 +1,7 @@
 class FakeConnection
 
-  attr_reader :read_data, :response
-  attr_reader :write_stream_closed
+  attr_reader :read_data
+  attr_reader :response, :write_stream_closed
   attr_accessor :raise_on_write, :write_exception
 
   def self.with_request(name, params = {}, raise_on_write = false)
@@ -24,12 +24,20 @@ class FakeConnection
     @read_data.kind_of?(Proc) ? @read_data.call : @read_data
   end
 
+  def read_data=(value)
+    @read_data = value || ""
+  end
+
   def write_data(data)
     if @raise_on_write
       @raise_on_write = false
       raise @write_exception
     end
     @response = Sanford::Protocol::Response.parse(data)
+  end
+
+  def peek_data
+    self.read_data[1] || ""
   end
 
   def close_write
