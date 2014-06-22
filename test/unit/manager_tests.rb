@@ -102,7 +102,7 @@ module Sanford::Manager
   class PIDFileTests < ConfigTests
     desc "PIDFile"
     setup do
-      @pid_file_path = File.join(ROOT, "tmp/my.pid")
+      @pid_file_path = ROOT_PATH.join("tmp/my.pid").to_s
       @pid_file = Sanford::Manager::Config::PIDFile.new(@pid_file_path)
     end
     teardown do

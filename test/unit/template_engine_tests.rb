@@ -50,7 +50,7 @@ class Sanford::TemplateEngine
   class NullTemplateEngineTests < Assert::Context
     desc "Sanford::NullTemplateEngine"
     setup do
-      @engine = Sanford::NullTemplateEngine.new('source_path' => ROOT)
+      @engine = Sanford::NullTemplateEngine.new('source_path' => ROOT_PATH.to_s)
     end
     subject{ @engine }
 
