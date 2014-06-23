@@ -1,13 +1,16 @@
-class BenchHost
-  include Sanford::Host
+class BenchServer
+  include Sanford::Server
 
+  name     'bench'
   port     59284
-  pid_file File.expand_path("../../tmp/bench_host.pid", __FILE__)
+  pid_file File.expand_path("../../tmp/bench_server.pid", __FILE__)
 
-  logger           Logger.new(STDOUT)
-  verbose_logging  false
+  logger          Logger.new(STDOUT)
+  verbose_logging false
 
-  service 'simple', 'BenchHost::Simple'
+  router do
+    service 'simple', 'BenchServer::Simple'
+  end
 
   class Simple
     include Sanford::ServiceHandler
@@ -22,3 +25,5 @@ class BenchHost
   end
 
 end
+
+run BenchServer.new

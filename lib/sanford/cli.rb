@@ -1,51 +1,65 @@
 require 'sanford'
+require 'sanford/config_file'
+require 'sanford/process'
+require 'sanford/process_signal'
 require 'sanford/version'
 
 module Sanford
 
   class CLI
 
-    def self.run(*args)
+    def self.run(args)
       self.new.run(*args)
     end
 
-    def initialize
-      @cli = CLIRB.new do
-        option :host,   "Name of the Host configuration",     :value => String
-        option :ip,     "IP address to bind to",              :value => String
-        option :port,   "Port number to bind to",             :value => Integer
-        option :config, "File defining the configured Hosts", :value => String
-      end
+    def initialize(kernel = nil)
+      @kernel = kernel || Kernel
+      @cli = CLIRB.new
     end
 
     def run(*args)
       begin
-        @cli.parse!(*args)
-        @command = @cli.args.first || 'run'
-        Sanford.config.services_file = @cli.opts['config'] if @cli.opts['config']
-        Sanford.init
-        require 'sanford/manager'
-        Sanford::Manager.call(@command, @cli.opts)
+        run!(*args)
       rescue CLIRB::HelpExit
-        puts help
+        @kernel.puts help
       rescue CLIRB::VersionExit
-        puts Sanford::VERSION
-      rescue CLIRB::Error => exception
-        puts "#{exception.message}\n\n"
-        puts help
-        exit(1)
-      rescue SystemExit
-      rescue Exception => exception
-        puts "#{exception.class}: #{exception.message}"
-        puts exception.backtrace.join("\n") if ENV['DEBUG']
-        exit(1)
+        @kernel.puts "sanford #{Sanford::VERSION}"
+      rescue CLIRB::Error, Sanford::ConfigFile::InvalidError => exception
+        @kernel.puts "#{exception.message}\n\n"
+        @kernel.puts help
+        @kernel.exit 1
+      rescue StandardError => exception
+        @kernel.puts "#{exception.class}: #{exception.message}"
+        @kernel.puts exception.backtrace.join("\n")
+        @kernel.exit 1
       end
-      exit(0)
+      @kernel.exit 0
+    end
+
+    private
+
+    def run!(*args)
+      @cli.parse!(args)
+      command          = @cli.args.pop || 'run'
+      config_file_path = @cli.args.pop || 'config.sanford'
+      server = Sanford::ConfigFile.new(config_file_path).server
+      case(command)
+      when 'run'
+        Sanford::Process.new(server, :daemonize => false).run
+      when 'start'
+        Sanford::Process.new(server, :daemonize => true).run
+      when 'stop'
+        Sanford::ProcessSignal.new(server, 'TERM').send
+      when 'restart'
+        Sanford::ProcessSignal.new(server, 'USR2').send
+      else
+        raise CLIRB::Error, "#{command.inspect} is not a valid command"
+      end
     end
 
     def help
-      "Usage: sanford <command> <options> \n" \
-      "Commands: run, start, stop, restart \n" \
+      "Usage: sanford [CONFIG_FILE] [COMMAND]\n" \
+      "Commands: run, start, stop, restart" \
       "#{@cli}"
     end
 

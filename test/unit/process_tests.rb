@@ -107,7 +107,7 @@ class Sanford::Process
     end
 
     should "daemonize if turned on" do
-      process = @process_class.new(@server_spy, true)
+      process = @process_class.new(@server_spy, :daemonize => true)
       assert_true process.daemonize?
     end
 
@@ -115,13 +115,13 @@ class Sanford::Process
       ENV['SANFORD_SKIP_DAEMONIZE'] = 'yes'
       process = @process_class.new(@server_spy)
       assert_false process.daemonize?
-      process = @process_class.new(@server_spy, true)
+      process = @process_class.new(@server_spy, :daemonize => true)
       assert_false process.daemonize?
     end
 
     should "ignore blank env values for skip daemonize" do
       ENV['SANFORD_SKIP_DAEMONIZE'] = ''
-      process = @process_class.new(@server_spy, true)
+      process = @process_class.new(@server_spy, :daemonize => true)
       assert_true process.daemonize?
     end
 
@@ -173,7 +173,7 @@ class Sanford::Process
 
     should "have started the server listening" do
       assert_true @server_spy.listen_called
-      assert_equal [ nil, nil ], @server_spy.listen_args
+      assert_equal [], @server_spy.listen_args
     end
 
     should "have set the process name" do
