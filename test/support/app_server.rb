@@ -6,11 +6,11 @@ if !defined?(ROOT_PATH)
   ROOT_PATH = Pathname.new(File.expand_path('../../..', __FILE__))
 end
 
-class TestServer
+class AppServer
   include Sanford::Server
 
-  name 'test'
-  ip 'localhost'
+  name 'app'
+  ip   'localhost'
   port 12000
 
   receives_keep_alive true
@@ -19,14 +19,13 @@ class TestServer
   verbose_logging true
 
   router do
-    service_handler_ns 'TestHandlers'
+    service_handler_ns 'AppHandlers'
 
     service 'echo',         'Echo'
     service 'raise',        'Raise'
     service 'bad_response', 'BadResponse'
     service 'halt',         'Halt'
     service 'custom_error', 'CustomError'
-
   end
 
   error do |exception, config_data, request|
@@ -39,7 +38,7 @@ class TestServer
 
 end
 
-module TestHandlers
+module AppHandlers
 
   class Echo
     include Sanford::ServiceHandler

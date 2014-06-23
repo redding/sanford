@@ -1,0 +1,7 @@
+require 'test/support/app_server'
+
+if !defined?(TestConstant)
+  TestConstant = Class.new
+end
+
+run AppServer.new
