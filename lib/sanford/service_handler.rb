@@ -7,16 +7,6 @@ module Sanford
 
     DISALLOWED_TEMPLATE_EXTS = Sanford::TemplateSource::DISALLOWED_ENGINE_EXTS
 
-    def self.constantize(class_name)
-      names = class_name.to_s.split('::').reject{|name| name.empty? }
-      klass = names.inject(Object) do |constant, name|
-        constant.const_get(name)
-      end
-      klass == Object ? false : klass
-    rescue NameError
-      false
-    end
-
     def self.included(klass)
       klass.class_eval do
         extend ClassMethods
