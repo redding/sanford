@@ -76,7 +76,7 @@ module Sanford
 
         def write
           begin
-            File.open(@path, 'w'){|f| f.puts Process.pid }
+            File.open(@path, 'w'){|f| f.puts ::Process.pid }
           rescue Errno::ENOENT => err
             e = RuntimeError.new("Can't write pid to file `#{@path}`")
             e.set_backtrace(err.backtrace)
@@ -151,7 +151,7 @@ module Sanford
           log "Listening on #{server.ip}:#{server.port}"
 
           @config.pid_file.write
-          log "PID: #{Process.pid}"
+          log "PID: #{::Process.pid}"
 
           Signal.trap("TERM"){ self.stop!(server) }
           Signal.trap("INT"){  self.halt!(server) }
@@ -202,7 +202,7 @@ module Sanford
       # Full explanation: http://www.steve.org.uk/Reference/Unix/faq_2.html#SEC16
       def daemonize!(no_chdir = false, no_close = false)
         exit if fork
-        Process.setsid
+        ::Process.setsid
         exit if fork
         Dir.chdir "/" unless no_chdir
         if !no_close
@@ -262,11 +262,11 @@ module Sanford
       end
 
       def stop
-        Process.kill("TERM", @config.pid)
+        ::Process.kill("TERM", @config.pid)
       end
 
       def restart
-        Process.kill("USR2", @config.pid)
+        ::Process.kill("USR2", @config.pid)
       end
 
     end

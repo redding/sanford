@@ -9,6 +9,7 @@ end
 class TestServer
   include Sanford::Server
 
+  name 'test'
   ip 'localhost'
   port 12000
 
