@@ -27,6 +27,13 @@ module Sanford
         self.class.configuration.validate!
         @config_data = ConfigData.new(self.class.configuration.to_hash)
         @dat_tcp_server = DatTCP::Server.new{ |socket| serve(socket) }
+      rescue InvalidError => exception
+        exception.set_backtrace(caller)
+        raise exception
+      end
+
+      def name
+        @config_data.name
       end
 
       def ip
@@ -43,6 +50,14 @@ module Sanford
 
       def client_file_descriptors
         @dat_tcp_server.client_file_descriptors
+      end
+
+      def pid_file
+        @config_data.pid_file
+      end
+
+      def logger
+        @config_data.logger
       end
 
       def listen(*args)
@@ -66,6 +81,10 @@ module Sanford
 
       def halt(*args)
         @dat_tcp_server.halt(*args)
+      end
+
+      def paused?
+        @dat_tcp_server.listening? && !@dat_tcp_server.running?
       end
 
       private
@@ -212,6 +231,7 @@ module Sanford
 
       attr_reader :name
       attr_reader :ip, :port
+      attr_reader :pid_file
       attr_reader :logger, :verbose_logging
       attr_reader :receives_keep_alive
       attr_reader :error_procs
@@ -222,6 +242,7 @@ module Sanford
         @name = args[:name]
         @ip   = args[:ip]
         @port = args[:port]
+        @pid_file = args[:pid_file]
         @logger = args[:logger]
         @verbose_logging = !!args[:verbose_logging]
         @receives_keep_alive = !!args[:receives_keep_alive]
@@ -239,9 +260,9 @@ module Sanford
     class Configuration
       include NsOptions::Proxy
 
-      option :name,     String
-      option :ip,       String, :default => '0.0.0.0'
-      option :port,     Integer
+      option :name,     String,  :required => true
+      option :ip,       String,  :required => true, :default => '0.0.0.0'
+      option :port,     Integer, :required => true
       option :pid_file, Pathname
 
       option :receives_keep_alive, NsOptions::Boolean, :default => false
@@ -284,10 +305,15 @@ module Sanford
       def validate!
         return @valid if !@valid.nil?
         self.init_procs.each(&:call)
+        if !self.required_set?
+          raise InvalidError, "a name, ip and port must be configured"
+        end
         self.routes.each(&:validate!)
         @valid = true
       end
     end
+
+    InvalidError = Class.new(RuntimeError)
 
   end
 

@@ -120,13 +120,13 @@ module Sanford::Manager
       subject.write
 
       assert_file_exists @pid_file_path
-      assert_equal "#{Process.pid}\n", File.read(@pid_file_path)
+      assert_equal "#{::Process.pid}\n", File.read(@pid_file_path)
     end
 
     should "return the value stored in the pid value with #pid" do
       subject.write
 
-      assert_equal Process.pid, subject.pid
+      assert_equal ::Process.pid, subject.pid
     end
 
     should "remove the file with #remove" do
