@@ -1,6 +1,7 @@
 require 'assert'
 require 'sanford/process_signal'
 
+require 'sanford/server'
 require 'test/support/pid_file_spy'
 
 class Sanford::ProcessSignal

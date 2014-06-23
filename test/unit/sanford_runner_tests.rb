@@ -2,6 +2,7 @@ require 'assert'
 require 'sanford/sanford_runner'
 
 require 'sanford/server_data'
+require 'sanford/service_handler'
 
 class Sanford::SanfordRunner
 
