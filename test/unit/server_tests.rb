@@ -138,8 +138,10 @@ module Sanford::Server
     subject{ @server }
 
     should have_readers :config_data, :dat_tcp_server
-    should have_imeths :ip, :port, :file_descriptor, :client_file_descriptors
+    should have_imeths :name, :ip, :port
+    should have_imeths :file_descriptor, :client_file_descriptors
     should have_imeths :listen, :start, :pause, :stop, :halt
+    should have_imeths :paused?
 
     should "have validated its configuration" do
       assert_true subject.class.configuration.valid?
@@ -163,6 +165,12 @@ module Sanford::Server
     should "know its dat tcp server" do
       assert_equal @dat_tcp_server_spy, subject.dat_tcp_server
       assert_not_nil @dat_tcp_server_spy.serve_proc
+    end
+
+    should "know its name, pid file and logger" do
+      assert_equal subject.config_data.name, subject.name
+      assert_equal subject.config_data.pid_file, subject.pid_file
+      assert_equal subject.config_data.logger, subject.logger
     end
 
     should "call listen on its dat tcp server using `listen`" do
@@ -233,6 +241,16 @@ module Sanford::Server
       subject.halt(wait)
       assert_true @dat_tcp_server_spy.halt_called
       assert_equal wait, @dat_tcp_server_spy.waiting_for_halt
+    end
+
+    should "know if its been paused" do
+      assert_false subject.paused?
+      subject.listen
+      assert_true subject.paused?
+      subject.start
+      assert_false subject.paused?
+      subject.pause
+      assert_true subject.paused?
     end
 
   end
@@ -358,6 +376,7 @@ module Sanford::Server
       @name = Factory.string
       @ip = Factory.string
       @port = Factory.integer
+      @pid_file = Factory.file_path
       @logger = Factory.string
       @verbose_logging = Factory.boolean
       @receives_keep_alive = Factory.boolean
@@ -368,6 +387,7 @@ module Sanford::Server
         :name => @name,
         :ip => @ip,
         :port => @port,
+        :pid_file => @pid_file,
         :logger => @logger,
         :verbose_logging => @verbose_logging,
         :receives_keep_alive => @receives_keep_alive,
@@ -379,6 +399,7 @@ module Sanford::Server
 
     should have_readers :name
     should have_readers :ip, :port
+    should have_readers :pid_file
     should have_readers :logger, :verbose_logging
     should have_readers :receives_keep_alive
     should have_readers :error_procs
@@ -388,6 +409,7 @@ module Sanford::Server
       assert_equal @name, subject.name
       assert_equal @ip, subject.ip
       assert_equal @port, subject.port
+      assert_equal @pid_file, subject.pid_file
       assert_equal @logger, subject.logger
       assert_equal @verbose_logging, subject.verbose_logging
       assert_equal @receives_keep_alive, subject.receives_keep_alive
@@ -415,6 +437,7 @@ module Sanford::Server
       assert_nil config_data.name
       assert_nil config_data.ip
       assert_nil config_data.port
+      assert_nil config_data.pid_file
       assert_nil config_data.logger
       assert_false config_data.verbose_logging
       assert_false config_data.receives_keep_alive
@@ -429,7 +452,11 @@ module Sanford::Server
 
     desc "Configuration"
     setup do
-      @configuration = Configuration.new
+      @configuration = Configuration.new.tap do |c|
+        c.name Factory.string
+        c.ip Factory.string
+        c.port Factory.integer
+      end
     end
     subject{ @configuration }
 
@@ -449,22 +476,23 @@ module Sanford::Server
     end
 
     should "default its options" do
-      assert_nil subject.name
-      assert_equal '0.0.0.0', subject.ip
-      assert_nil subject.port
-      assert_nil subject.pid_file
+      config = Configuration.new
+      assert_nil config.name
+      assert_equal '0.0.0.0', config.ip
+      assert_nil config.port
+      assert_nil config.pid_file
 
-      assert_false subject.receives_keep_alive
+      assert_false config.receives_keep_alive
 
-      assert_true subject.verbose_logging
-      assert_instance_of Sanford::NullLogger, subject.logger
+      assert_true config.verbose_logging
+      assert_instance_of Sanford::NullLogger, config.logger
 
-      assert_equal [], subject.init_procs
-      assert_equal [], subject.error_procs
+      assert_equal [], config.init_procs
+      assert_equal [], config.error_procs
 
-      assert_instance_of Sanford::NullTemplateSource, subject.template_source
-      assert_instance_of Sanford::Router, subject.router
-      assert_empty subject.router.routes
+      assert_instance_of Sanford::NullTemplateSource, config.template_source
+      assert_instance_of Sanford::Router, config.router
+      assert_empty config.router.routes
     end
 
     should "not be valid by default" do
@@ -504,6 +532,22 @@ module Sanford::Server
       subject.init_procs << proc{ called = true }
       subject.validate!
       assert_true called
+    end
+
+    should "ensure its required options have been set when validated" do
+      subject.name = nil
+      assert_raises(InvalidError){ subject.validate! }
+      subject.name = Factory.string
+
+      subject.ip = nil
+      assert_raises(InvalidError){ subject.validate! }
+      subject.ip = Factory.string
+
+      subject.port = nil
+      assert_raises(InvalidError){ subject.validate! }
+      subject.port = Factory.integer
+
+      assert_nothing_raised{ subject.validate! }
     end
 
     should "validate its routes when validated" do
