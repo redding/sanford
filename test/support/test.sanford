@@ -2,7 +2,9 @@ require 'pathname'
 require 'sanford'
 require 'sanford-protocol'
 
-ROOT_PATH = Pathname.new(File.expand_path('../../..', __FILE__))
+if !defined?(ROOT_PATH)
+  ROOT_PATH = Pathname.new(File.expand_path('../../..', __FILE__))
+end
 
 class TestServer
   include Sanford::Server
