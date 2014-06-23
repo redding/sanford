@@ -2,6 +2,7 @@ require 'assert'
 require 'sanford/process'
 
 require 'sanford/server'
+require 'test/support/pid_file_spy'
 
 class Sanford::Process
 
@@ -30,7 +31,7 @@ class Sanford::Process
 
       @server_spy = ServerSpy.new
 
-      @pid_file_spy = PIDFileSpy.new
+      @pid_file_spy = PIDFileSpy.new(Factory.integer)
       Assert.stub(Sanford::PIDFile, :new).with(@server_spy.pid_file) do
         @pid_file_spy
       end
@@ -409,24 +410,6 @@ class Sanford::Process
     def join
       @join_called = true
       @on_join_proc.call
-    end
-  end
-
-  class PIDFileSpy
-    attr_reader :pid, :write_called, :remove_called
-
-    def initialize
-      @pid = Factory.integer
-      @write_called = false
-      @remove_called = false
-    end
-
-    def write
-      @write_called = true
-    end
-
-    def remove
-      @remove_called = true
     end
   end
 
