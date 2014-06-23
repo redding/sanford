@@ -7,7 +7,8 @@ module Sanford
     attr_reader :server, :name, :pid_file, :restart_cmd
     attr_reader :server_ip, :server_port, :server_fd, :client_fds
 
-    def initialize(server, daemonize = false)
+    def initialize(server, options = nil)
+      options ||= {}
       @server = server
       @logger = @server.logger
       @name = "sanford-#{@server.name}"
@@ -18,10 +19,11 @@ module Sanford
       @server_port = ignore_if_blank(ENV['SANFORD_PORT']){ |v| v.to_i }
       @server_fd = ignore_if_blank(ENV['SANFORD_SERVER_FD']){ |v| v.to_i }
       @listen_args = @server_fd ? [ @server_fd ] : [ @server_ip, @server_port ]
+      @listen_args.compact!
 
       @client_fds = (ENV['SANFORD_CLIENT_FDS'] || "").split(',').map(&:to_i)
 
-      @daemonize = !!daemonize
+      @daemonize = !!options[:daemonize]
       @skip_daemonize = !!ignore_if_blank(ENV['SANFORD_SKIP_DAEMONIZE'])
     end
 
@@ -113,7 +115,7 @@ module Sanford
       # Full explanation: http://www.steve.org.uk/Reference/Unix/faq_2.html#SEC16
       def self.daemon(no_chdir = false, no_close = false)
         exit if fork
-        Process.setsid
+        ::Process.setsid
         exit if fork
         Dir.chdir '/' unless no_chdir
         if !no_close
