@@ -181,7 +181,7 @@ module Sanford::Server
       ENV['SANFORD_TIMEOUT'] = '0.1'
 
       # keep-alive messes up testing this, so we disable it for this test
-      Assert.stub(@server.config_data, :receives_keep_alive){ false }
+      Assert.stub(@server.server_data, :receives_keep_alive){ false }
 
       @client.delay = 0.5
       @client.set_request('echo', :message => Factory.string)
