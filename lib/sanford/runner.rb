@@ -9,7 +9,6 @@ module Sanford
 
     def self.included(klass)
       klass.class_eval do
-        extend ClassMethods
         include InstanceMethods
       end
     end
@@ -59,15 +58,6 @@ module Sanford
 
       def build_response(args)
         Sanford::Protocol::Response.new(args.status, args.data) if args
-      end
-
-    end
-
-    module ClassMethods
-
-      def run(handler_class, params = nil, logger = nil)
-        request = Sanford::Protocol::Request.new('name', params || {})
-        self.new(handler_class, request, logger).run
       end
 
     end
