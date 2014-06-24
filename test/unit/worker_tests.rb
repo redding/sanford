@@ -2,7 +2,7 @@ require 'assert'
 require 'sanford/worker'
 
 require 'sanford/route'
-require 'sanford/server'
+require 'sanford/server_data'
 require 'test/support/fake_connection'
 
 class Sanford::Worker
@@ -11,7 +11,7 @@ class Sanford::Worker
     desc "Sanford::Worker"
     setup do
       @route = Sanford::Route.new(Factory.string, TestHandler.to_s).tap(&:validate!)
-      @config_data = Sanford::Server::ConfigData.new({
+      @server_data = Sanford::ServerData.new({
         :logger => Sanford::NullLogger.new,
         :verbose_logging => Factory.boolean,
         :routes => [ @route ]
@@ -30,16 +30,16 @@ class Sanford::Worker
   class InitTests < UnitTests
     desc "when init"
     setup do
-      @worker = @worker_class.new(@config_data, @connection)
+      @worker = @worker_class.new(@server_data, @connection)
     end
     subject{ @worker }
 
-    should have_readers :config_data, :connection
+    should have_readers :server_data, :connection
     should have_readers :logger
     should have_imeths :run
 
-    should "know its config data and connection" do
-      assert_equal @config_data, subject.config_data
+    should "know its server data and connection" do
+      assert_equal @server_data, subject.server_data
       assert_equal @connection, subject.connection
     end
 
@@ -74,7 +74,7 @@ class Sanford::Worker
     should "run the route" do
       assert_not_nil @route_called_with
       assert_includes @request, @route_called_with
-      assert_includes @config_data.logger, @route_called_with
+      assert_includes @server_data, @route_called_with
     end
 
     should "have written the response to the connection" do
@@ -91,7 +91,7 @@ class Sanford::Worker
 
       error_handler = Sanford::ErrorHandler.new(
         @exception,
-        @config_data,
+        @server_data,
         @request
       )
       @expected_response = error_handler.run
@@ -123,7 +123,7 @@ class Sanford::Worker
 
       error_handler = Sanford::ErrorHandler.new(
         @connection.write_exception,
-        @config_data,
+        @server_data,
         @request
       )
       @expected_response = error_handler.run
@@ -166,14 +166,14 @@ class Sanford::Worker
     desc "run with verbose logging"
     setup do
       @spy_logger = SpyLogger.new
-      @config_data = Sanford::Server::ConfigData.new({
+      @server_data = Sanford::ServerData.new({
         :logger => @spy_logger,
         :verbose_logging => true,
         :routes => [ @route ]
       })
       Assert.stub(@route, :run){ raise @exception }
 
-      @worker = @worker_class.new(@config_data, @connection)
+      @worker = @worker_class.new(@server_data, @connection)
       @processed_service = @worker.run
     end
     subject{ @spy_logger }
@@ -202,14 +202,14 @@ class Sanford::Worker
     desc "run with summary logging"
     setup do
       @spy_logger = SpyLogger.new
-      @config_data = Sanford::Server::ConfigData.new({
+      @server_data = Sanford::ServerData.new({
         :logger => @spy_logger,
         :verbose_logging => false,
         :routes => [ @route ]
       })
       Assert.stub(@route, :run){ raise @exception }
 
-      @worker = @worker_class.new(@config_data, @connection)
+      @worker = @worker_class.new(@server_data, @connection)
       @processed_service = @worker.run
     end
     subject{ @spy_logger }
