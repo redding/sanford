@@ -16,8 +16,8 @@ module Sanford
       @handler_class = constantize_handler_class(@handler_class_name)
     end
 
-    def run(request, logger)
-      SanfordRunner.new(self.handler_class, request, logger).run
+    def run(request, server_data)
+      SanfordRunner.new(self.handler_class, request, server_data).run
     end
 
     private
