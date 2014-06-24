@@ -7,22 +7,22 @@ namespace :bench do
   namespace :server do
 
     task :load do
-      ENV['SANFORD_SERVICES_FILE'] = 'bench/services'
+      @config_file = 'bench/config.sanford'
     end
 
     desc "Run the bench server"
     task :run => :load do
-      Kernel.exec("bundle exec sanford run")
+      Kernel.exec("bundle exec sanford #{@config_file} run")
     end
 
     desc "Start a daemonized bench server"
     task :start => :load do
-      Kernel.system("bundle exec sanford start")
+      Kernel.system("bundle exec sanford #{@config_file} start")
     end
 
     desc "Stop the bench server"
     task :stop => :load do
-      Kernel.system("bundle exec sanford stop")
+      Kernel.system("bundle exec sanford #{@config_file} stop")
     end
 
   end
