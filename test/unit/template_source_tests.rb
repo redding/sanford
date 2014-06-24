@@ -18,7 +18,7 @@ class Sanford::TemplateSource
 
   class InitTests < Assert::Context
     setup do
-      @source_path = File.join(ROOT, 'test/support')
+      @source_path = ROOT_PATH.join('test/support').to_s
       @source = Sanford::TemplateSource.new(@source_path)
     end
     subject{ @source }

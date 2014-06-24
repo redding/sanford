@@ -102,7 +102,7 @@ module Sanford::Manager
   class PIDFileTests < ConfigTests
     desc "PIDFile"
     setup do
-      @pid_file_path = File.join(ROOT, "tmp/my.pid")
+      @pid_file_path = ROOT_PATH.join("tmp/my.pid").to_s
       @pid_file = Sanford::Manager::Config::PIDFile.new(@pid_file_path)
     end
     teardown do
@@ -120,13 +120,13 @@ module Sanford::Manager
       subject.write
 
       assert_file_exists @pid_file_path
-      assert_equal "#{Process.pid}\n", File.read(@pid_file_path)
+      assert_equal "#{::Process.pid}\n", File.read(@pid_file_path)
     end
 
     should "return the value stored in the pid value with #pid" do
       subject.write
 
-      assert_equal Process.pid, subject.pid
+      assert_equal ::Process.pid, subject.pid
     end
 
     should "remove the file with #remove" do

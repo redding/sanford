@@ -14,7 +14,8 @@ class Sanford::HostData
     end
     subject{ @host_data }
 
-    should have_readers :name, :logger, :verbose, :keep_alive, :error_procs
+    should have_readers :name, :logger, :verbose_logging
+    should have_readers :receives_keep_alive, :error_procs
     should have_imeths :handler_class_for, :run
 
     should "call the init procs" do
@@ -24,21 +25,21 @@ class Sanford::HostData
     should "default its attrs from the host configuration" do
       assert_equal TestHost.configuration.name,                subject.name
       assert_equal TestHost.configuration.logger.class,        subject.logger.class
-      assert_equal TestHost.configuration.verbose_logging,     subject.verbose
-      assert_equal TestHost.configuration.receives_keep_alive, subject.keep_alive
+      assert_equal TestHost.configuration.verbose_logging,     subject.verbose_logging
+      assert_equal TestHost.configuration.receives_keep_alive, subject.receives_keep_alive
       assert_equal TestHost.configuration.error_procs,         subject.error_procs
     end
 
     should "allow overriding host configuration attrs" do
       host_data = Sanford::HostData.new(TestHost, :verbose_logging => false)
 
-      assert_false host_data.verbose
-      assert_equal TestHost.receives_keep_alive, host_data.keep_alive
+      assert_false host_data.verbose_logging
+      assert_equal TestHost.receives_keep_alive, host_data.receives_keep_alive
     end
 
     should "ignore nil values passed as overrides" do
       host_data = Sanford::HostData.new(TestHost, :verbose_logging => nil)
-      assert_not_nil host_data.verbose
+      assert_not_nil host_data.verbose_logging
     end
 
     should "constantize a host's handlers" do

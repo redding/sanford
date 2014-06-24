@@ -1,29 +1,23 @@
 require 'assert'
 require 'sanford/sanford_runner'
 
-require 'sanford/runner'
-require 'test/support/service_handlers'
+require 'sanford/server_data'
 
 class Sanford::SanfordRunner
 
   class UnitTests < Assert::Context
     desc "Sanford::SanfordRunner"
     setup do
+      @handler_class = TestServiceHandler
+      @request = Sanford::Protocol::Request.new(Factory.string, {})
+      @server_data = Sanford::ServerData.new
+
       @runner_class = Sanford::SanfordRunner
     end
     subject{ @runner_class }
 
-    should "be a Runner" do
+    should "be a runner" do
       assert_includes Sanford::Runner, subject
-    end
-
-    should "be able to build a runner with a handler class and params and run it" do
-      response = nil
-      assert_nothing_raised do
-        response = subject.run(BasicServiceHandler, {})
-      end
-
-      assert_equal 200, response.code
     end
 
   end
@@ -31,36 +25,65 @@ class Sanford::SanfordRunner
   class InitTests < UnitTests
     desc "when init"
     setup do
-      @request = Sanford::Protocol::Request.new('test', {})
-      @runner = @runner_class.new(BasicServiceHandler, @request)
+      @runner = @runner_class.new(@handler_class, @request, @server_data)
     end
     subject{ @runner }
 
-    should "run the handler and return the response it generates when run" do
-      response = subject.run
-
-      assert_instance_of Sanford::Protocol::Response, response
-      assert_equal 200, response.code
-      assert_equal 'Joe Test', response.data['name']
-      assert_equal 'joe.test@example.com',  response.data['email']
-    end
-
   end
 
-  class CallbackTests < InitTests
+  class RunTests < InitTests
+    desc "and run"
     setup do
-      @runner = @runner_class.new(FlagServiceHandler, @request)
+      @handler = @runner.handler
+      @response = @runner.run
+    end
+    subject{ @response }
+
+    should "run the handlers before callbacks" do
+      assert_equal 1, @handler.before_call_order
     end
 
-    should "call handler `before` and `after` callbacks when run" do
-      subject.run
+    should "run the handlers init" do
+      assert_equal 2, @handler.init_call_order
+    end
 
-      assert_true subject.handler.before_called
-      assert_true subject.handler.after_called
+    should "run the handlers run and use its result to build a response" do
+      assert_equal 3, @handler.run_call_order
+      assert_instance_of Sanford::Protocol::Response, subject
+      assert_equal @handler.response_data, subject.data
+    end
+
+    should "run the handlers after callbacks" do
+      assert_equal 4, @handler.after_call_order
     end
 
   end
 
-  # live runner behavior tests are handled via system tests
+  class TestServiceHandler
+    include Sanford::ServiceHandler
+
+    attr_reader :before_call_order, :after_call_order
+    attr_reader :init_call_order, :run_call_order
+    attr_reader :response_data
+
+    before{ @before_call_order = next_call_order }
+    after{ @after_call_order = next_call_order }
+
+    def init!
+      @init_call_order = next_call_order
+    end
+
+    def run!
+      @run_call_order = next_call_order
+      @response_data ||= Factory.string
+    end
+
+    private
+
+    def next_call_order
+      @order ||= 0
+      @order += 1
+    end
+  end
 
 end
