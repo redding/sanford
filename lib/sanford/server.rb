@@ -5,6 +5,7 @@ require 'sanford-protocol'
 require 'socket'
 require 'sanford/logger'
 require 'sanford/router'
+require 'sanford/server_data'
 require 'sanford/template_source'
 require 'sanford/worker'
 
@@ -21,11 +22,11 @@ module Sanford
 
     module InstanceMethods
 
-      attr_reader :config_data, :dat_tcp_server
+      attr_reader :server_data, :dat_tcp_server
 
       def initialize
         self.class.configuration.validate!
-        @config_data = ConfigData.new(self.class.configuration.to_hash)
+        @server_data = ServerData.new(self.class.configuration.to_hash)
         @dat_tcp_server = DatTCP::Server.new{ |socket| serve(socket) }
       rescue InvalidError => exception
         exception.set_backtrace(caller)
@@ -33,7 +34,7 @@ module Sanford
       end
 
       def name
-        @config_data.name
+        @server_data.name
       end
 
       def ip
@@ -53,15 +54,15 @@ module Sanford
       end
 
       def pid_file
-        @config_data.pid_file
+        @server_data.pid_file
       end
 
       def logger
-        @config_data.logger
+        @server_data.logger
       end
 
       def listen(*args)
-        args = [ @config_data.ip, @config_data.port ] if args.empty?
+        args = [ @server_data.ip, @server_data.port ] if args.empty?
         @dat_tcp_server.listen(*args) do |server_socket|
           configure_tcp_server(server_socket)
         end
@@ -92,12 +93,12 @@ module Sanford
       def serve(socket)
         connection = Connection.new(socket)
         if !keep_alive_connection?(connection)
-          Sanford::Worker.new(@config_data, connection).run
+          Sanford::Worker.new(@server_data, connection).run
         end
       end
 
       def keep_alive_connection?(connection)
-        @config_data.receives_keep_alive && connection.peek_data.empty?
+        @server_data.receives_keep_alive && connection.peek_data.empty?
       end
 
       # TCP_NODELAY is set to disable buffering. In the case of Sanford
@@ -222,41 +223,6 @@ module Sanford
       end
     end
 
-    class ConfigData
-      # The server uses this to "compile" the configuration data for speed.
-      # NsOptions is relatively slow everytime an option is read. To avoid this,
-      # we read the options one time here and memoize their values. This way,
-      # we don't pay the NsOptions overhead when reading them while handling
-      # a request.
-
-      attr_reader :name
-      attr_reader :ip, :port
-      attr_reader :pid_file
-      attr_reader :logger, :verbose_logging
-      attr_reader :receives_keep_alive
-      attr_reader :error_procs
-      attr_reader :routes
-
-      def initialize(args = nil)
-        args ||= {}
-        @name = args[:name]
-        @ip   = args[:ip]
-        @port = args[:port]
-        @pid_file = args[:pid_file]
-        @logger = args[:logger]
-        @verbose_logging = !!args[:verbose_logging]
-        @receives_keep_alive = !!args[:receives_keep_alive]
-        @error_procs = args[:error_procs] || []
-        @routes = (args[:routes] || []).inject({}) do |h, route|
-          h.merge(route.name => route)
-        end
-      end
-
-      def route_for(name)
-        @routes[name] || raise(NotFoundError, "no service named '#{name}'")
-      end
-    end
-
     class Configuration
       include NsOptions::Proxy
 
@@ -316,7 +282,5 @@ module Sanford
     InvalidError = Class.new(RuntimeError)
 
   end
-
-  NotFoundError = Class.new(RuntimeError)
 
 end

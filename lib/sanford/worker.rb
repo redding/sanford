@@ -12,15 +12,15 @@ module Sanford
       :request, :handler_class, :response, :exception, :time_taken
     )
 
-    attr_reader :config_data, :connection
+    attr_reader :server_data, :connection
     attr_reader :logger
 
-    def initialize(config_data, connection)
-      @config_data = config_data
+    def initialize(server_data, connection)
+      @server_data = server_data
       @connection = connection
       @logger = Sanford::Logger.new(
-        @config_data.logger,
-        @config_data.verbose_logging
+        @server_data.logger,
+        @server_data.verbose_logging
       )
     end
 
@@ -45,14 +45,14 @@ module Sanford
         self.log_request(request)
         service.request = request
 
-        route = @config_data.route_for(request.name)
+        route = @server_data.route_for(request.name)
         self.log_handler_class(route.handler_class)
         service.handler_class = route.handler_class
 
-        response = route.run(request, @config_data.logger)
+        response = route.run(request, @server_data)
         service.response = response
       rescue StandardError => exception
-        self.handle_exception(service, exception, @config_data)
+        self.handle_exception(service, exception, @server_data)
       ensure
         self.write_response(service)
       end
@@ -70,10 +70,10 @@ module Sanford
       service
     end
 
-    def handle_exception(service, exception, config_data = nil)
+    def handle_exception(service, exception, server_data = nil)
       error_handler = Sanford::ErrorHandler.new(
         exception,
-        config_data,
+        server_data,
         service.request
       )
       service.response  = error_handler.run

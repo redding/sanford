@@ -1,7 +1,7 @@
 require 'assert'
 require 'sanford/error_handler'
 
-require 'sanford/server'
+require 'sanford/server_data'
 
 class Sanford::ErrorHandler
 
@@ -9,12 +9,12 @@ class Sanford::ErrorHandler
     desc "Sanford::ErrorHandler"
     setup do
       @exception = RuntimeError.new('test')
-      @config_data = Sanford::Server::ConfigData.new
-      @error_handler = Sanford::ErrorHandler.new(@exception, @config_data)
+      @server_data = Sanford::ServerData.new
+      @error_handler = Sanford::ErrorHandler.new(@exception, @server_data)
     end
     subject{ @error_handler }
 
-    should have_imeths :exception, :config_data, :request, :run
+    should have_imeths :exception, :server_data, :request, :run
 
     should "return a Sanford::Protocol::Response with `run`" do
       assert_instance_of Sanford::Protocol::Response, subject.run
@@ -38,8 +38,8 @@ class Sanford::ErrorHandler
       error_proc = proc do |exception, host_data, request|
         Sanford::Protocol::Response.new([ 567, 'custom message'], 'custom data')
       end
-      config_data = Sanford::Server::ConfigData.new(:error_procs => [ error_proc ])
-      response = Sanford::ErrorHandler.new(@exception, config_data).run
+      server_data = Sanford::ServerData.new(:error_procs => [ error_proc ])
+      response = Sanford::ErrorHandler.new(@exception, server_data).run
 
       assert_equal 567, response.code
       assert_equal 'custom message', response.status.message
@@ -47,8 +47,8 @@ class Sanford::ErrorHandler
     end
 
     should "use an integer returned by the error proc to generate a protocol response" do
-      config_data = Sanford::Server::ConfigData.new(:error_procs => [ proc{ 345 } ])
-      response = Sanford::ErrorHandler.new(@exception, config_data).run
+      server_data = Sanford::ServerData.new(:error_procs => [ proc{ 345 } ])
+      response = Sanford::ErrorHandler.new(@exception, server_data).run
 
       assert_equal 345, response.code
       assert_nil response.status.message
@@ -56,10 +56,10 @@ class Sanford::ErrorHandler
     end
 
     should "use a symbol returned by the error proc to generate a protocol response" do
-      config_data = Sanford::Server::ConfigData.new({
+      server_data = Sanford::ServerData.new({
         :error_procs => [ proc{ :not_found } ]
       })
-      response = Sanford::ErrorHandler.new(@exception, config_data).run
+      response = Sanford::ErrorHandler.new(@exception, server_data).run
 
       assert_equal 404, response.code
       assert_nil response.status.message
@@ -67,8 +67,8 @@ class Sanford::ErrorHandler
     end
 
     should "use the default behavior if the error proc doesn't return a valid response result" do
-      config_data = Sanford::Server::ConfigData.new(:error_procs => [ proc{ true } ])
-      response = Sanford::ErrorHandler.new(@exception, config_data).run
+      server_data = Sanford::ServerData.new(:error_procs => [ proc{ true } ])
+      response = Sanford::ErrorHandler.new(@exception, server_data).run
 
       assert_equal 500, response.code
       assert_equal 'An unexpected error occurred.', response.status.message
@@ -76,10 +76,10 @@ class Sanford::ErrorHandler
 
     should "use the default behavior for an exception raised by the error proc " \
            "and ignore the original exception" do
-      config_data = Sanford::Server::ConfigData.new({
+      server_data = Sanford::ServerData.new({
         :error_procs => [ proc{ raise Sanford::NotFoundError } ]
       })
-      response = Sanford::ErrorHandler.new(@exception, config_data).run
+      response = Sanford::ErrorHandler.new(@exception, server_data).run
 
       assert_equal 404, response.code
       assert_nil response.status.message
@@ -93,7 +93,7 @@ class Sanford::ErrorHandler
 
     should "build a 400 response with a protocol BadMessageError" do
       exception = generate_exception(Sanford::Protocol::BadMessageError, 'bad message')
-      response = Sanford::ErrorHandler.new(exception, @config_data).run
+      response = Sanford::ErrorHandler.new(exception, @server_data).run
 
       assert_equal 400, response.code
       assert_equal 'bad message', response.status.message
@@ -101,7 +101,7 @@ class Sanford::ErrorHandler
 
     should "build a 400 response with a protocol BadRequestError" do
       exception = generate_exception(Sanford::Protocol::BadRequestError, 'bad request')
-      response = Sanford::ErrorHandler.new(exception, @config_data).run
+      response = Sanford::ErrorHandler.new(exception, @server_data).run
 
       assert_equal 400, response.code
       assert_equal 'bad request', response.status.message
@@ -109,14 +109,14 @@ class Sanford::ErrorHandler
 
     should "build a 404 response with a NotFoundError" do
       exception = generate_exception(Sanford::NotFoundError, 'not found')
-      response = Sanford::ErrorHandler.new(exception, @config_data).run
+      response = Sanford::ErrorHandler.new(exception, @server_data).run
 
       assert_equal 404, response.code
       assert_nil response.status.message
     end
 
     should "build a 500 response with all other exceptions" do
-      response = Sanford::ErrorHandler.new(RuntimeError.new('test'), @config_data).run
+      response = Sanford::ErrorHandler.new(RuntimeError.new('test'), @server_data).run
 
       assert_equal 500, response.code
       assert_equal 'An unexpected error occurred.', response.status.message
@@ -128,14 +128,14 @@ class Sanford::ErrorHandler
     desc "with multiple error procs"
     setup do
       @first_called, @second_called, @third_called = nil, nil, nil
-      @config_data = Sanford::Server::ConfigData.new({
+      @server_data = Sanford::ServerData.new({
         :error_procs => [ first_proc, second_proc, third_proc ]
       })
     end
 
     should "call every error proc" do
       exception = RuntimeError.new('test')
-      @error_handler = Sanford::ErrorHandler.new(exception, @config_data)
+      @error_handler = Sanford::ErrorHandler.new(exception, @server_data)
       @error_handler.run
 
       assert_equal true, @first_called
@@ -146,14 +146,14 @@ class Sanford::ErrorHandler
     should "should return the response of the last configured error proc " \
            "that returned a valid response" do
       exception = RuntimeError.new('test')
-      @error_handler = Sanford::ErrorHandler.new(exception, @config_data)
+      @error_handler = Sanford::ErrorHandler.new(exception, @server_data)
       response = @error_handler.run
 
       # use the second proc's generated response
       assert_equal 987, response.code
 
       exception = generate_exception(Sanford::NotFoundError, 'not found')
-      @error_handler = Sanford::ErrorHandler.new(exception, @config_data)
+      @error_handler = Sanford::ErrorHandler.new(exception, @server_data)
       response = @error_handler.run
 
       # use the third proc's generated response
@@ -165,14 +165,14 @@ class Sanford::ErrorHandler
     end
 
     def second_proc
-      proc do |exception, config_data, request|
+      proc do |exception, server_data, request|
         @second_called = true
         987
       end
     end
 
     def third_proc
-      proc do |exception, config_data, request|
+      proc do |exception, server_data, request|
         @third_called = true
         876 if exception.kind_of?(Sanford::NotFoundError)
       end

@@ -137,7 +137,7 @@ module Sanford::Server
     end
     subject{ @server }
 
-    should have_readers :config_data, :dat_tcp_server
+    should have_readers :server_data, :dat_tcp_server
     should have_imeths :name, :ip, :port
     should have_imeths :file_descriptor, :client_file_descriptors
     should have_imeths :listen, :start, :pause, :stop, :halt
@@ -147,19 +147,19 @@ module Sanford::Server
       assert_true subject.class.configuration.valid?
     end
 
-    should "know its config data" do
+    should "know its server data" do
       configuration = subject.class.configuration
-      cd = subject.config_data
+      sd = subject.server_data
 
-      assert_instance_of ConfigData, cd
-      assert_equal configuration.name, cd.name
-      assert_equal configuration.ip, cd.ip
-      assert_equal configuration.port, cd.port
-      assert_equal configuration.verbose_logging, cd.verbose_logging
-      assert_equal configuration.receives_keep_alive, cd.receives_keep_alive
-      assert_equal configuration.error_procs, cd.error_procs
-      assert_equal configuration.routes, cd.routes.values
-      assert_instance_of configuration.logger.class, cd.logger
+      assert_instance_of Sanford::ServerData, sd
+      assert_equal configuration.name, sd.name
+      assert_equal configuration.ip, sd.ip
+      assert_equal configuration.port, sd.port
+      assert_equal configuration.verbose_logging, sd.verbose_logging
+      assert_equal configuration.receives_keep_alive, sd.receives_keep_alive
+      assert_equal configuration.error_procs, sd.error_procs
+      assert_equal configuration.routes, sd.routes.values
+      assert_instance_of configuration.logger.class, sd.logger
     end
 
     should "know its dat tcp server" do
@@ -168,9 +168,9 @@ module Sanford::Server
     end
 
     should "know its name, pid file and logger" do
-      assert_equal subject.config_data.name, subject.name
-      assert_equal subject.config_data.pid_file, subject.pid_file
-      assert_equal subject.config_data.logger, subject.logger
+      assert_equal subject.server_data.name, subject.name
+      assert_equal subject.server_data.pid_file, subject.pid_file
+      assert_equal subject.server_data.logger, subject.logger
     end
 
     should "call listen on its dat tcp server using `listen`" do
@@ -180,8 +180,8 @@ module Sanford::Server
 
     should "use its configured ip and port by default when listening" do
       subject.listen
-      assert_equal subject.config_data.ip, @dat_tcp_server_spy.ip
-      assert_equal subject.config_data.port, @dat_tcp_server_spy.port
+      assert_equal subject.server_data.ip, @dat_tcp_server_spy.ip
+      assert_equal subject.server_data.port, @dat_tcp_server_spy.port
     end
 
     should "pass any args to its dat tcp server using `listen`" do
@@ -284,7 +284,7 @@ module Sanford::Server
 
       @worker_spy = WorkerSpy.new
       Assert.stub(Sanford::Worker, :new).tap do |s|
-        s.with(@server.config_data, @connection){ @worker_spy }
+        s.with(@server.server_data, @connection){ @worker_spy }
       end
 
       @serve_proc = @dat_tcp_server_spy.serve_proc
@@ -292,7 +292,7 @@ module Sanford::Server
     subject{ @serve_proc }
 
     should "run a worker when called with a socket" do
-      Assert.stub(@server.config_data, :receives_keep_alive){ false }
+      Assert.stub(@server.server_data, :receives_keep_alive){ false }
       @connection.read_data = Factory.boolean
       assert_false @worker_spy.run_called
       subject.call(@socket)
@@ -300,7 +300,7 @@ module Sanford::Server
     end
 
     should "not run a keep-alive connection when configured to receive them" do
-      Assert.stub(@server.config_data, :receives_keep_alive){ true }
+      Assert.stub(@server.server_data, :receives_keep_alive){ true }
       @connection.read_data = nil # nothing to read makes it a keep-alive
       assert_false @worker_spy.run_called
       subject.call(@socket)
@@ -308,7 +308,7 @@ module Sanford::Server
     end
 
     should "run a keep-alive connection when configured to receive them" do
-      Assert.stub(@server.config_data, :receives_keep_alive){ false }
+      Assert.stub(@server.server_data, :receives_keep_alive){ false }
       @connection.read_data = nil # nothing to read makes it a keep-alive
       assert_false @worker_spy.run_called
       subject.call(@socket)
@@ -367,83 +367,6 @@ module Sanford::Server
     subject{ TCPCork }
 
     should have_imeths :apply, :remove
-
-  end
-
-  class ConfigDataTests < UnitTests
-    desc "ConfigData"
-    setup do
-      @name = Factory.string
-      @ip = Factory.string
-      @port = Factory.integer
-      @pid_file = Factory.file_path
-      @logger = Factory.string
-      @verbose_logging = Factory.boolean
-      @receives_keep_alive = Factory.boolean
-      @error_procs = [ proc{ } ]
-      @route = Sanford::Route.new(Factory.string, TestHandler.to_s).tap(&:validate!)
-
-      @config_data = ConfigData.new({
-        :name => @name,
-        :ip => @ip,
-        :port => @port,
-        :pid_file => @pid_file,
-        :logger => @logger,
-        :verbose_logging => @verbose_logging,
-        :receives_keep_alive => @receives_keep_alive,
-        :error_procs => @error_procs,
-        :routes => [ @route ]
-      })
-    end
-    subject{ @config_data }
-
-    should have_readers :name
-    should have_readers :ip, :port
-    should have_readers :pid_file
-    should have_readers :logger, :verbose_logging
-    should have_readers :receives_keep_alive
-    should have_readers :error_procs
-    should have_readers :routes
-
-    should "know its attributes" do
-      assert_equal @name, subject.name
-      assert_equal @ip, subject.ip
-      assert_equal @port, subject.port
-      assert_equal @pid_file, subject.pid_file
-      assert_equal @logger, subject.logger
-      assert_equal @verbose_logging, subject.verbose_logging
-      assert_equal @receives_keep_alive, subject.receives_keep_alive
-      assert_equal @error_procs, subject.error_procs
-    end
-
-    should "build a routes lookup hash" do
-      expected = { @route.name => @route }
-      assert_equal expected, subject.routes
-    end
-
-    should "allow lookup a route using `route_for`" do
-      route = subject.route_for(@route.name)
-      assert_equal @route, route
-    end
-
-    should "raise a not found error using `route_for` with an invalid name" do
-      assert_raises(Sanford::NotFoundError) do
-        subject.route_for(Factory.string)
-      end
-    end
-
-    should "default its attributes when they aren't provided" do
-      config_data = ConfigData.new
-      assert_nil config_data.name
-      assert_nil config_data.ip
-      assert_nil config_data.port
-      assert_nil config_data.pid_file
-      assert_nil config_data.logger
-      assert_false config_data.verbose_logging
-      assert_false config_data.receives_keep_alive
-      assert_equal [], config_data.error_procs
-      assert_equal({}, config_data.routes)
-    end
 
   end
 
