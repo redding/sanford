@@ -1,11 +1,13 @@
 require 'sanford-protocol'
 require 'sanford/logger'
 require 'sanford/runner'
+require 'sanford/server_data'
 require 'sanford/service_handler'
+require 'sanford/template_source'
 
 module Sanford
 
-  InvalidServiceHandlerError = Class.new(RuntimeError)
+  InvalidServiceHandlerError = Class.new(StandardError)
 
   class TestRunner
     include Sanford::Runner
@@ -21,8 +23,14 @@ module Sanford
       params  = args.delete(:params)  || {}
       request = args.delete(:request) || build_request(params)
       logger  = args.delete(:logger)  || Sanford::NullLogger.new
+      template_source = args.delete(:template_source) ||
+                        Sanford::NullTemplateSource.new
 
-      super(handler_class, request, logger)
+      server_data = Sanford::ServerData.new({
+        :logger => logger,
+        :template_source => template_source
+      })
+      super(handler_class, request, server_data)
       args.each{ |key, value| @handler.send("#{key}=", value) }
 
       @response = build_response(catch(:halt){ @handler.init; nil })

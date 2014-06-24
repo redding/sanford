@@ -19,7 +19,7 @@ module Sanford
     private
 
     def run_callbacks(callbacks)
-      callbacks.each{|proc| self.handler.instance_eval(&proc) }
+      callbacks.each{ |proc| self.handler.instance_eval(&proc) }
     end
 
   end
