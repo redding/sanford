@@ -28,9 +28,9 @@ class AppServer
     service 'custom_error', 'CustomError'
   end
 
-  error do |exception, config_data, request|
+  error do |exception, server_data, request|
     if request && request.name == 'custom_error'
-      data = "The server on #{config_data.ip}:#{config_data.port} " \
+      data = "The server on #{server_data.ip}:#{server_data.port} " \
              "threw a #{exception.class}."
       Sanford::Protocol::Response.new(200, data)
     end
