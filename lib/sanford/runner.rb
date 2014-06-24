@@ -21,14 +21,6 @@ module Sanford
         @handler_class, @request = handler_class, request
         @logger = logger || Sanford.config.logger
         @handler = @handler_class.new(self)
-        self.init
-      end
-
-      def init
-        self.init!
-      end
-
-      def init!
       end
 
       def run

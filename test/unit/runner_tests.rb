@@ -17,13 +17,11 @@ module Sanford::Runner
     subject{ @runner }
 
     should have_readers :handler_class, :request, :logger, :handler
-    should have_imeths :init, :init!, :run, :run!
+    should have_imeths :run, :run!
     should have_imeths :halt, :catch_halt
 
     should "not implement the run behavior" do
-      assert_raises NotImplementedError do
-        subject.run
-      end
+      assert_raises(NotImplementedError){ subject.run }
     end
 
   end
