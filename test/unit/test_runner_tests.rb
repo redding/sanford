@@ -7,11 +7,12 @@ class Sanford::TestRunner
     desc "Sanford::TestRunner"
     setup do
       @handler_class = TestServiceHandler
-      @logger = Factory.string
-      @params = { :something => Factory.string }
       @request = Sanford::Protocol::Request.new(Factory.string, {
         :other => Factory.string
       })
+      @params = { :something => Factory.string }
+      @logger = Factory.string
+      @template_source = Factory.string
       @handler_flag = Factory.boolean
 
       @runner_class = Sanford::TestRunner
@@ -28,8 +29,9 @@ class Sanford::TestRunner
     desc "when init"
     setup do
       @runner = @runner_class.new(@handler_class, {
-        :logger => @logger,
         :params => @params,
+        :logger => @logger,
+        :template_source => @template_source,
         :flag => @handler_flag
       })
     end
@@ -38,8 +40,9 @@ class Sanford::TestRunner
     should have_readers :response
     should have_imeths :run, :run!
 
-    should "know its logger" do
+    should "know its logger and template source" do
       assert_equal @logger, subject.logger
+      assert_equal @template_source, subject.template_source
     end
 
     should "build a request using the params" do
@@ -59,11 +62,12 @@ class Sanford::TestRunner
       assert_equal @request, test_runner.request
     end
 
-    should "default its logger, params and request" do
+    should "default its logger, params, request and template source" do
       test_runner = @runner_class.new(@handler_class)
       assert_instance_of Sanford::NullLogger, test_runner.logger
       expected = Sanford::Protocol::Request.new('name', {})
       assert_equal expected, test_runner.request
+      assert_instance_of Sanford::NullTemplateSource, test_runner.template_source
     end
 
     should "have called init on its service handler" do

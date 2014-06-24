@@ -1,5 +1,7 @@
 require 'ostruct'
 require 'sanford-protocol'
+require 'sanford/logger'
+require 'sanford/template_source'
 
 module Sanford
 
@@ -15,12 +17,20 @@ module Sanford
 
     module InstanceMethods
 
-      attr_reader :handler_class, :request, :logger, :handler
+      attr_reader :handler_class, :request
+      attr_reader :logger, :template_source
+      attr_reader :handler
 
-      def initialize(handler_class, request, logger = nil)
-        @handler_class, @request = handler_class, request
-        @logger = logger || Sanford.config.logger
+      def initialize(handler_class, request, server_data)
+        @handler_class = handler_class
+        @request = request
+        @logger = server_data.logger || Sanford::NullLogger.new
+        @template_source = server_data.template_source || Sanford::NullTemplateSource.new
         @handler = @handler_class.new(self)
+      end
+
+      def params
+        @request.params
       end
 
       def run
@@ -42,11 +52,11 @@ module Sanford
         throw :halt, ResponseArgs.new(response_status, options.data)
       end
 
+      private
+
       def catch_halt(&block)
         catch(:halt){ ResponseArgs.new(*block.call) }
       end
-
-      protected
 
       def build_response(args)
         Sanford::Protocol::Response.new(args.status, args.data) if args

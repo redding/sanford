@@ -1,6 +1,7 @@
 require 'assert'
 require 'sanford/route'
 
+require 'sanford/server_data'
 require 'sanford/service_handler'
 
 class Sanford::Route
@@ -37,17 +38,16 @@ class Sanford::Route
     setup do
       @route.validate!
       @request = Factory.string
-      @logger  = Factory.string
+      @server_data = Sanford::ServerData.new
 
       @runner_spy = RunnerSpy.new(Factory.text)
       Assert.stub(Sanford::SanfordRunner, :new).with(
         @route.handler_class,
         @request,
-        @logger,
-        &proc{ @runner_spy }
-      )
+        @server_data
+      ){ @runner_spy }
 
-      @response = @route.run(@request, @logger)
+      @response = @route.run(@request, @server_data)
     end
     subject{ @response }
 
