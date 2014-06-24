@@ -16,7 +16,6 @@ module Sanford::Runner
     end
     subject{ @runner }
 
-    should have_cmeths :run
     should have_readers :handler_class, :request, :logger, :handler
     should have_imeths :init, :init!, :run, :run!
     should have_imeths :halt, :catch_halt
