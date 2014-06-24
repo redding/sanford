@@ -128,8 +128,24 @@ end
 class RenderHandler
   include Sanford::ServiceHandler
 
+  require 'sanford/template_engine'
+  class TestEngine < Sanford::TemplateEngine
+    def render(path, service_handler, locals)
+      [path.to_s, service_handler.class.to_s, locals]
+    end
+  end
+
+  def self.template_source
+    @template_source ||= begin
+      require 'sanford/template_source'
+      Sanford::TemplateSource.new(ROOT_PATH.join('test/support').to_s).tap do |s|
+        s.engine 'test', TestEngine
+      end
+    end
+  end
+
   def run!
-    render params['template_name']
+    render params['template_name'], 'source' => self.class.template_source
   end
 end
 

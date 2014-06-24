@@ -61,7 +61,8 @@ module Sanford
 
       def render(path, options = nil)
         options ||= {}
-        get_engine(path, options['source'] || Sanford.config.template_source).render(
+        options['source'] ||= @sanford_runner.template_source
+        get_engine(path, options['source']).render(
           path,
           self,
           options['locals'] || {}
@@ -70,7 +71,7 @@ module Sanford
 
       def halt(*args); @sanford_runner.halt(*args); end
       def request;     @sanford_runner.request;     end
-      def params;      self.request.params;         end
+      def params;      @sanford_runner.params;      end
       def logger;      @sanford_runner.logger;      end
 
       def run_callback(callback)
