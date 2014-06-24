@@ -194,7 +194,7 @@ module Sanford::ServiceHandler
     desc "when halted"
 
     should "return a response with the status code and the passed data" do
-      runner = test_runner(HaltServiceHandler, {
+      runner = test_runner(HaltServiceHandler, :params => {
         'code'    => 648,
         'data'    => true
       })
@@ -206,7 +206,7 @@ module Sanford::ServiceHandler
     end
 
     should "return a response with the status code for the named status and the passed message" do
-      runner = test_runner(HaltServiceHandler, {
+      runner = test_runner(HaltServiceHandler, :params => {
         'code'    => 'ok',
         'message' => 'test message'
       })
@@ -223,7 +223,7 @@ module Sanford::ServiceHandler
     desc "when halted at different points"
 
     should "not call `init!, `after_init`, `run!` or run's callbacks when `before_init` halts" do
-      runner = test_runner(HaltingBehaviorServiceHandler, {
+      runner = test_runner(HaltingBehaviorServiceHandler, :params => {
         'when' => 'before_init'
       })
       response = runner.response
@@ -239,7 +239,7 @@ module Sanford::ServiceHandler
     end
 
     should "not call `after_init`, `run!` or its callbacks when `init!` halts" do
-      runner = test_runner(HaltingBehaviorServiceHandler, {
+      runner = test_runner(HaltingBehaviorServiceHandler, :params => {
         'when' => 'init!'
       })
       response = runner.response
@@ -255,7 +255,7 @@ module Sanford::ServiceHandler
     end
 
     should "not call `run!` or its callbacks when `after_init` halts" do
-      runner = test_runner(HaltingBehaviorServiceHandler, {
+      runner = test_runner(HaltingBehaviorServiceHandler, :params => {
         'when' => 'after_init'
       })
       response = runner.response
@@ -271,7 +271,7 @@ module Sanford::ServiceHandler
     end
 
     should "not call `run!` or `after_run` when `before_run` halts" do
-      runner = test_runner(HaltingBehaviorServiceHandler, {
+      runner = test_runner(HaltingBehaviorServiceHandler, :params => {
         'when' => 'before_run'
       })
       response = runner.run
@@ -287,7 +287,7 @@ module Sanford::ServiceHandler
     end
 
     should "not call `after_run` when `run!` halts" do
-      runner = test_runner(HaltingBehaviorServiceHandler, {
+      runner = test_runner(HaltingBehaviorServiceHandler, :params => {
         'when' => 'run!'
       })
       response = runner.run
@@ -303,7 +303,7 @@ module Sanford::ServiceHandler
     end
 
     should "call `init`, `run` and their callbacks when `after_run` halts" do
-      runner = test_runner(HaltingBehaviorServiceHandler, {
+      runner = test_runner(HaltingBehaviorServiceHandler, :params => {
         'when' => 'after_run'
       })
       response = runner.run
@@ -324,13 +324,17 @@ module Sanford::ServiceHandler
     desc "render helper method"
 
     should "render template files" do
-      response = test_runner(RenderHandler, 'template_name' => 'test_template').run
+      response = test_runner(RenderHandler, :params => {
+        'template_name' => 'test_template'
+      }).run
       assert_equal ['test_template', 'RenderHandler', {}], response.data
     end
 
     should "not render any template files with a disallowed template ext" do
       assert_raises ArgumentError do
-        test_runner(RenderHandler, 'template_name' => 'test_disallowed_template').run
+        test_runner(RenderHandler, :params => {
+          'template_name' => 'test_disallowed_template'
+        }).run
       end
     end
 
