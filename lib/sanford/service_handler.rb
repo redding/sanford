@@ -68,10 +68,6 @@ module Sanford
         )
       end
 
-      def run_handler(handler_class, params = nil)
-        handler_class.run(params || {}, self.logger)
-      end
-
       def halt(*args); @sanford_runner.halt(*args); end
       def request;     @sanford_runner.request;     end
       def params;      self.request.params;         end
@@ -98,10 +94,6 @@ module Sanford
     end
 
     module ClassMethods
-
-      def run(params = nil, logger = nil)
-        SanfordRunner.run(self, params || {}, logger)
-      end
 
       def before_callbacks;      @before_callbacks      ||= []; end
       def after_callbacks;       @after_callbacks       ||= []; end

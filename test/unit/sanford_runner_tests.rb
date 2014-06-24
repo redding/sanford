@@ -17,15 +17,6 @@ class Sanford::SanfordRunner
       assert_includes Sanford::Runner, subject
     end
 
-    should "be able to build a runner with a handler class and params and run it" do
-      response = nil
-      assert_nothing_raised do
-        response = subject.run(BasicServiceHandler, {})
-      end
-
-      assert_equal 200, response.code
-    end
-
   end
 
   class InitTests < UnitTests

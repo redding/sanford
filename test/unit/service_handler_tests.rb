@@ -17,7 +17,6 @@ module Sanford::ServiceHandler
     end
     subject{ @handler_class }
 
-    should have_imeths :run
     should have_imeths :before_callbacks, :after_callbacks
     should have_imeths :before_init_callbacks, :after_init_callbacks
     should have_imeths :before_run_callbacks,  :after_run_callbacks
@@ -31,15 +30,6 @@ module Sanford::ServiceHandler
     should "disallow certain template extensions" do
       exp = Sanford::TemplateSource::DISALLOWED_ENGINE_EXTS
       assert_equal exp, subject::DISALLOWED_TEMPLATE_EXTS
-    end
-
-    should "allow running a handler class with the class method #run" do
-      response = HaltServiceHandler.run({
-        'code'    => 648,
-        'data'    => true
-      })
-      assert_equal 648,   response.code
-      assert_equal true,  response.data
     end
 
     should "return an empty array by default using `before_callbacks`" do
@@ -342,16 +332,6 @@ module Sanford::ServiceHandler
       assert_raises ArgumentError do
         test_runner(RenderHandler, 'template_name' => 'test_disallowed_template').run
       end
-    end
-
-  end
-
-  class RunHandlerTests < UnitTests
-    desc "run_handler helper"
-
-    should "allow easily running another handler" do
-      response = test_runner(RunOtherHandler).run
-      assert_equal 'RunOtherHandler', response.data
     end
 
   end
