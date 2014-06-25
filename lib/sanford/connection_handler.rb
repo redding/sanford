@@ -6,7 +6,7 @@ require 'sanford/runner'
 
 module Sanford
 
-  class Worker
+  class ConnectionHandler
 
     ProcessedService = Struct.new(
       :request, :handler_class, :response, :exception, :time_taken
