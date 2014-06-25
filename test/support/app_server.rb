@@ -6,6 +6,17 @@ if !defined?(ROOT_PATH)
   ROOT_PATH = Pathname.new(File.expand_path('../../..', __FILE__))
 end
 
+class AppERBEngine < Sanford::TemplateEngine
+  RenderScope = Struct.new(:view)
+
+  def render(path, service_handler, locals)
+    require 'erb'
+    full_path = ROOT_PATH.join("test/support/#{path}.erb")
+    binding = RenderScope.new(service_handler).send(:binding)
+    ERB.new(File.read(full_path)).result(binding)
+  end
+end
+
 class AppServer
   include Sanford::Server
 
@@ -15,7 +26,7 @@ class AppServer
 
   receives_keep_alive true
 
-  logger Logger.new(ROOT_PATH.join('log/test_server.log').to_s)
+  logger Logger.new(ROOT_PATH.join('log/app_server.log').to_s)
   verbose_logging true
 
   router do
@@ -24,8 +35,13 @@ class AppServer
     service 'echo',         'Echo'
     service 'raise',        'Raise'
     service 'bad_response', 'BadResponse'
+    service 'template',     'Template'
     service 'halt',         'Halt'
     service 'custom_error', 'CustomError'
+  end
+
+  set_template_source ROOT_PATH.join('test/support').to_s do |s|
+    s.engine 'erb', AppERBEngine
   end
 
   error do |exception, server_data, request|
@@ -61,6 +77,20 @@ module AppHandlers
 
     def run!
       Class.new
+    end
+  end
+
+  class Template
+    include Sanford::ServiceHandler
+
+    attr_reader :message
+
+    def init!
+      @message = params['message']
+    end
+
+    def run!
+      render "template"
     end
   end
 
