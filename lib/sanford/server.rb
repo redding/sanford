@@ -260,7 +260,8 @@ module Sanford
       def to_hash
         super.merge({
           :error_procs => self.error_procs,
-          :routes => self.routes
+          :routes => self.routes,
+          :template_source => self.template_source
         })
       end
 

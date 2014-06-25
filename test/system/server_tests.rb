@@ -45,7 +45,7 @@ module Sanford::Server
       @response = @client.call
     end
 
-    should "return a response" do
+    should "return a success response" do
       assert_equal 200, subject.code
       assert_nil subject.status.message
       assert_equal @message, subject.data
@@ -155,6 +155,22 @@ module Sanford::Server
       assert_equal 500, subject.code
       assert_equal "An unexpected error occurred.", subject.status.message
       assert_nil subject.data
+    end
+
+  end
+
+  class TemplateTests < SystemTests
+    desc "calling a service that renders a template"
+    setup do
+      @message = Factory.text
+      @client.set_request('template', :message => @message)
+      @response = @client.call
+    end
+
+    should "return a success response with the rendered data" do
+      assert_equal 200, subject.code
+      assert_nil subject.status.message
+      assert_equal "ERB Template Message: #{@message}\n", subject.data
     end
 
   end
