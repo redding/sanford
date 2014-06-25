@@ -1,6 +1,4 @@
-Bundler.setup(:benchmark)
 require 'benchmark'
-
 require 'bench/client'
 
 module Bench
@@ -222,3 +220,5 @@ module Bench
   end
 
 end
+
+Bench::Runner.new.build_report
