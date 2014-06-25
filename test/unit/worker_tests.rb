@@ -3,7 +3,7 @@ require 'sanford/worker'
 
 require 'sanford/route'
 require 'sanford/server_data'
-require 'test/support/fake_connection'
+require 'test/support/fake_server_connection'
 
 class Sanford::Worker
 
@@ -16,7 +16,7 @@ class Sanford::Worker
         :verbose_logging => Factory.boolean,
         :routes => [ @route ]
       })
-      @connection = FakeConnection.with_request(@route.name, {})
+      @connection = FakeServerConnection.with_request(@route.name)
       @request = @connection.request
       @response = Sanford::Protocol::Response.new(Factory.integer, Factory.string)
       @exception = RuntimeError.new(Factory.string)
@@ -79,7 +79,7 @@ class Sanford::Worker
 
     should "have written the response to the connection" do
       assert_equal @response, @connection.response
-      assert_true @connection.write_stream_closed
+      assert_true @connection.write_closed
     end
 
   end
@@ -109,7 +109,7 @@ class Sanford::Worker
 
     should "have written the error response to the connection" do
       assert_equal @expected_response, @connection.response
-      assert_true @connection.write_stream_closed
+      assert_true @connection.write_closed
     end
 
   end
@@ -141,7 +141,7 @@ class Sanford::Worker
 
     should "have written the error response to the connection" do
       assert_equal @expected_response, @connection.response
-      assert_true @connection.write_stream_closed
+      assert_true @connection.write_closed
     end
 
   end

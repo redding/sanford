@@ -5,7 +5,7 @@ require 'dat-tcp/server_spy'
 require 'ns-options/assert_macros'
 require 'sanford/route'
 require 'sanford-protocol/fake_connection'
-require 'test/support/fake_connection'
+require 'test/support/fake_server_connection'
 
 module Sanford::Server
 
@@ -279,7 +279,7 @@ module Sanford::Server
     setup do
       @socket = Factory.binary
 
-      @connection = FakeConnection.new
+      @connection = FakeServerConnection.new
       Assert.stub(Connection, :new).with(@socket){ @connection }
 
       @worker_spy = WorkerSpy.new
