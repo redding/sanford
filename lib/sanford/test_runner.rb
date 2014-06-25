@@ -1,7 +1,6 @@
 require 'sanford-protocol'
 require 'sanford/logger'
 require 'sanford/runner'
-require 'sanford/server_data'
 require 'sanford/service_handler'
 require 'sanford/template_source'
 
@@ -9,8 +8,7 @@ module Sanford
 
   InvalidServiceHandlerError = Class.new(StandardError)
 
-  class TestRunner
-    include Sanford::Runner
+  class TestRunner < Sanford::Runner
 
     attr_reader :response
 
@@ -20,47 +18,34 @@ module Sanford
                                           " Sanford::ServiceHandler"
       end
       args = (args || {}).dup
-      params  = args.delete(:params)  || {}
-      request = args.delete(:request) || build_request(params)
-      logger  = args.delete(:logger)  || Sanford::NullLogger.new
-      template_source = args.delete(:template_source) ||
-                        Sanford::NullTemplateSource.new
+      @request         = args.delete(:request)
+      @params          = args.delete(:params) || {}
+      @logger          = args.delete(:logger) || Sanford::NullLogger.new
+      @template_source = args.delete(:template_source) ||
+                         Sanford::NullTemplateSource.new
 
-      server_data = Sanford::ServerData.new({
-        :logger => logger,
-        :template_source => template_source
-      })
-      super(handler_class, request, server_data)
+      super(handler_class)
       args.each{ |key, value| @handler.send("#{key}=", value) }
 
-      @response = build_response(catch(:halt){ @handler.init; nil })
+      return_value = catch(:halt){ @handler.init; nil }
+      @response = build_and_serialize_response{ return_value } if return_value
     end
 
-    # we override the `run` method because the TestRunner wants to control
-    # storing any generated response. If `init` generated a response, we don't
-    # want to `run` at all.
+    # If `init` generated a response, we don't want to `run` at all. This makes
+    # the `TestRunner` behave similar to the `SanfordRunner`, i.e. `halt` in
+    # `init` stops processing where `halt` is called.
 
     def run
-      @response ||= super
-    end
-
-    def run!
-      self.handler.run
+      @response ||= build_and_serialize_response{ self.handler.run }
     end
 
     private
 
-    def build_request(params)
-      Sanford::Protocol::Request.new('name', params)
-    end
-
-    def build_response(args)
-      response = super
-      return if !response
-      response.tap do |response|
+    def build_and_serialize_response(&block)
+      build_response(&block).tap do |response|
         # attempt to serialize (and then throw away) the response data
         # this will error on the developer if BSON can't serialize their response
-        Sanford::Protocol::BsonBody.new.encode(response.to_hash)
+        Sanford::Protocol::BsonBody.new.encode(response.to_hash) if response
       end
     end
 
