@@ -1,14 +1,14 @@
 require 'assert'
-require 'sanford/worker'
+require 'sanford/connection_handler'
 
 require 'sanford/route'
 require 'sanford/server_data'
 require 'test/support/fake_server_connection'
 
-class Sanford::Worker
+class Sanford::ConnectionHandler
 
   class UnitTests < Assert::Context
-    desc "Sanford::Worker"
+    desc "Sanford::ConnectionHandler"
     setup do
       @route = Sanford::Route.new(Factory.string, TestHandler.to_s).tap(&:validate!)
       @server_data = Sanford::ServerData.new({
@@ -21,18 +21,18 @@ class Sanford::Worker
       @response = Sanford::Protocol::Response.new(Factory.integer, Factory.string)
       @exception = RuntimeError.new(Factory.string)
 
-      @worker_class = Sanford::Worker
+      @handler_class = Sanford::ConnectionHandler
     end
-    subject{ @worker_class }
+    subject{ @handler_class }
 
   end
 
   class InitTests < UnitTests
     desc "when init"
     setup do
-      @worker = @worker_class.new(@server_data, @connection)
+      @connection_handler = @handler_class.new(@server_data, @connection)
     end
-    subject{ @worker }
+    subject{ @connection_handler }
 
     should have_readers :server_data, :connection
     should have_readers :logger
@@ -58,7 +58,7 @@ class Sanford::Worker
         @response
       end
 
-      @processed_service = @worker.run
+      @processed_service = @connection_handler.run
     end
     subject{ @processed_service }
 
@@ -97,7 +97,7 @@ class Sanford::Worker
       @expected_response = error_handler.run
       @expected_exception = error_handler.exception
 
-      @processed_service = @worker.run
+      @processed_service = @connection_handler.run
     end
     subject{ @processed_service }
 
@@ -129,7 +129,7 @@ class Sanford::Worker
       @expected_response = error_handler.run
       @expected_exception = error_handler.exception
 
-      @processed_service = @worker.run
+      @processed_service = @connection_handler.run
     end
     subject{ @processed_service }
 
@@ -157,7 +157,7 @@ class Sanford::Worker
     end
 
     should "raise the exception" do
-      assert_raises(@exception.class){ @worker.run }
+      assert_raises(@exception.class){ @connection_handler.run }
     end
 
   end
@@ -173,8 +173,8 @@ class Sanford::Worker
       })
       Assert.stub(@route, :run){ raise @exception }
 
-      @worker = @worker_class.new(@server_data, @connection)
-      @processed_service = @worker.run
+      @connection_handler = @handler_class.new(@server_data, @connection)
+      @processed_service = @connection_handler.run
     end
     subject{ @spy_logger }
 
@@ -209,8 +209,8 @@ class Sanford::Worker
       })
       Assert.stub(@route, :run){ raise @exception }
 
-      @worker = @worker_class.new(@server_data, @connection)
-      @processed_service = @worker.run
+      @connection_handler = @handler_class.new(@server_data, @connection)
+      @processed_service = @connection_handler.run
     end
     subject{ @spy_logger }
 

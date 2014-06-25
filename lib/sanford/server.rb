@@ -7,7 +7,7 @@ require 'sanford/logger'
 require 'sanford/router'
 require 'sanford/server_data'
 require 'sanford/template_source'
-require 'sanford/worker'
+require 'sanford/connection_handler'
 
 module Sanford
 
@@ -93,7 +93,7 @@ module Sanford
       def serve(socket)
         connection = Connection.new(socket)
         if !keep_alive_connection?(connection)
-          Sanford::Worker.new(@server_data, connection).run
+          Sanford::ConnectionHandler.new(@server_data, connection).run
         end
       end
 
