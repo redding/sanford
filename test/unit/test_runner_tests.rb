@@ -7,9 +7,7 @@ class Sanford::TestRunner
     desc "Sanford::TestRunner"
     setup do
       @handler_class = TestServiceHandler
-      @request = Sanford::Protocol::Request.new(Factory.string, {
-        :other => Factory.string
-      })
+      @request = Sanford::Protocol::Request.new(Factory.string, {})
       @params = { :something => Factory.string }
       @logger = Factory.string
       @template_source = Factory.string
@@ -20,7 +18,7 @@ class Sanford::TestRunner
     subject{ @runner_class }
 
     should "be a runner" do
-      assert_includes Sanford::Runner, subject
+      assert_true subject < Sanford::Runner
     end
 
   end
@@ -28,46 +26,49 @@ class Sanford::TestRunner
   class InitTests < UnitTests
     desc "when init"
     setup do
-      @runner = @runner_class.new(@handler_class, {
+      @args = {
+        :request => @request,
         :params => @params,
         :logger => @logger,
         :template_source => @template_source,
         :flag => @handler_flag
-      })
+      }
+      @runner = @runner_class.new(@handler_class, @args)
     end
     subject{ @runner }
 
     should have_readers :response
-    should have_imeths :run, :run!
+    should have_imeths :run
 
-    should "know its logger and template source" do
+    should "know its attributes" do
+      assert_equal @request, subject.request
+      assert_equal @params, subject.params
       assert_equal @logger, subject.logger
       assert_equal @template_source, subject.template_source
-    end
-
-    should "build a request using the params" do
-      assert_equal 'name', subject.request.name
-      assert_equal @params, subject.request.params
     end
 
     should "write extra args to its service handler" do
       assert_equal @handler_flag, subject.handler.flag
     end
 
-    should "take a request over params if provided" do
-      test_runner = @runner_class.new(@handler_class, {
-        :params => @params,
-        :request => @request
-      })
-      assert_equal @request, test_runner.request
+    should "not alter the args passed to it" do
+      assert_equal @request, @args[:request]
+      assert_equal @params, @args[:params]
+      assert_equal @logger, @args[:logger]
+      assert_equal @template_source, @args[:template_source]
+      assert_equal @handler_flag, @args[:flag]
     end
 
-    should "default its logger, params, request and template source" do
+    should "default its request, logger, params and template source" do
       test_runner = @runner_class.new(@handler_class)
+      assert_nil test_runner.request
+      assert_equal({}, test_runner.params)
       assert_instance_of Sanford::NullLogger, test_runner.logger
-      expected = Sanford::Protocol::Request.new('name', {})
-      assert_equal expected, test_runner.request
       assert_instance_of Sanford::NullTemplateSource, test_runner.template_source
+    end
+
+    should "not have called its service handlers before callbacks" do
+      assert_nil subject.handler.before_called
     end
 
     should "have called init on its service handler" do
@@ -100,6 +101,10 @@ class Sanford::TestRunner
 
     should "have called run on its service handler" do
       assert_true @runner.handler.run_called
+    end
+
+    should "not have called its service handlers after callbacks" do
+      assert_nil @runner.handler.after_called
     end
 
   end
@@ -162,8 +167,12 @@ class Sanford::TestRunner
   class TestServiceHandler
     include Sanford::ServiceHandler
 
+    attr_reader :before_called, :after_called
     attr_reader :init_called, :run_called
     attr_accessor :flag, :response
+
+    before{ @before_called = true }
+    after{ @after_called = true }
 
     def init!
       @init_called = true
