@@ -4,21 +4,14 @@ require 'sanford/runner'
 require 'sanford/server_data'
 require 'sanford/service_handler'
 
-module Sanford::Runner
+class Sanford::Runner
 
   class UnitTests < Assert::Context
     desc "Sanford::Runner"
     setup do
       @handler_class = TestServiceHandler
-      @request = Sanford::Protocol::Request.new(Factory.string, {
-        :something => Factory.string
-      })
-      @server_data = Sanford::ServerData.new({
-        :logger => Factory.string,
-        :template_source => Factory.string
-      })
 
-      @runner_class = TestRunner
+      @runner_class = Sanford::Runner
     end
     subject{ @runner_class }
 
@@ -27,30 +20,25 @@ module Sanford::Runner
   class InitTests < UnitTests
     desc "when init"
     setup do
-      @runner = @runner_class.new(@handler_class, @request, @server_data)
+      @runner = @runner_class.new(@handler_class)
     end
     subject{ @runner }
 
-    should have_readers :handler_class, :request
-    should have_readers :logger, :template_source
-    should have_readers :handler
-    should have_imeths :params
-    should have_imeths :run, :run!
+    should have_readers :handler_class, :handler
+    should have_readers :request, :params, :logger, :template_source
+    should have_imeths :run
     should have_imeths :halt
 
-    should "know its handler class, request, logger and template source" do
+    should "know its handler class and handler" do
       assert_equal @handler_class, subject.handler_class
-      assert_equal @request, subject.request
-      assert_equal @server_data.logger, subject.logger
-      assert_equal @server_data.template_source, subject.template_source
-    end
-
-    should "build an instance of its handler class" do
       assert_instance_of @handler_class, subject.handler
     end
 
-    should "demeter its request params" do
-      assert_equal @request.params, subject.params
+    should "not set its request, params, logger or template source" do
+      assert_nil subject.request
+      assert_nil subject.params
+      assert_nil subject.logger
+      assert_nil subject.template_source
     end
 
     should "throw halt with response args using `halt`" do
@@ -79,68 +67,10 @@ module Sanford::Runner
       assert_equal data, result.data
     end
 
-    should "raise a not implemented error when run by default" do
-      runner_class = Class.new{ include Sanford::Runner }
-      runner = runner_class.new(@handler_class, @request, @server_data)
-      assert_raises(NotImplementedError){ runner.run }
+    should "raise a not implemented error when run" do
+      assert_raises(NotImplementedError){ subject.run }
     end
 
-  end
-
-  class RunTests < InitTests
-    desc "and run"
-    setup do
-      @response = @runner.run
-    end
-    subject{ @response }
-
-    should "return a protocol response from the run! return-value" do
-      assert_instance_of Sanford::Protocol::Response, subject
-      assert_equal @runner.run_return_code, subject.code
-      assert_equal @runner.run_return_data, subject.data
-    end
-
-  end
-
-  class RunThatHaltsTests < UnitTests
-    desc "that halts is run"
-    setup do
-      @runner = HaltRunner.new(@handler_class, @request, @server_data)
-      @response = @runner.run
-    end
-    subject{ @response }
-
-    should "return a protocol response from the halt args" do
-      assert_instance_of Sanford::Protocol::Response, subject
-      assert_equal @runner.halt_code, subject.code
-      assert_equal @runner.halt_options[:message], subject.status.message
-      assert_equal @runner.halt_options[:data], subject.data
-    end
-
-  end
-
-  class TestRunner
-    include Sanford::Runner
-
-    attr_reader :run_return_code, :run_return_data
-
-    def run!
-      @run_return_code ||= Factory.integer
-      @run_return_data ||= Factory.string
-      [ @run_return_code, @run_return_data ]
-    end
-  end
-
-  class HaltRunner
-    include Sanford::Runner
-
-    attr_reader :halt_code, :halt_options
-
-    def run!
-      @halt_code ||= Factory.integer
-      @halt_options ||= { :message => Factory.string, :data => Factory.string }
-      halt(@halt_code, @halt_options)
-    end
   end
 
   class TestServiceHandler
