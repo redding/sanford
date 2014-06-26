@@ -1,16 +1,12 @@
 require 'assert'
 require 'sanford/service_handler'
 
-require 'bson'
+require 'sanford/template_engine'
 require 'sanford/template_source'
-require 'sanford/test_helpers'
-require 'test/support/service_handlers'
 
 module Sanford::ServiceHandler
 
   class UnitTests < Assert::Context
-    include Sanford::TestHelpers
-
     desc "Sanford::ServiceHandler"
     setup do
       @handler_class = Class.new{ include Sanford::ServiceHandler }
@@ -52,85 +48,85 @@ module Sanford::ServiceHandler
     end
 
     should "append a block to the before callbacks using `before`" do
-      subject.before_callbacks << proc{ }
-      block = Proc.new{}
+      subject.before_callbacks << proc{ Factory.string }
+      block = Proc.new{ Factory.string }
       subject.before(&block)
       assert_equal block, subject.before_callbacks.last
     end
 
     should "append a block to the after callbacks using `after`" do
-      subject.after_callbacks << proc{ }
-      block = Proc.new{}
+      subject.after_callbacks << proc{ Factory.string }
+      block = Proc.new{ Factory.string }
       subject.after(&block)
       assert_equal block, subject.after_callbacks.last
     end
 
     should "append a block to the before init callbacks using `before_init`" do
-      subject.before_init_callbacks << proc{ }
-      block = Proc.new{}
+      subject.before_init_callbacks << proc{ Factory.string }
+      block = Proc.new{ Factory.string }
       subject.before_init(&block)
       assert_equal block, subject.before_init_callbacks.last
     end
 
     should "append a block to the after init callbacks using `after_init`" do
-      subject.after_init_callbacks << proc{ }
-      block = Proc.new{}
+      subject.after_init_callbacks << proc{ Factory.string }
+      block = Proc.new{ Factory.string }
       subject.after_init(&block)
       assert_equal block, subject.after_init_callbacks.last
     end
 
     should "append a block to the before run callbacks using `before_run`" do
-      subject.before_run_callbacks << proc{ }
-      block = Proc.new{}
+      subject.before_run_callbacks << proc{ Factory.string }
+      block = Proc.new{ Factory.string }
       subject.before_run(&block)
       assert_equal block, subject.before_run_callbacks.last
     end
 
     should "append a block to the after run callbacks using `after_run`" do
-      subject.after_run_callbacks << proc{ }
-      block = Proc.new{}
+      subject.after_run_callbacks << proc{ Factory.string }
+      block = Proc.new{ Factory.string }
       subject.after_run(&block)
       assert_equal block, subject.after_run_callbacks.last
     end
 
     should "prepend a block to the before callbacks using `prepend_before`" do
-      subject.before_callbacks << proc{ }
-      block = Proc.new{}
+      subject.before_callbacks << proc{ Factory.string }
+      block = Proc.new{ Factory.string }
       subject.prepend_before(&block)
       assert_equal block, subject.before_callbacks.first
     end
 
     should "prepend a block to the after callbacks using `prepend_after`" do
-      subject.after_callbacks << proc{ }
-      block = Proc.new{}
+      subject.after_callbacks << proc{ Factory.string }
+      block = Proc.new{ Factory.string }
       subject.prepend_after(&block)
       assert_equal block, subject.after_callbacks.first
     end
 
     should "prepend a block to the before init callbacks using `prepend_before_init`" do
-      subject.before_init_callbacks << proc{ }
-      block = Proc.new{}
+      subject.before_init_callbacks << proc{ Factory.string }
+      block = Proc.new{ Factory.string }
       subject.prepend_before_init(&block)
       assert_equal block, subject.before_init_callbacks.first
     end
 
     should "prepend a block to the after init callbacks using `prepend_after_init`" do
-      subject.after_init_callbacks << proc{ }
-      block = Proc.new{}
+      subject.after_init_callbacks << proc{ Factory.string }
+      block = Proc.new{ Factory.string }
       subject.prepend_after_init(&block)
       assert_equal block, subject.after_init_callbacks.first
     end
 
     should "prepend a block to the before run callbacks using `prepend_before_run`" do
-      subject.before_run_callbacks << proc{ }
-      block = Proc.new{}
+      subject.before_run_callbacks << proc{ Factory.string }
+      block = Proc.new{ Factory.string }
       subject.prepend_before_run(&block)
       assert_equal block, subject.before_run_callbacks.first
     end
 
     should "prepend a block to the after run callbacks using `prepend_after_run`" do
-      subject.after_run_callbacks << proc{ }
-      block = Proc.new{}
+      subject.after_run_callbacks << proc{ Factory.string }
+      block = Proc.new{ Factory.string }
       subject.prepend_after_run(&block)
       assert_equal block, subject.after_run_callbacks.first
     end
@@ -140,221 +136,141 @@ module Sanford::ServiceHandler
   class InitTests < UnitTests
     desc "when init"
     setup do
-      @handler = test_runner(FlagServiceHandler).handler
+      @runner = FakeRunner.new
+      @handler = TestServiceHandler.new(@runner)
     end
     subject{ @handler }
 
     should have_imeths :init, :init!, :run, :run!
 
-    should "raise a NotImplementedError if run! is not overwritten" do
-      handler = test_handler(@handler_class)
-      assert_raises(NotImplementedError){ handler.run! }
+    should "know its request, params and logger" do
+      assert_equal @runner.request, subject.request
+      assert_equal @runner.params, subject.params
+      assert_equal @runner.logger, subject.logger
     end
 
-    should "not call `before` callbacks when using a test runner" do
-      assert_nil subject.before_called
+    should "call `init!` and its before/after init callbacks using `init`" do
+      subject.init
+      assert_equal 1, subject.first_before_init_call_order
+      assert_equal 2, subject.second_before_init_call_order
+      assert_equal 3, subject.init_call_order
+      assert_equal 4, subject.first_after_init_call_order
+      assert_equal 5, subject.second_after_init_call_order
     end
 
-    should "have called `init!` and its callbacks" do
-      assert_true subject.before_init_called
-      assert_true subject.second_before_init_called
-      assert_true subject.init_bang_called
-      assert_true subject.after_init_called
-    end
-
-    should "not have called `run!` or its callbacks when initialized" do
-      assert_nil subject.before_run_called
-      assert_nil subject.run_bang_called
-      assert_nil subject.after_run_called
-      assert_nil subject.second_after_run_called
-    end
-
-    should "call `run!` and its callbacks when its run" do
+    should "call `run!` and its before/after run callbacks using `run`" do
       subject.run
-
-      assert_true subject.before_run_called
-      assert_true subject.run_bang_called
-      assert_true subject.after_run_called
-      assert_true subject.second_after_run_called
+      assert_equal 1, subject.first_before_run_call_order
+      assert_equal 2, subject.second_before_run_call_order
+      assert_equal 3, subject.run_call_order
+      assert_equal 4, subject.first_after_run_call_order
+      assert_equal 5, subject.second_after_run_call_order
     end
 
-    should "not call `after` callbacks when run using a test runner" do
-      subject.run
-      assert_nil subject.after_called
+    should "have a custom inspect" do
+      reference = '0x0%x' % (subject.object_id << 1)
+      expected = "#<#{subject.class}:#{reference} " \
+                 "@request=#{subject.request.inspect}>"
+      assert_equal expected, subject.inspect
     end
 
-  end
-
-  class HaltTests < UnitTests
-    desc "when halted"
-
-    should "return a response with the status code and the passed data" do
-      runner = test_runner(HaltServiceHandler, :params => {
-        'code'    => 648,
-        'data'    => true
-      })
-      runner.run
-
-      assert_equal 648, runner.response.code
-      assert_true runner.response.data
-      assert_nil runner.response.status.message
+    should "demeter its runner's halt" do
+      code = Factory.integer
+      result = subject.halt(code)
+      assert_includes [ code ], @runner.halt_calls
     end
 
-    should "return a response with the status code for the named status and the passed message" do
-      runner = test_runner(HaltServiceHandler, :params => {
-        'code'    => 'ok',
-        'message' => 'test message'
-      })
-      runner.run
-
-      assert_equal 200, runner.response.code
-      assert_equal 'test message', runner.response.status.message
-      assert_nil runner.response.data
+    should "use the runner template source to render the template by default" do
+      path = Factory.file_path
+      locals = { 'something' => Factory.string }
+      result = subject.render(path, 'locals' => locals)
+      assert_equal [ path, TestServiceHandler.to_s, locals ], result
     end
 
-  end
-
-  class HaltingTests < UnitTests
-    desc "when halted at different points"
-
-    should "not call `init!, `after_init`, `run!` or run's callbacks when `before_init` halts" do
-      runner = test_runner(HaltingBehaviorServiceHandler, :params => {
-        'when' => 'before_init'
-      })
-      response = runner.response
-
-      assert_equal true, response.data[:before_init_called]
-      assert_equal nil,  response.data[:init_bang_called]
-      assert_equal nil,  response.data[:after_init_called]
-      assert_equal nil,  response.data[:before_run_called]
-      assert_equal nil,  response.data[:run_bang_called]
-      assert_equal nil,  response.data[:after_run_called]
-
-      assert_equal 'before_init halting', response.status.message
+    should "default its locals to an empty hash using `render`" do
+      path = Factory.file_path
+      result = subject.render(path)
+      assert_equal [ path, TestServiceHandler.to_s, {} ], result
     end
 
-    should "not call `after_init`, `run!` or its callbacks when `init!` halts" do
-      runner = test_runner(HaltingBehaviorServiceHandler, :params => {
-        'when' => 'init!'
-      })
-      response = runner.response
-
-      assert_equal true, response.data[:before_init_called]
-      assert_equal true, response.data[:init_bang_called]
-      assert_equal nil,  response.data[:after_init_called]
-      assert_equal nil,  response.data[:before_run_called]
-      assert_equal nil,  response.data[:run_bang_called]
-      assert_equal nil,  response.data[:after_run_called]
-
-      assert_equal 'init! halting', response.status.message
-    end
-
-    should "not call `run!` or its callbacks when `after_init` halts" do
-      runner = test_runner(HaltingBehaviorServiceHandler, :params => {
-        'when' => 'after_init'
-      })
-      response = runner.response
-
-      assert_equal true, response.data[:before_init_called]
-      assert_equal true, response.data[:init_bang_called]
-      assert_equal true, response.data[:after_init_called]
-      assert_equal nil,  response.data[:before_run_called]
-      assert_equal nil,  response.data[:run_bang_called]
-      assert_equal nil,  response.data[:after_run_called]
-
-      assert_equal 'after_init halting', response.status.message
-    end
-
-    should "not call `run!` or `after_run` when `before_run` halts" do
-      runner = test_runner(HaltingBehaviorServiceHandler, :params => {
-        'when' => 'before_run'
-      })
-      response = runner.run
-
-      assert_equal true, response.data[:before_init_called]
-      assert_equal true, response.data[:init_bang_called]
-      assert_equal true, response.data[:after_init_called]
-      assert_equal true, response.data[:before_run_called]
-      assert_equal nil,  response.data[:run_bang_called]
-      assert_equal nil,  response.data[:after_run_called]
-
-      assert_equal 'before_run halting', runner.response.status.message
-    end
-
-    should "not call `after_run` when `run!` halts" do
-      runner = test_runner(HaltingBehaviorServiceHandler, :params => {
-        'when' => 'run!'
-      })
-      response = runner.run
-
-      assert_equal true, response.data[:before_init_called]
-      assert_equal true, response.data[:init_bang_called]
-      assert_equal true, response.data[:after_init_called]
-      assert_equal true, response.data[:before_run_called]
-      assert_equal true, response.data[:run_bang_called]
-      assert_equal nil,  response.data[:after_run_called]
-
-      assert_equal 'run! halting', runner.response.status.message
-    end
-
-    should "call `init`, `run` and their callbacks when `after_run` halts" do
-      runner = test_runner(HaltingBehaviorServiceHandler, :params => {
-        'when' => 'after_run'
-      })
-      response = runner.run
-
-      assert_equal true, response.data[:before_init_called]
-      assert_equal true, response.data[:init_bang_called]
-      assert_equal true, response.data[:after_init_called]
-      assert_equal true, response.data[:before_run_called]
-      assert_equal true, response.data[:run_bang_called]
-      assert_equal true, response.data[:after_run_called]
-
-      assert_equal 'after_run halting', runner.response.status.message
-    end
-
-  end
-
-  class RenderHandlerTests < UnitTests
-    desc "render helper method"
-
-    should "render template files" do
-      response = test_runner(RenderHandler, :params => {
-        'template_name' => 'test_template'
-      }).run
-      assert_equal ['test_template', 'RenderHandler', {}], response.data
-    end
-
-    should "not render any template files with a disallowed template ext" do
-      assert_raises ArgumentError do
-        test_runner(RenderHandler, :params => {
-          'template_name' => 'test_disallowed_template'
-        }).run
+    should "allow passing a source to its options using `render`" do
+      path = Factory.file_path
+      source_class = Class.new do
+        def render(path, service_handler, locals); path; end
       end
+      result = subject.render(path, 'source' => source_class.new)
+      assert_equal path, result
+    end
+
+    should "raise a not implemented error when `run!` by default" do
+      assert_raises(NotImplementedError){ @handler_class.new(@runner).run! }
     end
 
   end
 
-  class InvalidHandlerTests < UnitTests
-    desc "that is invalid"
+  class TestServiceHandler
+    include Sanford::ServiceHandler
 
-    should "raise a custom error when initialized in a test" do
-      assert_raises Sanford::InvalidServiceHandlerError do
-        test_handler(InvalidServiceHandler)
-      end
+    attr_reader :first_before_init_call_order, :second_before_init_call_order
+    attr_reader :first_after_init_call_order, :second_after_init_call_order
+    attr_reader :first_before_run_call_order, :second_before_run_call_order
+    attr_reader :first_after_run_call_order, :second_after_run_call_order
+    attr_reader :init_call_order, :run_call_order
+
+    # these methods are made public so they can be tested, they are being tested
+    # because they are used by classes that mixin this, essentially they are
+    # "public" to classes that use the mixin
+    public :render, :halt, :request, :params, :logger
+
+    before_init{ @first_before_init_call_order = next_call_order }
+    before_init{ @second_before_init_call_order = next_call_order }
+
+    after_init{ @first_after_init_call_order = next_call_order }
+    after_init{ @second_after_init_call_order = next_call_order }
+
+    before_run{ @first_before_run_call_order = next_call_order }
+    before_run{ @second_before_run_call_order = next_call_order }
+
+    after_run{ @first_after_run_call_order = next_call_order }
+    after_run{ @second_after_run_call_order = next_call_order }
+
+    def init!
+      @init_call_order = next_call_order
     end
 
+    def run!
+      @run_call_order = next_call_order
+    end
+
+    private
+
+    def next_call_order
+      @order ||= 0
+      @order += 1
+    end
   end
 
-  class SerializeErrorTests < UnitTests
-    desc "that failse to serialize to BSON"
+  class FakeRunner
+    attr_accessor :request, :params, :logger, :template_source
+    attr_reader :halt_calls
 
-    should "raise a BSON error when run in a test" do
-      assert_raises BSON::InvalidDocument do
-        test_runner(SerializeErrorServiceHandler).run
-      end
+    def initialize
+      @request = Factory.string
+      @params = Factory.string
+      @logger = Factory.string
+      @template_source = FakeTemplateSource.new
     end
 
+    def halt(*args)
+      @halt_calls ||= []
+      @halt_calls << args
+    end
+  end
+
+  class FakeTemplateSource
+    def render(path, service_handler, locals)
+      [path.to_s, service_handler.class.to_s, locals]
+    end
   end
 
 end
