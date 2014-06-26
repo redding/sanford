@@ -5,8 +5,6 @@ module Sanford
 
   module ServiceHandler
 
-    DISALLOWED_TEMPLATE_EXTS = Sanford::TemplateSource::DISALLOWED_ENGINE_EXTS
-
     def self.included(klass)
       klass.class_eval do
         extend ClassMethods
@@ -51,12 +49,8 @@ module Sanford
 
       def render(path, options = nil)
         options ||= {}
-        options['source'] ||= @sanford_runner.template_source
-        get_engine(path, options['source']).render(
-          path,
-          self,
-          options['locals'] || {}
-        )
+        source = options['source'] || @sanford_runner.template_source
+        source.render(path, self, options['locals'] || {})
       end
 
       def halt(*args); @sanford_runner.halt(*args); end
@@ -68,18 +62,6 @@ module Sanford
         (self.class.send("#{callback}_callbacks") || []).each do |callback|
           self.instance_eval(&callback)
         end
-      end
-
-      private
-
-      def get_engine(path, source)
-        source.engines[File.extname(get_template(path, source))[1..-1] || '']
-      end
-
-      def get_template(path, source)
-        files = Dir.glob("#{Pathname.new(source.path).join(path.to_s)}.*")
-        files = files.reject{ |p| DISALLOWED_TEMPLATE_EXTS.include?(File.extname(p)) }
-        files.first.to_s
       end
 
     end

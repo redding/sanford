@@ -4,7 +4,7 @@ module Sanford
 
   class TemplateSource
 
-    DISALLOWED_ENGINE_EXTS = [ '.rb' ]
+    DISALLOWED_ENGINE_EXTS = [ 'rb' ]
 
     DisallowedEngineExtError = Class.new(ArgumentError)
 
@@ -17,12 +17,29 @@ module Sanford
     end
 
     def engine(input_ext, engine_class, registered_opts = nil)
-      if DISALLOWED_ENGINE_EXTS.include?(".#{input_ext}")
+      if DISALLOWED_ENGINE_EXTS.include?(input_ext)
         raise DisallowedEngineExtError, "`#{input_ext}` is disallowed as an"\
                                         " engine extension."
       end
       engine_opts = @default_opts.merge(registered_opts || {})
       @engines[input_ext.to_s] = engine_class.new(engine_opts)
+    end
+
+    def render(template_path, service_handler, locals)
+      engine = @engines[get_template_ext(template_path)]
+      engine.render(template_path, service_handler, locals)
+    end
+
+    private
+
+    def get_template_ext(template_path)
+      files = Dir.glob("#{File.join(@path, template_path.to_s)}.*")
+      files = files.reject{ |p| !@engines.keys.include?(parse_ext(p)) }
+      parse_ext(files.first.to_s || '')
+    end
+
+    def parse_ext(template_path)
+      File.extname(template_path)[1..-1]
     end
 
   end

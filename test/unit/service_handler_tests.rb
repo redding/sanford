@@ -27,11 +27,6 @@ module Sanford::ServiceHandler
     should have_imeths :prepend_before_init, :prepend_after_init
     should have_imeths :prepend_before_run,  :prepend_after_run
 
-    should "disallow certain template extensions" do
-      exp = Sanford::TemplateSource::DISALLOWED_ENGINE_EXTS
-      assert_equal exp, subject::DISALLOWED_TEMPLATE_EXTS
-    end
-
     should "return an empty array by default using `before_callbacks`" do
       assert_equal [], subject.before_callbacks
     end
