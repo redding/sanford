@@ -40,7 +40,7 @@ class AppServer
     service 'custom_error', 'CustomError'
   end
 
-  set_template_source ROOT_PATH.join('test/support').to_s do |s|
+  build_template_source ROOT_PATH.join('test/support').to_s do |s|
     s.engine 'erb', AppERBEngine
   end
 
