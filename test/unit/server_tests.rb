@@ -21,6 +21,10 @@ module Sanford::Server
     should have_imeths :configuration
     should have_imeths :name, :ip, :port, :pid_file
     should have_imeths :receives_keep_alive
+    should have_imeths :verbose_logging, :logger
+    should have_imeths :init, :error
+    should have_imeths :router
+    should have_imeths :template_source, :build_template_source
 
     should "know its configuration" do
       config = subject.configuration
@@ -107,11 +111,24 @@ module Sanford::Server
     end
 
     should "allow setting the configuration template source" do
+      new_template_source = Factory.string
+      subject.template_source(new_template_source)
+      assert_equal new_template_source, subject.configuration.template_source
+      assert_equal new_template_source, subject.template_source
+    end
+
+    should "allow setting its template source with a path and block" do
       new_path = Factory.string
       yielded = nil
-      subject.set_template_source(new_path){ |s| yielded = s }
+      subject.build_template_source(new_path){ |s| yielded = s }
       assert_equal new_path, subject.configuration.template_source.path
       assert_equal subject.configuration.template_source, yielded
+    end
+
+    should "allow setting its template source with only a path" do
+      new_path = Factory.string
+      subject.build_template_source(new_path)
+      assert_equal new_path, subject.configuration.template_source.path
     end
 
   end
@@ -386,10 +403,9 @@ module Sanford::Server
     should have_options :name, :ip, :port, :pid_file
     should have_options :receives_keep_alive
     should have_options :verbose_logging, :logger
+    should have_options :template_source
     should have_accessors :init_procs, :error_procs
     should have_accessors :router
-    should have_readers :template_source
-    should have_imeths :set_template_source
     should have_imeths :routes
     should have_imeths :to_hash
     should have_imeths :valid?, :validate!
@@ -409,33 +425,17 @@ module Sanford::Server
 
       assert_true config.verbose_logging
       assert_instance_of Sanford::NullLogger, config.logger
+      assert_instance_of Sanford::NullTemplateSource, config.template_source
 
       assert_equal [], config.init_procs
       assert_equal [], config.error_procs
 
-      assert_instance_of Sanford::NullTemplateSource, config.template_source
       assert_instance_of Sanford::Router, config.router
       assert_empty config.router.routes
     end
 
     should "not be valid by default" do
       assert_false subject.valid?
-    end
-
-    should "allow setting its template source" do
-      new_path = Factory.string
-      yielded = nil
-      subject.set_template_source(new_path){ |s| yielded = s }
-      assert_instance_of Sanford::TemplateSource, subject.template_source
-      assert_equal new_path, subject.template_source.path
-      assert_equal subject.template_source, yielded
-    end
-
-    should "allow only setting the template source path" do
-      new_path = Factory.string
-      subject.set_template_source(new_path)
-      assert_instance_of Sanford::TemplateSource, subject.template_source
-      assert_equal new_path, subject.template_source.path
     end
 
     should "know its routes" do
@@ -448,7 +448,9 @@ module Sanford::Server
       config_hash = subject.to_hash
       assert_equal subject.error_procs, config_hash[:error_procs]
       assert_equal subject.routes, config_hash[:routes]
-      assert_equal subject.template_source, config_hash[:template_source]
+      template_source = subject.template_source
+      assert_instance_of template_source.class, config_hash[:template_source]
+      assert_equal template_source.path, config_hash[:template_source].path
     end
 
     should "call its init procs when validated" do

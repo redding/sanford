@@ -160,8 +160,13 @@ module Sanford
         self.configuration.router
       end
 
-      def set_template_source(path, &block)
-        self.configuration.set_template_source(path, &block)
+      def template_source(*args)
+        self.configuration.template_source(*args)
+      end
+
+      def build_template_source(path, &block)
+        block ||= proc{ }
+        self.template_source TemplateSource.new(path).tap(&block)
       end
 
     end
@@ -234,23 +239,17 @@ module Sanford
       option :receives_keep_alive, NsOptions::Boolean, :default => false
 
       option :verbose_logging, :default => true
-      option :logger,          :default => proc{ Sanford::NullLogger.new }
+      option :logger,          :default => proc{ NullLogger.new }
+      option :template_source, :default => proc{ NullTemplateSource.new }
 
       attr_accessor :init_procs, :error_procs
       attr_accessor :router
-      attr_reader :template_source
 
       def initialize(values = nil)
         super(values)
         @init_procs, @error_procs = [], []
-        @template_source = Sanford::NullTemplateSource.new
         @router = Sanford::Router.new
         @valid = nil
-      end
-
-      def set_template_source(path, &block)
-        block ||= proc{ }
-        @template_source = TemplateSource.new(path).tap(&block)
       end
 
       def routes
