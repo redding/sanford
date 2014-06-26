@@ -1,6 +1,3 @@
-require 'sanford/sanford_runner'
-require 'sanford/template_source'
-
 module Sanford
 
   module ServiceHandler
@@ -19,18 +16,18 @@ module Sanford
       end
 
       def init
-        self.run_callback 'before_init'
+        run_callback 'before_init'
         self.init!
-        self.run_callback 'after_init'
+        run_callback 'after_init'
       end
 
       def init!
       end
 
       def run
-        self.run_callback 'before_run'
+        run_callback 'before_run'
         data = self.run!
-        self.run_callback 'after_run'
+        run_callback 'after_run'
         [ 200, data ]
       end
 
@@ -43,7 +40,7 @@ module Sanford
         "#<#{self.class}:#{reference} @request=#{self.request.inspect}>"
       end
 
-      protected
+      private
 
       # Helpers
 
