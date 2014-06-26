@@ -282,37 +282,37 @@ module Sanford::Server
       @connection = FakeServerConnection.new
       Assert.stub(Connection, :new).with(@socket){ @connection }
 
-      @worker_spy = WorkerSpy.new
-      Assert.stub(Sanford::Worker, :new).tap do |s|
-        s.with(@server.server_data, @connection){ @worker_spy }
+      @connection_handler_spy = ConnectionHandlerSpy.new
+      Assert.stub(Sanford::ConnectionHandler, :new).tap do |s|
+        s.with(@server.server_data, @connection){ @connection_handler_spy }
       end
 
       @serve_proc = @dat_tcp_server_spy.serve_proc
     end
     subject{ @serve_proc }
 
-    should "run a worker when called with a socket" do
+    should "run a connection_handler when called with a socket" do
       Assert.stub(@server.server_data, :receives_keep_alive){ false }
       @connection.read_data = Factory.boolean
-      assert_false @worker_spy.run_called
+      assert_false @connection_handler_spy.run_called
       subject.call(@socket)
-      assert_true @worker_spy.run_called
+      assert_true @connection_handler_spy.run_called
     end
 
     should "not run a keep-alive connection when configured to receive them" do
       Assert.stub(@server.server_data, :receives_keep_alive){ true }
       @connection.read_data = nil # nothing to read makes it a keep-alive
-      assert_false @worker_spy.run_called
+      assert_false @connection_handler_spy.run_called
       subject.call(@socket)
-      assert_false @worker_spy.run_called
+      assert_false @connection_handler_spy.run_called
     end
 
     should "run a keep-alive connection when configured to receive them" do
       Assert.stub(@server.server_data, :receives_keep_alive){ false }
       @connection.read_data = nil # nothing to read makes it a keep-alive
-      assert_false @worker_spy.run_called
+      assert_false @connection_handler_spy.run_called
       subject.call(@socket)
-      assert_true @worker_spy.run_called
+      assert_true @connection_handler_spy.run_called
     end
 
   end
@@ -512,7 +512,7 @@ module Sanford::Server
     end
   end
 
-  class WorkerSpy
+  class ConnectionHandlerSpy
     attr_reader :run_called
 
     def initialize
