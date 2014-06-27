@@ -1,28 +1,28 @@
 # Sanford
 
-Sanford TCP protocol server for hosting services.  Define hosts for versioned services.  Setup handlers for the services.  Run the host as a daemon.
+Sanford TCP protocol server for hosting services. Define servers for services. Setup handlers for the services. Run the server as a daemon.
 
 Sanford uses [Sanford::Protocol](https://github.com/redding/sanford-protocol) to communicate with clients.  Check out [AndSon](https://github.com/redding/and-son) for a Ruby Sanford protocol client.
 
 ## Usage
 
 ```ruby
-# define a host
-class MyHost
-  include Sanford::Host
+# define a server
+class MyServer
+  include Sanford::Server
 
   port 8000
-  pid_file '/path/to/host.pid'
+  pid_file '/path/to/server.pid'
 
   # define some services
-  version 'v1' do
-    service 'get_user', 'MyHost::V1Services::GetUser'
+  router do
+    service 'get_user', 'MyServer::GetUser'
   end
 
 end
 
 # define handlers for the services
-class MyHost::V1Services::GetUser
+class MyServer::GetUser
   include Sanford::ServiceHandler
 
   def run!
@@ -33,47 +33,43 @@ end
 
 ```
 
-## Hosts
+## Servers
 
-To define a Sanford host, include the mixin `Sanford::Host` on a class and use the DSL to configure it. A few options can be set:
+To define a Sanford server, include the mixin `Sanford::Server` on a class and use the DSL to configure it. A few options can be set:
 
+* `name` - (string) A name for the server, this is used to set the process name
+and in logging.
 * `ip` - (string) A hostname or IP address for the server to bind to; default: `'0.0.0.0'`.
 * `port` - (integer) The port number for the server to bind to.
 * `pid_file` - (string) Path to where you want the pid file to be written.
 * `logger`- (logger) A logger for Sanford to use when handling requests; default: `Logger.new`.
 
-Any values specified using the DSL act as defaults for instances of the host. You can overwritten when creating new instances:
-
-```ruby
-host = MyHost.new({ :port => 12000 })
-```
-
 ## Services
 
 ```ruby
-class MyHost
-  include Sanford::Host
+class MyServer
+  include Sanford::Server
 
-  version 'v1' do
-    service 'get_user', 'MyHost::ServicesV1::GetUser'
+  router do
+    service 'get_user', 'MyServer::GetUser'
   end
 end
 ```
 
-Services are defined on hosts by version.  Each named service maps to a 'service handler' class.  The version and service name are used to 'route' requests to handler classes.
+Services are defined on servers via a router block.  Each named service maps to a 'service handler' class.  The service name is used to 'route' requests to handler classes.
 
 When defining services handlers, it's typical to organize them all under a common namespace. Use `service_handler_ns` to define a default namespace for all handler classes under the version:
 
 ```ruby
-class MyHost
-  include Sanford::Host
+class MyServer
+  include Sanford::Server
 
-  version 'v1' do
-    service_handler_ns 'MyHost::ServicesV1'
+  router do
+    service_handler_ns 'MyServer'
 
     service 'get_user',     'GetUser'
     service 'get_article',  'GetArticle'
-    service 'get_comments', '::MyHost::OtherServices::GetComments'
+    service 'get_comments', '::OtherServices::GetComments'
   end
 end
 ```
@@ -83,7 +79,7 @@ end
 Define handlers by mixing in `Sanford::ServiceHandler` on a class and defining a `run!` method:
 
 ```ruby
-class MyHost::Services::GetUser
+class MyServer::GetUser
   include Sanford::ServiceHandler
 
   def run!
@@ -103,7 +99,7 @@ In addition to these, there are some helpers methods that can be used in your `r
 * `halt`: stop processing and return response data with a status code and message
 
 ```ruby
-class MyHost::Services::GetUser
+class MyServer::GetUser
   include Sanford::ServiceHandler
 
   def run!
@@ -116,42 +112,31 @@ class MyHost::Services::GetUser
 end
 ```
 
-## Running Host Daemons
+## Running Servers
 
-Sanford comes with a CLI for running hosts:
-
-* `sanford start` - spin up a background process running the host daemon.
-* `sanford stop` - shutdown the background process running the host gracefully.
-* `sanford restart` - "hot restart" the process running the host.
-* `sanford run` - starts the server, but doesn't daemonize it (runs in the current ruby process). Convenient when using the server in a development environment.
-
-The basic commands are useful if your application only has one host defined and if you only want to run the host on a single port. In the case you have multiple hosts defined or you want to run a single host on multiple ports, use environment variables to set custom configurations.
-
-```bash
-sanford start # starts the first defined host
-SANFORD_HOST=AnotherHost SANFORD_PORT=13001 sanford start # choose a specific host and port to run on with ENV vars
-```
-
-The CLI allow using environment variables for specifying which host to run the command against and for overriding the host's configuration. They recognize the a number of environment variables, but the main ones are: `SANFORD_HOST`, `SANFORD_IP`, and `SANFORD_PORT`.
-
-Define a `name` on a Host to set a string name for your host that can be used to reference a host when using the CLI.  If no name is set, Sanford will use the host's class name.
-
-Alternatively, the CLI supports passing switches to override the host's configuration as well. Use `sanford --help` to see the options that are available.
-
-### Loading An Application
-
-Typically, a Sanford host is part of a larger application and parts of the application need to be initialized or loaded when you start your Sanford server. To support this, Sanford provides an `init` hook for hosts. The proc that is defined will be called before the Sanford server is started, properly running the server in your application's environment:
+To run a server, Sanford needs a config file to be defined:
 
 ```ruby
-class MyHost
-  include Sanford::Host
-
-  init do
-    require File.expand_path("../config/environment", __FILE__)
-  end
-
-end
+require 'my_server'
+run MyServer.new
 ```
+
+This file works like a rackup file. You require in your server and call `run`
+passing an instance of the server. To use these files, Sanford comes with a CLI:
+
+* `sanford CONFIG_FILE start` - spin up a background process running the server.
+* `sanford CONFIG_FILE stop` - shutdown the background process running the server gracefully.
+* `sanford CONFIG_FILE restart` - "hot restart" the process running the server.
+* `sanford CONFIG_FILE run` - starts the server, but doesn't daemonize it (runs in the current ruby process). Convenient when using the server in a development environment.
+
+Sanford will use the configuration of your server to either start a process or manage an existing one. A servers ip and port can be overwritten using environment variables:
+
+```bash
+sanford my_server.sanford start # starts a process for `MyServer`
+SANFORD_IP="1.2.3.4" SANFORD_PORT=13001 sanford my_server.sanford start # run the same server on a custom ip and port
+```
+
+This allows running multiple instances of the same server on ips and ports that are different than its configuration if needed.
 
 ## Contributing
 
