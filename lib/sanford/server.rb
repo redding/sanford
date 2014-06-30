@@ -53,6 +53,14 @@ module Sanford
         @dat_tcp_server.client_file_descriptors
       end
 
+      def configured_ip
+        @server_data.ip
+      end
+
+      def configured_port
+        @server_data.port
+      end
+
       def pid_file
         @server_data.pid_file
       end

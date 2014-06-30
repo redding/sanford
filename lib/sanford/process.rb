@@ -11,15 +11,18 @@ module Sanford
       options ||= {}
       @server = server
       @logger = @server.logger
-      @name = "sanford-#{@server.name}"
       @pid_file = PIDFile.new(@server.pid_file)
       @restart_cmd = RestartCmd.new
 
-      @server_ip = ignore_if_blank(ENV['SANFORD_IP'])
-      @server_port = ignore_if_blank(ENV['SANFORD_PORT']){ |v| v.to_i }
+      @server_ip = default_if_blank(ENV['SANFORD_IP'], @server.configured_ip)
+      @server_port = default_if_blank(
+        ENV['SANFORD_PORT'],
+        @server.configured_port
+      ){ |v| v.to_i }
       @server_fd = ignore_if_blank(ENV['SANFORD_SERVER_FD']){ |v| v.to_i }
       @listen_args = @server_fd ? [ @server_fd ] : [ @server_ip, @server_port ]
-      @listen_args.compact!
+
+      @name = "sanford-#{@server.name}-#{@server_ip}-#{@server_port}"
 
       @client_fds = (ENV['SANFORD_CLIENT_FDS'] || "").split(',').map(&:to_i)
 
@@ -71,9 +74,13 @@ module Sanford
       @restart_cmd.exec
     end
 
-    def ignore_if_blank(value, default = nil, &block)
+    def default_if_blank(value, default, &block)
+      ignore_if_blank(value, &block) || default
+    end
+
+    def ignore_if_blank(value, &block)
       block ||= proc{ |v| v }
-      value && !value.empty? ? block.call(value) : default
+      block.call(value) if value && !value.empty?
     end
 
   end

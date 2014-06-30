@@ -59,14 +59,16 @@ class Sanford::Process
     end
 
     should "know its name, pid file and restart cmd" do
-      assert_equal "sanford-#{@server_spy.name}", subject.name
+      expected = "sanford-#{@server_spy.name}-" \
+                 "#{@server_spy.configured_ip}-#{@server_spy.configured_port}"
+      assert_equal expected, subject.name
       assert_equal @pid_file_spy, subject.pid_file
       assert_equal @restart_cmd_spy, subject.restart_cmd
     end
 
     should "know its server ip, port and file descriptor" do
-      assert_nil subject.server_ip
-      assert_nil subject.server_port
+      assert_equal @server_spy.configured_ip, subject.server_ip
+      assert_equal @server_spy.configured_port, subject.server_port
       assert_nil subject.server_fd
     end
 
@@ -85,8 +87,8 @@ class Sanford::Process
       ENV['SANFORD_PORT'] = ''
       ENV['SANFORD_SERVER_FD'] = ''
       process = @process_class.new(@server_spy)
-      assert_nil process.server_ip
-      assert_nil process.server_port
+      assert_equal @server_spy.configured_ip, subject.server_ip
+      assert_equal @server_spy.configured_port, subject.server_port
       assert_nil process.server_fd
     end
 
@@ -173,7 +175,8 @@ class Sanford::Process
 
     should "have started the server listening" do
       assert_true @server_spy.listen_called
-      assert_equal [], @server_spy.listen_args
+      expected = [ subject.server_ip, subject.server_port ]
+      assert_equal expected, @server_spy.listen_args
     end
 
     should "have set the process name" do

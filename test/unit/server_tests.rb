@@ -157,6 +157,8 @@ module Sanford::Server
     should have_readers :server_data, :dat_tcp_server
     should have_imeths :name, :ip, :port
     should have_imeths :file_descriptor, :client_file_descriptors
+    should have_imeths :configured_ip, :configured_port
+    should have_imeths :pid_file, :logger
     should have_imeths :listen, :start, :pause, :stop, :halt
     should have_imeths :paused?
 
@@ -186,6 +188,8 @@ module Sanford::Server
 
     should "know its name, pid file and logger" do
       assert_equal subject.server_data.name, subject.name
+      assert_equal subject.server_data.ip, subject.configured_ip
+      assert_equal subject.server_data.port, subject.configured_port
       assert_equal subject.server_data.pid_file, subject.pid_file
       assert_equal subject.server_data.logger, subject.logger
     end
