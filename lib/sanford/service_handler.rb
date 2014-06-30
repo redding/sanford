@@ -1,21 +1,6 @@
-require 'sanford/sanford_runner'
-require 'sanford/template_source'
-
 module Sanford
 
   module ServiceHandler
-
-    DISALLOWED_TEMPLATE_EXTS = Sanford::TemplateSource::DISALLOWED_ENGINE_EXTS
-
-    def self.constantize(class_name)
-      names = class_name.to_s.split('::').reject{|name| name.empty? }
-      klass = names.inject(Object) do |constant, name|
-        constant.const_get(name)
-      end
-      klass == Object ? false : klass
-    rescue NameError
-      false
-    end
 
     def self.included(klass)
       klass.class_eval do
@@ -31,18 +16,18 @@ module Sanford
       end
 
       def init
-        self.run_callback 'before_init'
+        run_callback 'before_init'
         self.init!
-        self.run_callback 'after_init'
+        run_callback 'after_init'
       end
 
       def init!
       end
 
       def run
-        self.run_callback 'before_run'
+        run_callback 'before_run'
         data = self.run!
-        self.run_callback 'after_run'
+        run_callback 'after_run'
         [ 200, data ]
       end
 
@@ -55,26 +40,19 @@ module Sanford
         "#<#{self.class}:#{reference} @request=#{self.request.inspect}>"
       end
 
-      protected
+      private
 
       # Helpers
 
       def render(path, options = nil)
         options ||= {}
-        get_engine(path, options['source'] || Sanford.config.template_source).render(
-          path,
-          self,
-          options['locals'] || {}
-        )
-      end
-
-      def run_handler(handler_class, params = nil)
-        handler_class.run(params || {}, self.logger)
+        source = options['source'] || @sanford_runner.template_source
+        source.render(path, self, options['locals'] || {})
       end
 
       def halt(*args); @sanford_runner.halt(*args); end
       def request;     @sanford_runner.request;     end
-      def params;      self.request.params;         end
+      def params;      @sanford_runner.params;      end
       def logger;      @sanford_runner.logger;      end
 
       def run_callback(callback)
@@ -83,25 +61,9 @@ module Sanford
         end
       end
 
-      private
-
-      def get_engine(path, source)
-        source.engines[File.extname(get_template(path, source))[1..-1] || '']
-      end
-
-      def get_template(path, source)
-        files = Dir.glob("#{Pathname.new(source.path).join(path.to_s)}.*")
-        files = files.reject{ |p| DISALLOWED_TEMPLATE_EXTS.include?(File.extname(p)) }
-        files.first.to_s
-      end
-
     end
 
     module ClassMethods
-
-      def run(params = nil, logger = nil)
-        SanfordRunner.run(self, params || {}, logger)
-      end
 
       def before_callbacks;      @before_callbacks      ||= []; end
       def after_callbacks;       @after_callbacks       ||= []; end

@@ -1,61 +1,180 @@
 require 'dat-tcp'
-require 'ostruct'
+require 'ns-options'
+require 'ns-options/boolean'
 require 'sanford-protocol'
-
-require 'sanford/host_data'
-require 'sanford/worker'
+require 'socket'
+require 'sanford/logger'
+require 'sanford/router'
+require 'sanford/server_data'
+require 'sanford/template_source'
+require 'sanford/connection_handler'
 
 module Sanford
 
-  class Server
-    include DatTCP::Server
+  module Server
 
-    attr_reader :sanford_host, :sanford_host_data, :sanford_host_options
-
-    def initialize(host, options = nil)
-      options ||= {}
-      @sanford_host = host
-      @sanford_host_options = {
-        :receives_keep_alive => options.delete(:keep_alive),
-        :verbose_logging     => options.delete(:verbose)
-      }
-      super options
-    end
-
-    # TCP_NODELAY is set to disable buffering. In the case of Sanford
-    # communication, we have all the information we need to send up front and
-    # are closing the connection, so it doesn't need to buffer.
-    # See http://linux.die.net/man/7/tcp
-
-    def configure_tcp_server(tcp_server)
-      tcp_server.setsockopt(::Socket::IPPROTO_TCP, ::Socket::TCP_NODELAY, true)
-    end
-
-    def on_run
-      @sanford_host_data = Sanford::HostData.new(@sanford_host, @sanford_host_options)
-    end
-
-    # `serve!` can be called at the same time by multiple threads. Thus we
-    # create a new instance of the handler for every request.
-    # When using TCP_CORK, you "cork" the socket, handle it and then "uncork"
-    # it, see the `TCPCork` module for more info.
-
-    def serve!(socket)
-      connection = Connection.new(socket)
-      if !self.keep_alive_connection?(connection)
-        Sanford::Worker.new(@sanford_host_data, connection).run
+    def self.included(klass)
+      klass.class_eval do
+        extend ClassMethods
+        include InstanceMethods
       end
     end
 
-    protected
+    module InstanceMethods
 
-    def keep_alive_connection?(connection)
-      @sanford_host_data.keep_alive && connection.peek_data.empty?
+      attr_reader :server_data, :dat_tcp_server
+
+      def initialize
+        self.class.configuration.validate!
+        @server_data = ServerData.new(self.class.configuration.to_hash)
+        @dat_tcp_server = DatTCP::Server.new{ |socket| serve(socket) }
+      rescue InvalidError => exception
+        exception.set_backtrace(caller)
+        raise exception
+      end
+
+      def name
+        @server_data.name
+      end
+
+      def ip
+        @dat_tcp_server.ip
+      end
+
+      def port
+        @dat_tcp_server.port
+      end
+
+      def file_descriptor
+        @dat_tcp_server.file_descriptor
+      end
+
+      def client_file_descriptors
+        @dat_tcp_server.client_file_descriptors
+      end
+
+      def pid_file
+        @server_data.pid_file
+      end
+
+      def logger
+        @server_data.logger
+      end
+
+      def listen(*args)
+        args = [ @server_data.ip, @server_data.port ] if args.empty?
+        @dat_tcp_server.listen(*args) do |server_socket|
+          configure_tcp_server(server_socket)
+        end
+      end
+
+      def start(*args)
+        @dat_tcp_server.start(*args)
+      end
+
+      def pause(*args)
+        @dat_tcp_server.pause(*args)
+      end
+
+      def stop(*args)
+        @dat_tcp_server.stop(*args)
+      end
+
+      def halt(*args)
+        @dat_tcp_server.halt(*args)
+      end
+
+      def paused?
+        @dat_tcp_server.listening? && !@dat_tcp_server.running?
+      end
+
+      private
+
+      def serve(socket)
+        connection = Connection.new(socket)
+        if !keep_alive_connection?(connection)
+          Sanford::ConnectionHandler.new(@server_data, connection).run
+        end
+      end
+
+      def keep_alive_connection?(connection)
+        @server_data.receives_keep_alive && connection.peek_data.empty?
+      end
+
+      # TCP_NODELAY is set to disable buffering. In the case of Sanford
+      # communication, we have all the information we need to send up front and
+      # are closing the connection, so it doesn't need to buffer.
+      # See http://linux.die.net/man/7/tcp
+
+      def configure_tcp_server(tcp_server)
+        tcp_server.setsockopt(::Socket::IPPROTO_TCP, ::Socket::TCP_NODELAY, true)
+      end
+
+    end
+
+    module ClassMethods
+
+      def configuration
+        @configuration ||= Configuration.new
+      end
+
+      def name(*args)
+        self.configuration.name *args
+      end
+
+      def ip(*args)
+        self.configuration.ip *args
+      end
+
+      def port(*args)
+        self.configuration.port *args
+      end
+
+      def pid_file(*args)
+        self.configuration.pid_file *args
+      end
+
+      def receives_keep_alive(*args)
+        self.configuration.receives_keep_alive *args
+      end
+
+      def verbose_logging(*args)
+        self.configuration.verbose_logging *args
+      end
+
+      def logger(*args)
+        self.configuration.logger *args
+      end
+
+      def init(&block)
+        self.configuration.init_procs << block
+      end
+
+      def error(&block)
+        self.configuration.error_procs << block
+      end
+
+      def router(value = nil, &block)
+        self.configuration.router = value if !value.nil?
+        self.configuration.router.instance_eval(&block) if block
+        self.configuration.router
+      end
+
+      def template_source(*args)
+        self.configuration.template_source(*args)
+      end
+
+      def build_template_source(path, &block)
+        block ||= proc{ }
+        self.template_source TemplateSource.new(path).tap(&block)
+      end
+
     end
 
     class Connection
-
       DEFAULT_TIMEOUT = 1
+
+      attr_reader :timeout
 
       def initialize(socket)
         @socket     = socket
@@ -80,11 +199,9 @@ module Sanford
       def close_write
         @connection.close_write
       end
-
     end
 
     module TCPCork
-
       # On Linux, use TCP_CORK to better control how the TCP stack
       # packetizes our stream. This improves both latency and throughput.
       # TCP_CORK disables Nagle's algorithm, which is ideal for sporadic
@@ -96,11 +213,11 @@ module Sanford
       if RUBY_PLATFORM =~ /linux/
         # 3 == TCP_CORK
         def self.apply(socket)
-          socket.setsockopt(Socket::IPPROTO_TCP, 3, true)
+          socket.setsockopt(::Socket::IPPROTO_TCP, 3, true)
         end
 
         def self.remove(socket)
-          socket.setsockopt(Socket::IPPROTO_TCP, 3, false)
+          socket.setsockopt(::Socket::IPPROTO_TCP, 3, false)
         end
       else
         def self.apply(socket)
@@ -109,8 +226,60 @@ module Sanford
         def self.remove(socket)
         end
       end
-
     end
+
+    class Configuration
+      include NsOptions::Proxy
+
+      option :name,     String,  :required => true
+      option :ip,       String,  :required => true, :default => '0.0.0.0'
+      option :port,     Integer, :required => true
+      option :pid_file, Pathname
+
+      option :receives_keep_alive, NsOptions::Boolean, :default => false
+
+      option :verbose_logging, :default => true
+      option :logger,          :default => proc{ NullLogger.new }
+      option :template_source, :default => proc{ NullTemplateSource.new }
+
+      attr_accessor :init_procs, :error_procs
+      attr_accessor :router
+
+      def initialize(values = nil)
+        super(values)
+        @init_procs, @error_procs = [], []
+        @router = Sanford::Router.new
+        @valid = nil
+      end
+
+      def routes
+        @router.routes
+      end
+
+      def to_hash
+        super.merge({
+          :error_procs => self.error_procs,
+          :routes => self.routes,
+          :template_source => self.template_source
+        })
+      end
+
+      def valid?
+        !!@valid
+      end
+
+      def validate!
+        return @valid if !@valid.nil?
+        self.init_procs.each(&:call)
+        if !self.required_set?
+          raise InvalidError, "a name, ip and port must be configured"
+        end
+        self.routes.each(&:validate!)
+        @valid = true
+      end
+    end
+
+    InvalidError = Class.new(RuntimeError)
 
   end
 
