@@ -448,13 +448,11 @@ module Sanford::Server
       assert_equal subject.router.routes, subject.routes
     end
 
-    should "include its routes, error procs and template source in its hash" do
+    should "include its init/error procs and routes in its hash representation" do
       config_hash = subject.to_hash
+      assert_equal subject.init_procs, config_hash[:init_procs]
       assert_equal subject.error_procs, config_hash[:error_procs]
       assert_equal subject.routes, config_hash[:routes]
-      template_source = subject.template_source
-      assert_instance_of template_source.class, config_hash[:template_source]
-      assert_equal template_source.path, config_hash[:template_source].path
     end
 
     should "call its init procs when validated" do
