@@ -1,10 +1,23 @@
 require 'assert'
 require 'sanford/cli'
 
+require 'sanford/server'
+
 class Sanford::CLI
 
   class UnitTests < Assert::Context
     desc "Sanford::CLI"
+    setup do
+      @cli_class = Sanford::CLI
+    end
+    subject{ @cli_class }
+
+    should have_imeths :run
+
+  end
+
+  class InitTests < UnitTests
+    desc "when init"
     setup do
       @kernel_spy = KernelSpy.new
       @file_path = Factory.file_path
@@ -14,48 +27,43 @@ class Sanford::CLI
       @config_file = FakeConfigFile.new(@server)
       Assert.stub(Sanford::ConfigFile, :new).with(@file_path){ @config_file }
 
+      @process_spy = ProcessSpy.new
+      @process_signal_spy = ProcessSignalSpy.new
+
       @cli = Sanford::CLI.new(@kernel_spy)
     end
     subject{ @cli }
 
-    should have_cmeths :run
     should have_imeths :run
 
   end
 
-  class CommandTests < UnitTests
+  class DefaultsTests < InitTests
     setup do
-      @process_spy = ProcessSpy.new
-      @process_signal_spy = ProcessSignalSpy.new
-    end
-
-  end
-
-  class DefaultsTests < CommandTests
-    desc "with no command or file path"
-    setup do
-      file_path = 'config.sanford'
-      Assert.stub(Sanford::ConfigFile, :new).with(file_path){ @config_file }
+      Assert.stub(Sanford::ConfigFile, :new).with('config.sanford'){ @config_file }
       Assert.stub(Sanford::Process, :new).with(@server, :daemonize => false) do
         @process_spy
       end
-
-      @cli.run
     end
 
-    should "have defaulted the command and file path" do
+    should "default the command when its not provided" do
+      subject.run(@file_path)
+      assert_true @process_spy.run_called
+    end
+
+    should "default the command and file path when they aren't provided" do
+      subject.run
       assert_true @process_spy.run_called
     end
 
   end
 
-  class RunTests < CommandTests
+  class RunTests < InitTests
     desc "with the run command"
     setup do
       Assert.stub(Sanford::Process, :new).with(@server, :daemonize => false) do
         @process_spy
       end
-
       @cli.run(@file_path, 'run')
     end
 
@@ -65,7 +73,7 @@ class Sanford::CLI
 
   end
 
-  class StartTests < CommandTests
+  class StartTests < InitTests
     desc "with the start command"
     setup do
       Assert.stub(Sanford::Process, :new).with(@server, :daemonize => true) do
@@ -81,7 +89,7 @@ class Sanford::CLI
 
   end
 
-  class StopTests < CommandTests
+  class StopTests < InitTests
     desc "with the stop command"
     setup do
       Assert.stub(Sanford::ProcessSignal, :new).with(@server, 'TERM') do
@@ -97,7 +105,7 @@ class Sanford::CLI
 
   end
 
-  class RestartTests < CommandTests
+  class RestartTests < InitTests
     desc "with the restart command"
     setup do
       Assert.stub(Sanford::ProcessSignal, :new).with(@server, 'USR2') do
@@ -113,7 +121,7 @@ class Sanford::CLI
 
   end
 
-  class InvalidCommandTests < UnitTests
+  class InvalidCommandTests < InitTests
     desc "with an invalid command"
     setup do
       @command = Factory.string

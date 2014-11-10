@@ -23,7 +23,7 @@ module Sanford
       rescue CLIRB::HelpExit
         @kernel.puts help
       rescue CLIRB::VersionExit
-        @kernel.puts "sanford #{Sanford::VERSION}"
+        @kernel.puts Sanford::VERSION
       rescue CLIRB::Error, Sanford::ConfigFile::InvalidError => exception
         @kernel.puts "#{exception.message}\n\n"
         @kernel.puts help
@@ -40,8 +40,9 @@ module Sanford
 
     def run!(*args)
       @cli.parse!(args)
-      command          = @cli.args.pop || 'run'
-      config_file_path = @cli.args.pop || 'config.sanford'
+      config_file_path, command = @cli.args
+      config_file_path ||= 'config.sanford'
+      command ||= 'run'
       server = Sanford::ConfigFile.new(config_file_path).server
       case(command)
       when 'run'
@@ -58,9 +59,9 @@ module Sanford
     end
 
     def help
-      "Usage: sanford [CONFIG_FILE] [COMMAND]\n" \
-      "Commands: run, start, stop, restart" \
-      "#{@cli}"
+      "Usage: sanford [CONFIG_FILE] [COMMAND] [options]\n\n" \
+      "Commands: run, start, stop, restart\n" \
+      "Options: #{@cli}"
     end
 
   end
