@@ -144,9 +144,9 @@ module Sanford::ServiceHandler
     should have_imeths :init, :init!, :run, :run!
 
     should "know its request, params and logger" do
-      assert_equal @runner.request, subject.request
-      assert_equal @runner.params, subject.params
-      assert_equal @runner.logger, subject.logger
+      assert_equal @runner.request, subject.public_request
+      assert_equal @runner.params,  subject.public_params
+      assert_equal @runner.logger,  subject.public_logger
     end
 
     should "call `init!` and its before/after init callbacks using `init`" do
@@ -170,7 +170,7 @@ module Sanford::ServiceHandler
     should "have a custom inspect" do
       reference = '0x0%x' % (subject.object_id << 1)
       expected = "#<#{subject.class}:#{reference} " \
-                 "@request=#{subject.request.inspect}>"
+                 "@request=#{@runner.request.inspect}>"
       assert_equal expected, subject.inspect
     end
 
@@ -220,7 +220,7 @@ module Sanford::ServiceHandler
     # these methods are made public so they can be tested, they are being tested
     # because they are used by classes that mixin this, essentially they are
     # "public" to classes that use the mixin
-    public :render, :halt, :request, :params, :logger
+    public :render, :halt
 
     before_init{ @first_before_init_call_order = next_call_order }
     before_init{ @second_before_init_call_order = next_call_order }
@@ -240,6 +240,18 @@ module Sanford::ServiceHandler
 
     def run!
       @run_call_order = next_call_order
+    end
+
+    def public_request
+      request
+    end
+
+    def public_params
+      params
+    end
+
+    def public_logger
+      logger
     end
 
     private
