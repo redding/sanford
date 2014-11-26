@@ -8,25 +8,35 @@ class Sanford::ServerData
   class UnitTests < Assert::Context
     desc "Sanford::ServerData"
     setup do
-      @name = Factory.string
-      @ip = Factory.string
-      @port = Factory.integer
+      @name     = Factory.string
+      @ip       = Factory.string
+      @port     = Factory.integer
       @pid_file = Factory.file_path
-      @logger = Factory.string
-      @verbose_logging = Factory.boolean
+
       @receives_keep_alive = Factory.boolean
-      @error_procs = [ proc{ } ]
-      @route = Sanford::Route.new(Factory.string, TestHandler.to_s).tap(&:validate!)
+
+      @verbose_logging = Factory.boolean
+      @logger          = Factory.string
+      @template_source = Factory.string
+
+      @init_procs  = [ proc{} ]
+      @error_procs = [ proc{} ]
+
+      @router = Factory.string
+      @route  = Sanford::Route.new(Factory.string, TestHandler.to_s).tap(&:validate!)
 
       @server_data = Sanford::ServerData.new({
-        :name => @name,
-        :ip => @ip,
-        :port => @port,
+        :name     => @name,
+        :ip       => @ip,
+        :port     => @port,
         :pid_file => @pid_file,
-        :logger => @logger,
-        :verbose_logging => @verbose_logging,
         :receives_keep_alive => @receives_keep_alive,
+        :verbose_logging => @verbose_logging,
+        :logger          => @logger,
+        :template_source => @template_source,
+        :init_procs  => @init_procs,
         :error_procs => @error_procs,
+        :router => @router,
         :routes => [ @route ]
       })
     end
@@ -35,20 +45,27 @@ class Sanford::ServerData
     should have_readers :name
     should have_readers :ip, :port
     should have_readers :pid_file
-    should have_readers :logger, :verbose_logging
     should have_readers :receives_keep_alive
-    should have_readers :error_procs
-    should have_readers :routes
+    should have_readers :verbose_logging, :logger, :template_source
+    should have_readers :init_procs, :error_procs
+    should have_readers :router, :routes
 
     should "know its attributes" do
-      assert_equal @name, subject.name
-      assert_equal @ip, subject.ip
-      assert_equal @port, subject.port
+      assert_equal @name,     subject.name
+      assert_equal @ip,       subject.ip
+      assert_equal @port,     subject.port
       assert_equal @pid_file, subject.pid_file
-      assert_equal @logger, subject.logger
-      assert_equal @verbose_logging, subject.verbose_logging
+
       assert_equal @receives_keep_alive, subject.receives_keep_alive
+
+      assert_equal @verbose_logging, subject.verbose_logging
+      assert_equal @logger,          subject.logger
+      assert_equal @template_source, subject.template_source
+
+      assert_equal @init_procs,  subject.error_procs
       assert_equal @error_procs, subject.error_procs
+
+      assert_equal @router, subject.router
     end
 
     should "build a routes lookup hash" do
@@ -73,10 +90,17 @@ class Sanford::ServerData
       assert_nil server_data.ip
       assert_nil server_data.port
       assert_nil server_data.pid_file
-      assert_nil server_data.logger
-      assert_false server_data.verbose_logging
+
       assert_false server_data.receives_keep_alive
+
+      assert_false server_data.verbose_logging
+      assert_nil   server_data.logger
+      assert_nil   server_data.template_source
+
+      assert_equal [], server_data.init_procs
       assert_equal [], server_data.error_procs
+
+      assert_nil       server_data.router
       assert_equal({}, server_data.routes)
     end
 
