@@ -448,10 +448,11 @@ module Sanford::Server
       assert_equal subject.router.routes, subject.routes
     end
 
-    should "include its init/error procs and routes in its hash representation" do
+    should "include its init/error procs and router/routes in its `to_hash`" do
       config_hash = subject.to_hash
       assert_equal subject.init_procs, config_hash[:init_procs]
       assert_equal subject.error_procs, config_hash[:error_procs]
+      assert_equal subject.router, config_hash[:router]
       assert_equal subject.routes, config_hash[:routes]
     end
 

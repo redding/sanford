@@ -10,24 +10,29 @@ module Sanford
     attr_reader :name
     attr_reader :ip, :port
     attr_reader :pid_file
-    attr_reader :logger, :verbose_logging
     attr_reader :receives_keep_alive
-    attr_reader :error_procs
-    attr_reader :routes
-    attr_reader :template_source
+    attr_reader :verbose_logging, :logger, :template_source
+    attr_reader :init_procs, :error_procs
+    attr_reader :router, :routes
 
     def initialize(args = nil)
       args ||= {}
-      @name = args[:name]
-      @ip   = args[:ip]
-      @port = args[:port]
+      @name     = args[:name]
+      @ip       = args[:ip]
+      @port     = args[:port]
       @pid_file = args[:pid_file]
-      @logger = args[:logger]
-      @verbose_logging = !!args[:verbose_logging]
+
       @receives_keep_alive = !!args[:receives_keep_alive]
-      @error_procs = args[:error_procs] || []
-      @routes = build_routes(args[:routes] || [])
+
+      @verbose_logging = !!args[:verbose_logging]
+      @logger          = args[:logger]
       @template_source = args[:template_source]
+
+      @init_procs  = args[:init_procs]  || []
+      @error_procs = args[:error_procs] || []
+
+      @router = args[:router]
+      @routes = build_routes(args[:routes] || [])
     end
 
     def route_for(name)
