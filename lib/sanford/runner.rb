@@ -1,5 +1,11 @@
+# need to define class immediately b/c of circular requires:
+# - runner -> router -> route -> sanford_runner -> runner
+module Sanford; end
+class Sanford::Runner; end
+
 require 'sanford-protocol'
 require 'sanford/logger'
+require 'sanford/router'
 require 'sanford/template_source'
 
 module Sanford
@@ -9,11 +15,18 @@ module Sanford
     ResponseArgs = Struct.new(:status, :data)
 
     attr_reader :handler_class, :handler
-    attr_reader :request, :params, :logger, :template_source
+    attr_reader :request, :params, :logger, :router, :template_source
 
-    def initialize(handler_class)
+    def initialize(handler_class, args = nil)
       @handler_class = handler_class
       @handler = @handler_class.new(self)
+
+      a = args || {}
+      @request         = a[:request]
+      @params          = a[:params] || {}
+      @logger          = a[:logger] || Sanford::NullLogger.new
+      @router          = a[:router] || Sanford::Router.new
+      @template_source = a[:template_source] || Sanford::NullTemplateSource.new
     end
 
     def run

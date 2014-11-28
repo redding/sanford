@@ -1,14 +1,12 @@
 require 'sanford-protocol'
-require 'sanford/logger'
 require 'sanford/runner'
 require 'sanford/service_handler'
-require 'sanford/template_source'
 
 module Sanford
 
   InvalidServiceHandlerError = Class.new(StandardError)
 
-  class TestRunner < Sanford::Runner
+  class TestRunner < Runner
 
     attr_reader :response
 
@@ -17,14 +15,15 @@ module Sanford
         raise InvalidServiceHandlerError, "#{handler_class.inspect} is not a"\
                                           " Sanford::ServiceHandler"
       end
-      args = (args || {}).dup
-      @request         = args.delete(:request)
-      @params          = args.delete(:params) || {}
-      @logger          = args.delete(:logger) || Sanford::NullLogger.new
-      @template_source = args.delete(:template_source) ||
-                         Sanford::NullTemplateSource.new
 
-      super(handler_class)
+      args = (args || {}).dup
+      super(handler_class, {
+        :request => args.delete(:request),
+        :params  => args.delete(:params),
+        :logger  => args.delete(:logger),
+        :router  => args.delete(:router),
+        :template_source => args.delete(:template_source)
+      })
       args.each{ |key, value| @handler.send("#{key}=", value) }
 
       return_value = catch(:halt){ @handler.init; nil }

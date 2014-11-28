@@ -17,7 +17,13 @@ module Sanford
     end
 
     def run(request, server_data)
-      SanfordRunner.new(self.handler_class, request, server_data).run
+      SanfordRunner.new(self.handler_class, {
+        :request => request,
+        :params  => request.params,
+        :logger  => server_data.logger,
+        :router  => server_data.router,
+        :template_source => server_data.template_source
+      }).run
     end
 
     private

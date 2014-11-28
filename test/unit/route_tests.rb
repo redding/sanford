@@ -36,22 +36,32 @@ class Sanford::Route
   class RunTests < UnitTests
     desc "when run"
     setup do
-      @route.validate!
-      @request = Factory.string
+      @runner_spy = SanfordRunnerSpy.new
+      Assert.stub(Sanford::SanfordRunner, :new) do |*args|
+        @runner_spy.build(*args)
+        @runner_spy
+      end
+
+      @request = OpenStruct.new('params' => 'some-params')
       @server_data = Sanford::ServerData.new
 
-      @runner_spy = RunnerSpy.new(Factory.text)
-      Assert.stub(Sanford::SanfordRunner, :new).with(
-        @route.handler_class,
-        @request,
-        @server_data
-      ){ @runner_spy }
-
+      @route.validate!
       @response = @route.run(@request, @server_data)
     end
     subject{ @response }
 
     should "build and run a sanford runner" do
+      assert_equal @route.handler_class, @runner_spy.handler_class
+
+      exp_args = {
+        :request => @request,
+        :params  => @request.params,
+        :logger  => @server_data.logger,
+        :router  => @server_data.router,
+        :template_source => @server_data.template_source
+      }
+      assert_equal exp_args, @runner_spy.args
+
       assert_true @runner_spy.run_called
     end
 
@@ -75,18 +85,34 @@ class Sanford::Route
 
   TestHandler = Class.new
 
-  class RunnerSpy
-    attr_reader :response, :run_called
+  class SanfordRunnerSpy
 
-    def initialize(response)
-      @response = response
+    attr_reader :run_called
+    attr_reader :handler_class, :args
+    attr_reader :request, :params, :logger, :router, :template_source
+    attr_reader :response
+
+    def initialize
       @run_called = false
+    end
+
+    def build(handler_class, args)
+      @handler_class, @args = handler_class, args
+
+      @request = args[:request]
+      @params  = args[:params]
+      @logger  = args[:logger]
+      @router  = args[:router]
+      @template_source = args[:template_source]
+
+      @response = Factory.string
     end
 
     def run
       @run_called = true
       @response
     end
+
   end
 
 end

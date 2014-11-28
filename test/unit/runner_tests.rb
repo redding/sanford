@@ -1,7 +1,9 @@
 require 'assert'
 require 'sanford/runner'
 
-require 'sanford/server_data'
+require 'sanford/logger'
+require 'sanford/router'
+require 'sanford/template_source'
 require 'sanford/service_handler'
 
 class Sanford::Runner
@@ -10,7 +12,6 @@ class Sanford::Runner
     desc "Sanford::Runner"
     setup do
       @handler_class = TestServiceHandler
-
       @runner_class = Sanford::Runner
     end
     subject{ @runner_class }
@@ -25,7 +26,7 @@ class Sanford::Runner
     subject{ @runner }
 
     should have_readers :handler_class, :handler
-    should have_readers :request, :params, :logger, :template_source
+    should have_readers :request, :params, :logger, :router, :template_source
     should have_imeths :run
     should have_imeths :halt
 
@@ -34,11 +35,16 @@ class Sanford::Runner
       assert_instance_of @handler_class, subject.handler
     end
 
-    should "not set its request, params, logger or template source" do
+    should "default its settings" do
       assert_nil subject.request
-      assert_nil subject.params
-      assert_nil subject.logger
-      assert_nil subject.template_source
+      assert_equal ::Hash.new, subject.params
+      assert_kind_of Sanford::NullLogger, subject.logger
+      assert_kind_of Sanford::Router, subject.router
+      assert_kind_of Sanford::NullTemplateSource, subject.template_source
+    end
+
+    should "not implement its run method" do
+      assert_raises(NotImplementedError){ subject.run }
     end
 
     should "throw halt with response args using `halt`" do
@@ -65,10 +71,6 @@ class Sanford::Runner
       assert_instance_of ResponseArgs, result
       assert_equal [ code, message ], result.status
       assert_equal data, result.data
-    end
-
-    should "raise a not implemented error when run" do
-      assert_raises(NotImplementedError){ subject.run }
     end
 
   end
