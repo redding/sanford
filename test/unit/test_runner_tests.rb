@@ -7,12 +7,6 @@ class Sanford::TestRunner
     desc "Sanford::TestRunner"
     setup do
       @handler_class = TestServiceHandler
-      @request = Sanford::Protocol::Request.new(Factory.string, {})
-      @params = { :something => Factory.string }
-      @logger = Factory.string
-      @template_source = Factory.string
-      @handler_flag = Factory.boolean
-
       @runner_class = Sanford::TestRunner
     end
     subject{ @runner_class }
@@ -26,12 +20,13 @@ class Sanford::TestRunner
   class InitTests < UnitTests
     desc "when init"
     setup do
+      @params = { Factory.string => Factory.integer }
       @args = {
-        :request => @request,
-        :params => @params,
-        :logger => @logger,
-        :template_source => @template_source,
-        :flag => @handler_flag
+        :request => 'a-request',
+        :params  => @params,
+        :logger  => 'a-logger',
+        :router  => 'a-router',
+        :template_source => 'a-source'
       }
       @runner = @runner_class.new(@handler_class, @args)
     end
@@ -40,31 +35,23 @@ class Sanford::TestRunner
     should have_readers :response
     should have_imeths :run
 
-    should "know its attributes" do
-      assert_equal @request, subject.request
-      assert_equal @params, subject.params
-      assert_equal @logger, subject.logger
-      assert_equal @template_source, subject.template_source
+    should "raise an invalid error when not passed a service handler" do
+      assert_raises(Sanford::InvalidServiceHandlerError) do
+        @runner_class.new(Class.new)
+      end
     end
 
-    should "write extra args to its service handler" do
-      assert_equal @handler_flag, subject.handler.flag
+    should "super its standard attributes" do
+      assert_equal 'a-request',  subject.request
+      assert_equal @params,      subject.params
+      assert_equal 'a-logger',   subject.logger
+      assert_equal 'a-router',   subject.router
+      assert_equal 'a-source',   subject.template_source
     end
 
-    should "not alter the args passed to it" do
-      assert_equal @request, @args[:request]
-      assert_equal @params, @args[:params]
-      assert_equal @logger, @args[:logger]
-      assert_equal @template_source, @args[:template_source]
-      assert_equal @handler_flag, @args[:flag]
-    end
-
-    should "default its request, logger, params and template source" do
-      test_runner = @runner_class.new(@handler_class)
-      assert_nil test_runner.request
-      assert_equal({}, test_runner.params)
-      assert_instance_of Sanford::NullLogger, test_runner.logger
-      assert_instance_of Sanford::NullTemplateSource, test_runner.template_source
+    should "write any non-standard args on the handler" do
+      runner = @runner_class.new(@handler_class, :custom_value => 42)
+      assert_equal 42, runner.handler.custom_value
     end
 
     should "not have called its service handlers before callbacks" do
@@ -77,12 +64,6 @@ class Sanford::TestRunner
 
     should "not have a response by default" do
       assert_nil subject.response
-    end
-
-    should "raise an invalid error when not passed a service handler" do
-      assert_raises(Sanford::InvalidServiceHandlerError) do
-        @runner_class.new(Class.new)
-      end
     end
 
   end
@@ -169,7 +150,7 @@ class Sanford::TestRunner
 
     attr_reader :before_called, :after_called
     attr_reader :init_called, :run_called
-    attr_accessor :flag, :response
+    attr_accessor :custom_value, :response
 
     before{ @before_called = true }
     after{ @after_called = true }

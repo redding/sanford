@@ -2,19 +2,7 @@ require 'sanford/runner'
 
 module Sanford
 
-  class SanfordRunner < Sanford::Runner
-
-    def initialize(handler_class, request, server_data)
-      @request         = request
-      @params          = @request.params
-      @logger          = server_data.logger
-      @template_source = server_data.template_source
-
-      super(handler_class)
-    end
-
-    # call the handler init and the handler run - if the init halts, run won't
-    # be called.
+  class SanfordRunner < Runner
 
     def run
       build_response do

@@ -1,7 +1,7 @@
 require 'assert'
 require 'sanford/sanford_runner'
 
-require 'sanford/server_data'
+require 'sanford/runner'
 require 'sanford/service_handler'
 
 class Sanford::SanfordRunner
@@ -10,14 +10,6 @@ class Sanford::SanfordRunner
     desc "Sanford::SanfordRunner"
     setup do
       @handler_class = TestServiceHandler
-      @request = Sanford::Protocol::Request.new(Factory.string, {
-        :something => Factory.string
-      })
-      @server_data = Sanford::ServerData.new({
-        :logger => Factory.string,
-        :template_source => Factory.string
-      })
-
       @runner_class = Sanford::SanfordRunner
     end
     subject{ @runner_class }
@@ -31,16 +23,11 @@ class Sanford::SanfordRunner
   class InitTests < UnitTests
     desc "when init"
     setup do
-      @runner = @runner_class.new(@handler_class, @request, @server_data)
+      @runner = @runner_class.new(@handler_class)
     end
     subject{ @runner }
 
-    should "know its request, params, logger and template source" do
-      assert_equal @request, subject.request
-      assert_equal @request.params, subject.params
-      assert_equal @server_data.logger, subject.logger
-      assert_equal @server_data.template_source, subject.template_source
-    end
+    should have_imeths :run
 
   end
 
@@ -77,8 +64,9 @@ class Sanford::SanfordRunner
   class RunHaltInBeforeTests < UnitTests
     desc "running a handler that halts in a before callback"
     setup do
-      req = Sanford::Protocol::Request.new(Factory.string, 'halt' => 'before')
-      runner = @runner_class.new(@handler_class, req, @server_data).tap(&:run)
+      runner = @runner_class.new(@handler_class, :params => {
+        'halt' => 'before'
+      }).tap(&:run)
       @handler = runner.handler
     end
     subject{ @handler }
@@ -97,8 +85,9 @@ class Sanford::SanfordRunner
   class RunHandlerHaltInitTests < UnitTests
     desc "running a handler that halts in init"
     setup do
-      req = Sanford::Protocol::Request.new(Factory.string, 'halt' => 'init')
-      runner = @runner_class.new(@handler_class, req, @server_data).tap(&:run)
+      runner = @runner_class.new(@handler_class, :params => {
+        'halt' => 'init'
+      }).tap(&:run)
       @handler = runner.handler
     end
     subject{ @handler }
@@ -117,8 +106,9 @@ class Sanford::SanfordRunner
   class RunHandlerHaltRunTests < UnitTests
     desc "running a handler that halts in run"
     setup do
-      req = Sanford::Protocol::Request.new(Factory.string, 'halt' => 'run')
-      runner = @runner_class.new(@handler_class, req, @server_data).tap(&:run)
+      runner = @runner_class.new(@handler_class, :params => {
+        'halt' => 'run'
+      }).tap(&:run)
       @handler = runner.handler
     end
     subject{ @handler }
@@ -137,8 +127,9 @@ class Sanford::SanfordRunner
   class RunHandlerHaltAfterTests < UnitTests
     desc "running a handler that halts in a after callback"
     setup do
-      req = Sanford::Protocol::Request.new(Factory.string, 'halt' => 'after')
-      runner = @runner_class.new(@handler_class, req, @server_data).tap(&:run)
+      runner = @runner_class.new(@handler_class, :params => {
+        'halt' => 'after'
+      }).tap(&:run)
       @handler = runner.handler
     end
     subject{ @handler }
@@ -162,23 +153,13 @@ class Sanford::SanfordRunner
     attr_reader :init_call_order, :run_call_order
     attr_reader :response_data
 
-    before do
-      @first_before_call_order = next_call_order
-      halt_if('before')
-    end
+    before{ @first_before_call_order = next_call_order; halt_if('before') }
     before{ @second_before_call_order = next_call_order }
 
-    after do
-      @first_after_call_order = next_call_order
-      halt_if('after')
-    end
+    after{ @first_after_call_order = next_call_order; halt_if('after') }
     after{ @second_after_call_order = next_call_order }
 
-    def init!
-      @init_call_order = next_call_order
-      halt_if('init')
-    end
-
+    def init!; @init_call_order = next_call_order; halt_if('init'); end
     def run!
       @run_call_order = next_call_order
       halt_if('run')
@@ -187,11 +168,7 @@ class Sanford::SanfordRunner
 
     private
 
-    def next_call_order
-      @order ||= 0
-      @order += 1
-    end
-
+    def next_call_order; @order ||= 0; @order += 1; end
     def halt_if(value)
       halt Factory.integer if params['halt'] == value
     end
