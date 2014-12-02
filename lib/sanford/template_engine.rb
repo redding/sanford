@@ -1,14 +1,16 @@
 require 'pathname'
+require 'sanford/logger'
 
 module Sanford
 
   class TemplateEngine
 
-    attr_reader :source_path, :opts
+    attr_reader :source_path, :logger, :opts
 
     def initialize(opts = nil)
       @opts = opts || {}
       @source_path = Pathname.new(@opts['source_path'].to_s)
+      @logger = @opts['logger'] || Sanford::NullLogger.new
     end
 
     def render(path, service_handler, locals)

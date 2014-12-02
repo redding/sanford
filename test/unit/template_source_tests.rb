@@ -1,6 +1,7 @@
 require 'assert'
 require 'sanford/template_source'
 
+require 'sanford/logger'
 require 'sanford/template_engine'
 
 class Sanford::TemplateSource
@@ -19,12 +20,13 @@ class Sanford::TemplateSource
   class InitTests < Assert::Context
     setup do
       @source_path = ROOT_PATH.join('test/support').to_s
-      @source = Sanford::TemplateSource.new(@source_path)
+      @logger = 'a-logger'
+      @source = Sanford::TemplateSource.new(@source_path, @logger)
     end
     subject{ @source }
 
     should have_readers :path, :engines
-    should have_imeths :engine, :render
+    should have_imeths :engine, :engine_for?, :render
 
     should "know its path" do
       assert_equal @source_path.to_s, subject.path
@@ -44,20 +46,34 @@ class Sanford::TemplateSource
       assert_kind_of @test_engine, subject.engines['test']
     end
 
-    should "register with the source path as a default option" do
+    should "register with default options" do
       subject.engine 'test', @test_engine
-      exp_opts = { 'source_path' => subject.path }
+      exp_opts = {
+        'source_path' => subject.path,
+        'logger'      => @logger
+      }
       assert_equal exp_opts, subject.engines['test'].opts
+
+      source = Sanford::TemplateSource.new(@source_path)
+      source.engine 'test', @test_engine
+      assert_kind_of Sanford::NullLogger, source.engines['test'].opts['logger']
 
       subject.engine 'test', @test_engine, 'an' => 'opt'
       exp_opts = {
         'source_path' => subject.path,
-        'an' => 'opt'
+        'logger'      => @logger,
+        'an'          => 'opt'
       }
       assert_equal exp_opts, subject.engines['test'].opts
 
-      subject.engine 'test', @test_engine, 'source_path' => 'something'
-      exp_opts = { 'source_path' => 'something' }
+      subject.engine('test', @test_engine, {
+        'source_path' => 'something',
+        'logger'      => 'another'
+      })
+      exp_opts = {
+        'source_path' => 'something',
+        'logger'      => 'another'
+      }
       assert_equal exp_opts, subject.engines['test'].opts
     end
 
@@ -67,6 +83,13 @@ class Sanford::TemplateSource
         subject.engine 'rb', @test_engine
       end
       assert_kind_of Sanford::NullTemplateEngine, subject.engines['rb']
+    end
+
+    should "know if it has an engine registered for a given template name" do
+      assert_false subject.engine_for?('test_template')
+
+      subject.engine 'test', @test_engine
+      assert_true subject.engine_for?('test_template')
     end
 
   end

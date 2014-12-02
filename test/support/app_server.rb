@@ -1,6 +1,6 @@
 require 'pathname'
-require 'sanford'
 require 'sanford-protocol'
+require 'sanford'
 
 if !defined?(ROOT_PATH)
   ROOT_PATH = Pathname.new(File.expand_path('../../..', __FILE__))
@@ -40,8 +40,9 @@ class AppServer
     service 'custom_error', 'CustomError'
   end
 
-  build_template_source ROOT_PATH.join('test/support').to_s do |s|
+  Sanford::TemplateSource.new(ROOT_PATH.join('test/support').to_s).tap do |s|
     s.engine 'erb', AppERBEngine
+    template_source s
   end
 
   error do |exception, server_data, request|

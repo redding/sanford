@@ -2,6 +2,7 @@ require 'assert'
 require 'sanford/template_engine'
 
 require 'pathname'
+require 'sanford/logger'
 require 'test/support/factory'
 
 class Sanford::TemplateEngine
@@ -17,7 +18,7 @@ class Sanford::TemplateEngine
     end
     subject{ @engine }
 
-    should have_readers :source_path, :opts
+    should have_readers :source_path, :logger, :opts
     should have_imeths :render
 
     should "default its source path" do
@@ -27,6 +28,16 @@ class Sanford::TemplateEngine
     should "allow custom source paths" do
       engine = Sanford::TemplateEngine.new('source_path' => @source_path)
       assert_equal Pathname.new(@source_path.to_s), engine.source_path
+    end
+
+    should "default its logger" do
+      assert_instance_of Sanford::NullLogger, subject.logger
+    end
+
+    should "allow custom loggers" do
+      logger = 'a-logger'
+      engine = Sanford::TemplateEngine.new('logger' => logger)
+      assert_equal logger, engine.logger
     end
 
     should "default the opts if none given" do

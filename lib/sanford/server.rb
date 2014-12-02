@@ -172,11 +172,6 @@ module Sanford
         self.configuration.template_source(*args)
       end
 
-      def build_template_source(path, &block)
-        block ||= proc{ }
-        self.template_source TemplateSource.new(path).tap(&block)
-      end
-
     end
 
     class Connection

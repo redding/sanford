@@ -23,8 +23,7 @@ module Sanford::Server
     should have_imeths :receives_keep_alive
     should have_imeths :verbose_logging, :logger
     should have_imeths :init, :error
-    should have_imeths :router
-    should have_imeths :template_source, :build_template_source
+    should have_imeths :router, :template_source
 
     should "know its configuration" do
       config = subject.configuration
@@ -115,20 +114,6 @@ module Sanford::Server
       subject.template_source(new_template_source)
       assert_equal new_template_source, subject.configuration.template_source
       assert_equal new_template_source, subject.template_source
-    end
-
-    should "allow setting its template source with a path and block" do
-      new_path = Factory.string
-      yielded = nil
-      subject.build_template_source(new_path){ |s| yielded = s }
-      assert_equal new_path, subject.configuration.template_source.path
-      assert_equal subject.configuration.template_source, yielded
-    end
-
-    should "allow setting its template source with only a path" do
-      new_path = Factory.string
-      subject.build_template_source(new_path)
-      assert_equal new_path, subject.configuration.template_source.path
     end
 
   end

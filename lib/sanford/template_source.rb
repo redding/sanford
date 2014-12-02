@@ -1,3 +1,4 @@
+require 'sanford/logger'
 require 'sanford/template_engine'
 
 module Sanford
@@ -10,9 +11,12 @@ module Sanford
 
     attr_reader :path, :engines
 
-    def initialize(path)
+    def initialize(path, logger = nil)
       @path = path.to_s
-      @default_opts = { 'source_path' => @path }
+      @default_opts = {
+        'source_path' => @path,
+        'logger'      => logger || Sanford::NullLogger.new
+      }
       @engines = Hash.new{ |h,k| Sanford::NullTemplateEngine.new(@default_opts) }
     end
 
@@ -23,6 +27,10 @@ module Sanford
       end
       engine_opts = @default_opts.merge(registered_opts || {})
       @engines[input_ext.to_s] = engine_class.new(engine_opts)
+    end
+
+    def engine_for?(template_name)
+      @engines.keys.include?(get_template_ext(template_name))
     end
 
     def render(template_path, service_handler, locals)
