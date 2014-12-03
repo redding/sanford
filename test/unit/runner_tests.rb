@@ -21,7 +21,8 @@ class Sanford::Runner
   class InitTests < UnitTests
     desc "when init"
     setup do
-      @runner = @runner_class.new(@handler_class)
+      source = FakeTemplateSource.new
+      @runner = @runner_class.new(@handler_class, :template_source => source)
     end
     subject{ @runner }
 
@@ -36,15 +37,29 @@ class Sanford::Runner
     end
 
     should "default its settings" do
-      assert_nil subject.request
-      assert_equal ::Hash.new, subject.params
-      assert_kind_of Sanford::NullLogger, subject.logger
-      assert_kind_of Sanford::Router, subject.router
-      assert_kind_of Sanford::NullTemplateSource, subject.template_source
+      runner = @runner_class.new(@handler_class)
+      assert_nil runner.request
+      assert_equal ::Hash.new, runner.params
+      assert_kind_of Sanford::NullLogger, runner.logger
+      assert_kind_of Sanford::Router, runner.router
+      assert_kind_of Sanford::NullTemplateSource, runner.template_source
     end
 
     should "not implement its run method" do
       assert_raises(NotImplementedError){ subject.run }
+    end
+
+    should "use the template source to render" do
+      path = 'template.json'
+      locals = { 'something' => Factory.string }
+      exp = subject.template_source.render(path, subject.handler, locals)
+      assert_equal exp, subject.render(path, locals)
+    end
+
+    should "default its locals to an empty hash when rendering" do
+      path = Factory.file_path
+      exp = subject.template_source.render(path, subject.handler, {})
+      assert_equal exp, subject.render(path)
     end
 
     should "throw halt with response args using `halt`" do
@@ -77,6 +92,12 @@ class Sanford::Runner
 
   class TestServiceHandler
     include Sanford::ServiceHandler
+  end
+
+  class FakeTemplateSource
+    def render(path, service_handler, locals)
+      [path.to_s, service_handler.class.to_s, locals]
+    end
   end
 
 end

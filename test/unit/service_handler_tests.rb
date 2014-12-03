@@ -174,32 +174,17 @@ module Sanford::ServiceHandler
       assert_equal expected, subject.inspect
     end
 
-    should "demeter its runner's halt" do
-      code = Factory.integer
-      result = subject.halt(code)
-      assert_includes [ code ], @runner.halt_calls
-    end
-
-    should "use the runner template source to render the template by default" do
+    should "delegate its runner's `render` method" do
       path = Factory.file_path
       locals = { 'something' => Factory.string }
-      result = subject.render(path, 'locals' => locals)
-      assert_equal [ path, TestServiceHandler.to_s, locals ], result
+      result = subject.render(path, locals)
+      assert_equal [path, locals], @runner.render_calls.last
     end
 
-    should "default its locals to an empty hash using `render`" do
-      path = Factory.file_path
-      result = subject.render(path)
-      assert_equal [ path, TestServiceHandler.to_s, {} ], result
-    end
-
-    should "allow passing a source to its options using `render`" do
-      path = Factory.file_path
-      source_class = Class.new do
-        def render(path, service_handler, locals); path; end
-      end
-      result = subject.render(path, 'source' => source_class.new)
-      assert_equal path, result
+    should "delegate its runner's `halt` method" do
+      code = Factory.integer
+      result = subject.halt(code)
+      assert_equal [code], @runner.halt_calls.last
     end
 
     should "raise a not implemented error when `run!` by default" do
@@ -263,26 +248,17 @@ module Sanford::ServiceHandler
   end
 
   class FakeRunner
-    attr_accessor :request, :params, :logger, :template_source
-    attr_reader :halt_calls
+    attr_accessor :request, :params, :logger
+    attr_reader :render_calls, :halt_calls
 
     def initialize
       @request = Factory.string
       @params = Factory.string
       @logger = Factory.string
-      @template_source = FakeTemplateSource.new
     end
 
-    def halt(*args)
-      @halt_calls ||= []
-      @halt_calls << args
-    end
-  end
-
-  class FakeTemplateSource
-    def render(path, service_handler, locals)
-      [path.to_s, service_handler.class.to_s, locals]
-    end
+    def render(*args); @render_calls ||= []; @render_calls << args; end
+    def halt(*args);   @halt_calls   ||= []; @halt_calls   << args; end
   end
 
 end

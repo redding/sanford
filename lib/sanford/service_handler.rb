@@ -44,16 +44,11 @@ module Sanford
 
       # Helpers
 
-      def render(path, options = nil)
-        options ||= {}
-        source = options['source'] || @sanford_runner.template_source
-        source.render(path, self, options['locals'] || {})
-      end
-
-      def halt(*args); @sanford_runner.halt(*args); end
-      def request;     @sanford_runner.request;     end
-      def params;      @sanford_runner.params;      end
-      def logger;      @sanford_runner.logger;      end
+      def render(*args); @sanford_runner.render(*args); end
+      def halt(*args);   @sanford_runner.halt(*args);   end
+      def request;       @sanford_runner.request;       end
+      def params;        @sanford_runner.params;        end
+      def logger;        @sanford_runner.logger;        end
 
       def run_callback(callback)
         (self.class.send("#{callback}_callbacks") || []).each do |callback|
