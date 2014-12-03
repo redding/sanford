@@ -33,6 +33,10 @@ module Sanford
       raise NotImplementedError
     end
 
+    def render(path, locals = nil)
+      self.template_source.render(path, self.handler, locals || {})
+    end
+
     # It's best to keep what `halt` and `catch_halt` return in the same format.
     # Currently this is a `ResponseArgs` object. This is so no matter how the
     # block returns (either by throwing or running normally), you get the same
