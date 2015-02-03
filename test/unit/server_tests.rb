@@ -143,7 +143,7 @@ module Sanford::Server
     should have_imeths :name, :ip, :port
     should have_imeths :file_descriptor, :client_file_descriptors
     should have_imeths :configured_ip, :configured_port
-    should have_imeths :pid_file, :logger
+    should have_imeths :pid_file, :logger, :router, :template_source
     should have_imeths :listen, :start, :pause, :stop, :halt
     should have_imeths :paused?
 
@@ -171,12 +171,17 @@ module Sanford::Server
       assert_not_nil @dat_tcp_server_spy.serve_proc
     end
 
-    should "know its name, pid file and logger" do
+    should "know its name, pid file" do
       assert_equal subject.server_data.name, subject.name
       assert_equal subject.server_data.ip, subject.configured_ip
       assert_equal subject.server_data.port, subject.configured_port
       assert_equal subject.server_data.pid_file, subject.pid_file
-      assert_equal subject.server_data.logger, subject.logger
+    end
+
+    should "know its logger, router and template source" do
+      assert_equal subject.server_data.logger,          subject.logger
+      assert_equal subject.server_data.router,          subject.router
+      assert_equal subject.server_data.template_source, subject.template_source
     end
 
     should "call listen on its dat tcp server using `listen`" do

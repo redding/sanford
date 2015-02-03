@@ -69,6 +69,14 @@ module Sanford
         @server_data.logger
       end
 
+      def router
+        @server_data.router
+      end
+
+      def template_source
+        @server_data.template_source
+      end
+
       def listen(*args)
         args = [ @server_data.ip, @server_data.port ] if args.empty?
         @dat_tcp_server.listen(*args) do |server_socket|
