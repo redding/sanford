@@ -26,7 +26,8 @@ class Sanford::TemplateSource
     subject{ @source }
 
     should have_readers :path, :engines
-    should have_imeths :engine, :engine_for?, :render
+    should have_imeths :engine, :engine_for?, :engine_for_template?
+    should have_imeths :render
 
     should "know its path" do
       assert_equal @source_path.to_s, subject.path
@@ -86,10 +87,14 @@ class Sanford::TemplateSource
     end
 
     should "know if it has an engine registered for a given template name" do
-      assert_false subject.engine_for?('test_template')
+      assert_false subject.engine_for?(Factory.string)
+      assert_false subject.engine_for?('test')
+      assert_false subject.engine_for_template?(Factory.string)
+      assert_false subject.engine_for_template?('test_template')
 
       subject.engine 'test', @test_engine
-      assert_true subject.engine_for?('test_template')
+      assert_true subject.engine_for?('test')
+      assert_true subject.engine_for_template?('test_template')
     end
 
   end

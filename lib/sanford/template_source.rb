@@ -29,8 +29,12 @@ module Sanford
       @engines[input_ext.to_s] = engine_class.new(engine_opts)
     end
 
-    def engine_for?(template_name)
-      @engines.keys.include?(get_template_ext(template_name))
+    def engine_for?(ext)
+      @engines.keys.include?(ext)
+    end
+
+    def engine_for_template?(template_name)
+      self.engine_for?(get_template_ext(template_name))
     end
 
     def render(template_path, service_handler, locals)
