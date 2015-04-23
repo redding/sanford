@@ -7,14 +7,13 @@ module Sanford
     attr_reader :routes
 
     def initialize(&block)
-      @service_handler_ns = nil
       @routes = []
       self.instance_eval(&block) if !block.nil?
     end
 
     def service_handler_ns(value = nil)
-      @view_handler_ns = value if !value.nil?
-      @view_handler_ns
+      @service_handler_ns = value if !value.nil?
+      @service_handler_ns
     end
 
     def service(name, handler_name)
