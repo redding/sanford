@@ -35,12 +35,6 @@ class Sanford::TestRunner
     should have_readers :response
     should have_imeths :run
 
-    should "raise an invalid error when not passed a service handler" do
-      assert_raises(Sanford::InvalidServiceHandlerError) do
-        @runner_class.new(Class.new)
-      end
-    end
-
     should "super its standard attributes" do
       assert_equal 'a-request',  subject.request
       assert_equal @params,      subject.params
@@ -54,16 +48,30 @@ class Sanford::TestRunner
       assert_equal 42, runner.handler.custom_value
     end
 
-    should "not have called its service handlers before callbacks" do
+    should "not call its service handler's before callbacks" do
       assert_nil subject.handler.before_called
     end
 
-    should "have called init on its service handler" do
+    should "call its service handler's init" do
       assert_true subject.handler.init_called
+    end
+
+    should "not run its service handler" do
+      assert_false subject.handler.run_called
+    end
+
+    should "not call its service handler's after callbacks" do
+      assert_nil subject.handler.after_called
     end
 
     should "not have a response by default" do
       assert_nil subject.response
+    end
+
+    should "raise an invalid error passed a non service handler" do
+      assert_raises(Sanford::InvalidServiceHandlerError) do
+        @runner_class.new(Class.new)
+      end
     end
 
   end
@@ -80,11 +88,11 @@ class Sanford::TestRunner
       assert_instance_of Sanford::Protocol::Response, subject
     end
 
-    should "have called run on its service handler" do
+    should "run its service handler" do
       assert_true @runner.handler.run_called
     end
 
-    should "not have called its service handlers after callbacks" do
+    should "not call its service handler's after callbacks" do
       assert_nil @runner.handler.after_called
     end
 

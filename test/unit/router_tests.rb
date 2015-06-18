@@ -6,7 +6,7 @@ require 'test/support/factory'
 class Sanford::Router
 
   class UnitTests < Assert::Context
-    desc "Sanford::Host"
+    desc "Sanford::Router"
     setup do
       @router = Sanford::Router.new
     end

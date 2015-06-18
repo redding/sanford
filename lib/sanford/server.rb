@@ -1,6 +1,7 @@
 require 'dat-tcp'
 require 'ns-options'
 require 'ns-options/boolean'
+require 'pathname'
 require 'sanford-protocol'
 require 'socket'
 require 'sanford/logger'
