@@ -2,7 +2,6 @@ require 'benchmark'
 require 'sanford-protocol'
 require 'sanford/error_handler'
 require 'sanford/logger'
-require 'sanford/runner'
 
 module Sanford
 

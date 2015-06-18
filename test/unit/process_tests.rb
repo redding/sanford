@@ -87,8 +87,8 @@ class Sanford::Process
       ENV['SANFORD_PORT'] = ''
       ENV['SANFORD_SERVER_FD'] = ''
       process = @process_class.new(@server_spy)
-      assert_equal @server_spy.configured_ip, subject.server_ip
-      assert_equal @server_spy.configured_port, subject.server_port
+      assert_equal @server_spy.configured_ip, process.server_ip
+      assert_equal @server_spy.configured_port, process.server_port
       assert_nil process.server_fd
     end
 
@@ -105,7 +105,7 @@ class Sanford::Process
 
     should "not daemonize by default" do
       process = @process_class.new(@server_spy)
-      assert_false subject.daemonize?
+      assert_false process.daemonize?
     end
 
     should "daemonize if turned on" do

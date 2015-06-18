@@ -16,6 +16,7 @@ class Sanford::Route
     subject{ @route }
 
     should have_readers :name, :handler_class_name, :handler_class
+    should have_imeths :validate!, :run
 
     should "know its name and handler class name" do
       assert_equal @name, subject.name
