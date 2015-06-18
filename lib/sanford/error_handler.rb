@@ -46,7 +46,7 @@ module Sanford
 
     def response_from_exception(exception)
       case(exception)
-      when Sanford::Protocol::BadMessageError, Sanford::Protocol::BadRequestError
+      when Sanford::Protocol::BadMessageError, Sanford::Protocol::Request::InvalidError
         build_response :bad_request, :message => exception.message
       when Sanford::NotFoundError
         build_response :not_found

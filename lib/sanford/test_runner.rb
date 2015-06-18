@@ -18,10 +18,10 @@ module Sanford
 
       args = (args || {}).dup
       super(handler_class, {
-        :request => args.delete(:request),
-        :params  => args.delete(:params),
-        :logger  => args.delete(:logger),
-        :router  => args.delete(:router),
+        :request         => args.delete(:request),
+        :params          => normalize_params(args.delete(:params) || {}),
+        :logger          => args.delete(:logger),
+        :router          => args.delete(:router),
         :template_source => args.delete(:template_source)
       })
       args.each{ |key, value| @handler.send("#{key}=", value) }
@@ -40,11 +40,18 @@ module Sanford
 
     private
 
+    # Stringify and encode/decode to ensure params are valid and are
+    # in the format they would normally be when a handler is built and run.
+    def normalize_params(params)
+      p = Sanford::Protocol::StringifyParams.new(params)
+      Sanford::Protocol.msg_body.decode(Sanford::Protocol.msg_body.encode(p))
+    end
+
     def build_and_serialize_response(&block)
       build_response(&block).tap do |response|
         # attempt to serialize (and then throw away) the response data
-        # this will error on the developer if BSON can't serialize their response
-        Sanford::Protocol::BsonBody.new.encode(response.to_hash) if response
+        # this will error on the developer if it can't serialize their response
+        Sanford::Protocol.msg_body.encode(response.to_hash) if response
       end
     end
 

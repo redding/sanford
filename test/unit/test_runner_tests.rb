@@ -22,53 +22,77 @@ class Sanford::TestRunner
     setup do
       @params = { Factory.string => Factory.integer }
       @args = {
-        :request => 'a-request',
-        :params  => @params,
-        :logger  => 'a-logger',
-        :router  => 'a-router',
-        :template_source => 'a-source'
+        :request         => Factory.string,
+        :params          => @params,
+        :logger          => Factory.string,
+        :router          => Factory.string,
+        :template_source => Factory.string,
+        :custom_value    => Factory.integer
       }
-      @runner = @runner_class.new(@handler_class, @args)
+      @original_args = @args.dup
+      @runner  = @runner_class.new(@handler_class, @args)
+      @handler = @runner.handler
     end
     subject{ @runner }
 
     should have_readers :response
     should have_imeths :run
 
-    should "super its standard attributes" do
-      assert_equal 'a-request',  subject.request
-      assert_equal @params,      subject.params
-      assert_equal 'a-logger',   subject.logger
-      assert_equal 'a-router',   subject.router
-      assert_equal 'a-source',   subject.template_source
+    should "know its standard attributes" do
+      assert_equal @args[:request],         subject.request
+      assert_equal @params,                 subject.params
+      assert_equal @args[:logger],          subject.logger
+      assert_equal @args[:router],          subject.router
+      assert_equal @args[:template_source], subject.template_source
     end
 
-    should "write any non-standard args on the handler" do
-      runner = @runner_class.new(@handler_class, :custom_value => 42)
-      assert_equal 42, runner.handler.custom_value
+    should "write any non-standard args to its handler" do
+      assert_equal @args[:custom_value], @handler.custom_value
     end
 
-    should "not call its service handler's before callbacks" do
-      assert_nil subject.handler.before_called
+    should "not alter the args passed to it" do
+      assert_equal @original_args, @args
     end
 
-    should "call its service handler's init" do
-      assert_true subject.handler.init_called
+    should "not call its service handlers before callbacks" do
+      assert_nil @handler.before_called
+    end
+
+    should "call its service handlers init" do
+      assert_true @handler.init_called
     end
 
     should "not run its service handler" do
-      assert_false subject.handler.run_called
+      assert_false @handler.run_called
     end
 
-    should "not call its service handler's after callbacks" do
-      assert_nil subject.handler.after_called
+    should "not call its service handlers after callbacks" do
+      assert_nil @handler.after_called
     end
 
     should "not have a response by default" do
-      assert_nil subject.response
+      assert_nil @handler.response
     end
 
-    should "raise an invalid error passed a non service handler" do
+    should "normalize the params passed to it" do
+      params = {
+        Factory.string        => Factory.string,
+        Factory.string.to_sym => Factory.string.to_sym,
+        Factory.integer       => Factory.integer
+      }
+      runner = @runner_class.new(@handler_class, :params => params)
+      exp = Sanford::Protocol::StringifyParams.new(params)
+      assert_equal exp, runner.params
+    end
+
+    should "raise a serialization error if the params can't be serialized" do
+      params = { Factory.string => Class.new }
+      assert_raises(BSON::InvalidDocument) do
+        @runner_class.new(@handler_class, :params => params)
+      end
+    end
+
+    should "raise an invalid error when passed a non service handler" do
       assert_raises(Sanford::InvalidServiceHandlerError) do
         @runner_class.new(Class.new)
       end
