@@ -19,7 +19,6 @@ module Sanford
 
     def initialize(handler_class, args = nil)
       @handler_class = handler_class
-      @handler = @handler_class.new(self)
 
       a = args || {}
       @request         = a[:request]
@@ -27,6 +26,8 @@ module Sanford
       @logger          = a[:logger] || Sanford::NullLogger.new
       @router          = a[:router] || Sanford::Router.new
       @template_source = a[:template_source] || Sanford::NullTemplateSource.new
+
+      @handler = @handler_class.new(self)
     end
 
     def run

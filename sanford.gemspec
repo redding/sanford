@@ -22,5 +22,5 @@ Gem::Specification.new do |gem|
   gem.add_dependency("ns-options",       ["~> 1.1"])
   gem.add_dependency("sanford-protocol", ["~> 0.11"])
 
-  gem.add_development_dependency("assert", ["~> 2.12"])
+  gem.add_development_dependency("assert", ["~> 2.14"])
 end
