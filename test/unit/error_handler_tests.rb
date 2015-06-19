@@ -99,8 +99,8 @@ class Sanford::ErrorHandler
       assert_equal 'bad message', response.status.message
     end
 
-    should "build a 400 response with a protocol BadRequestError" do
-      exception = generate_exception(Sanford::Protocol::BadRequestError, 'bad request')
+    should "build a 400 response with a protocol request invalid error" do
+      exception = generate_exception(Sanford::Protocol::Request::InvalidError, 'bad request')
       response = Sanford::ErrorHandler.new(exception, @server_data).run
 
       assert_equal 400, response.code
