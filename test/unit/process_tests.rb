@@ -18,13 +18,9 @@ class Sanford::Process
   class InitTests < UnitTests
     desc "when init"
     setup do
-      @current_env_ip = ENV['SANFORD_IP']
-      @current_env_port = ENV['SANFORD_PORT']
-      @current_env_server_fd = ENV['SANFORD_SERVER_FD']
-      @current_env_client_fds = ENV['SANFORD_CLIENT_FDS']
+      @current_env_server_fd      = ENV['SANFORD_SERVER_FD']
+      @current_env_client_fds     = ENV['SANFORD_CLIENT_FDS']
       @current_env_skip_daemonize = ENV['SANFORD_SKIP_DAEMONIZE']
-      ENV.delete('SANFORD_IP')
-      ENV.delete('SANFORD_PORT')
       ENV.delete('SANFORD_SERVER_FD')
       ENV.delete('SANFORD_CLIENT_FDS')
       ENV.delete('SANFORD_SKIP_DAEMONIZE')
@@ -43,10 +39,8 @@ class Sanford::Process
     end
     teardown do
       ENV['SANFORD_SKIP_DAEMONIZE'] = @current_env_skip_daemonize
-      ENV['SANFORD_CLIENT_FDS'] = @current_env_client_fds
-      ENV['SANFORD_SERVER_FD'] = @current_env_server_fd
-      ENV['SANFORD_PORT'] = @current_env_ip
-      ENV['SANFORD_IP'] = @current_env_port
+      ENV['SANFORD_CLIENT_FDS']     = @current_env_client_fds
+      ENV['SANFORD_SERVER_FD']      = @current_env_server_fd
     end
     subject{ @process }
 
@@ -72,23 +66,17 @@ class Sanford::Process
       assert_nil subject.server_fd
     end
 
-    should "set its server ip, port and file descriptor using env vars" do
-      ENV['SANFORD_IP'] = Factory.string
-      ENV['SANFORD_PORT'] = Factory.integer.to_s
+    should "allow overriding its file descriptor using an env var" do
       ENV['SANFORD_SERVER_FD'] = Factory.integer.to_s
       process = @process_class.new(@server_spy)
-      assert_equal ENV['SANFORD_IP'], process.server_ip
-      assert_equal ENV['SANFORD_PORT'].to_i, process.server_port
       assert_equal ENV['SANFORD_SERVER_FD'].to_i, process.server_fd
-    end
 
-    should "ignore blank env values for its server ip, port and fd" do
-      ENV['SANFORD_IP'] = ''
-      ENV['SANFORD_PORT'] = ''
       ENV['SANFORD_SERVER_FD'] = ''
       process = @process_class.new(@server_spy)
-      assert_equal @server_spy.configured_ip, process.server_ip
-      assert_equal @server_spy.configured_port, process.server_port
+      assert_nil process.server_fd
+
+      ENV.delete('SANFORD_SERVER_FD')
+      process = @process_class.new(@server_spy)
       assert_nil process.server_fd
     end
 
@@ -97,7 +85,7 @@ class Sanford::Process
     end
 
     should "set its client file descriptors using an env var" do
-      client_fds = [ Factory.integer, Factory.integer ]
+      client_fds = [Factory.integer, Factory.integer]
       ENV['SANFORD_CLIENT_FDS'] = client_fds.join(',')
       process = @process_class.new(@server_spy)
       assert_equal client_fds, process.client_fds

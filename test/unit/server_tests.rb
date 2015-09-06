@@ -171,7 +171,7 @@ module Sanford::Server
       assert_not_nil @dat_tcp_server_spy.serve_proc
     end
 
-    should "know its name, pid file" do
+    should "demeter its server data" do
       assert_equal subject.server_data.name, subject.name
       assert_equal subject.server_data.ip, subject.configured_ip
       assert_equal subject.server_data.port, subject.configured_port
@@ -193,6 +193,16 @@ module Sanford::Server
       subject.listen
       assert_equal subject.server_data.ip, @dat_tcp_server_spy.ip
       assert_equal subject.server_data.port, @dat_tcp_server_spy.port
+    end
+
+    should "write its ip and port back to its server data" do
+      ip   = Factory.string
+      port = Factory.integer
+      assert_not_equal ip,   subject.server_data.ip
+      assert_not_equal port, subject.server_data.port
+      subject.listen(ip, port)
+      assert_equal ip,   subject.server_data.ip
+      assert_equal port, subject.server_data.port
     end
 
     should "pass any args to its dat tcp server using `listen`" do
@@ -386,11 +396,20 @@ module Sanford::Server
 
     desc "Configuration"
     setup do
+      @orig_ip_env_var   = ENV['SANFORD_IP']
+      @orig_port_env_var = ENV['SANFORD_PORT']
+      ENV.delete('SANFORD_IP')
+      ENV.delete('SANFORD_PORT')
+
       @configuration = Configuration.new.tap do |c|
         c.name Factory.string
-        c.ip Factory.string
+        c.ip   Factory.string
         c.port Factory.integer
       end
+    end
+    teardown do
+      ENV['SANFORD_IP']   = @orig_ip_env_var
+      ENV['SANFORD_PORT'] = @orig_port_env_var
     end
     subject{ @configuration }
 
@@ -426,6 +445,15 @@ module Sanford::Server
 
       assert_instance_of Sanford::Router, config.router
       assert_empty config.router.routes
+    end
+
+    should "use env vars for its options if they are set" do
+      ENV['SANFORD_IP']   = Factory.string
+      ENV['SANFORD_PORT'] = Factory.integer.to_s
+
+      config = Configuration.new
+      assert_equal ENV['SANFORD_IP'],        config.ip
+      assert_equal ENV['SANFORD_PORT'].to_i, config.port
     end
 
     should "not be valid by default" do

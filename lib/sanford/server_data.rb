@@ -8,12 +8,12 @@ module Sanford
     # NsOptions overhead when reading them while handling a request.
 
     attr_reader :name
-    attr_reader :ip, :port
     attr_reader :pid_file
     attr_reader :receives_keep_alive
     attr_reader :verbose_logging, :logger, :template_source
     attr_reader :init_procs, :error_procs
     attr_reader :router, :routes
+    attr_accessor :ip, :port
 
     def initialize(args = nil)
       args ||= {}

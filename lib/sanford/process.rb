@@ -14,20 +14,19 @@ module Sanford
       @pid_file = PIDFile.new(@server.pid_file)
       @restart_cmd = RestartCmd.new
 
-      @server_ip = default_if_blank(ENV['SANFORD_IP'], @server.configured_ip)
-      @server_port = default_if_blank(
-        ENV['SANFORD_PORT'],
-        @server.configured_port
-      ){ |v| v.to_i }
-      @server_fd = ignore_if_blank(ENV['SANFORD_SERVER_FD']){ |v| v.to_i }
-      @listen_args = @server_fd ? [ @server_fd ] : [ @server_ip, @server_port ]
+      @server_ip   = @server.configured_ip
+      @server_port = @server.configured_port
+      @server_fd   = if !ENV['SANFORD_SERVER_FD'].to_s.empty?
+        ENV['SANFORD_SERVER_FD'].to_i
+      end
+      @listen_args = @server_fd ? [@server_fd] : [@server_ip, @server_port]
 
       @name = "sanford-#{@server.name}-#{@server_ip}-#{@server_port}"
 
-      @client_fds = (ENV['SANFORD_CLIENT_FDS'] || "").split(',').map(&:to_i)
+      @client_fds = ENV['SANFORD_CLIENT_FDS'].to_s.split(',').map(&:to_i)
 
-      @daemonize = !!options[:daemonize]
-      @skip_daemonize = !!ignore_if_blank(ENV['SANFORD_SKIP_DAEMONIZE'])
+      @daemonize      = !!options[:daemonize]
+      @skip_daemonize = !ENV['SANFORD_SKIP_DAEMONIZE'].to_s.empty?
     end
 
     def run
@@ -72,15 +71,6 @@ module Sanford
       ENV['SANFORD_CLIENT_FDS'] = @server.client_file_descriptors.join(',')
       ENV['SANFORD_SKIP_DAEMONIZE'] = 'yes'
       @restart_cmd.run
-    end
-
-    def default_if_blank(value, default, &block)
-      ignore_if_blank(value, &block) || default
-    end
-
-    def ignore_if_blank(value, &block)
-      block ||= proc{ |v| v }
-      block.call(value) if value && !value.empty?
     end
 
   end
