@@ -23,6 +23,8 @@ module Sanford::Server
     should have_imeths :receives_keep_alive
     should have_imeths :verbose_logging, :logger
     should have_imeths :init, :error
+    should have_imeths :on_worker_start, :on_worker_shutdown
+    should have_imeths :on_worker_sleep, :on_worker_wakeup
     should have_imeths :router, :template_source
 
     should "know its configuration" do
@@ -93,6 +95,22 @@ module Sanford::Server
       assert_includes new_error_proc, subject.configuration.error_procs
     end
 
+    should "allow reading/writing its configuration worker procs" do
+      p = proc{}
+
+      subject.on_worker_start(&p)
+      assert_equal [p], subject.configuration.worker_start_procs
+
+      subject.on_worker_shutdown(&p)
+      assert_equal [p], subject.configuration.worker_shutdown_procs
+
+      subject.on_worker_sleep(&p)
+      assert_equal [p], subject.configuration.worker_sleep_procs
+
+      subject.on_worker_wakeup(&p)
+      assert_equal [p], subject.configuration.worker_wakeup_procs
+    end
+
     should "allow reading/writing its configuration router" do
       new_router = Factory.string
       subject.router(new_router)
@@ -124,13 +142,26 @@ module Sanford::Server
       @server_class.name Factory.string
       @server_class.ip Factory.string
       @server_class.port Factory.integer
-      @server_class.error{ Factory.string }
+
+      @error_procs = Factory.integer(3).times.map{ proc{} }
+      @error_procs.each{ |p| @server_class.error(&p) }
+
+      @start_procs    = Factory.integer(3).times.map{ proc{} }
+      @shutdown_procs = Factory.integer(3).times.map{ proc{} }
+      @sleep_procs    = Factory.integer(3).times.map{ proc{} }
+      @wakeup_procs   = Factory.integer(3).times.map{ proc{} }
+      @start_procs.each    { |p| @server_class.on_worker_start(&p) }
+      @shutdown_procs.each { |p| @server_class.on_worker_shutdown(&p) }
+      @sleep_procs.each    { |p| @server_class.on_worker_sleep(&p) }
+      @wakeup_procs.each   { |p| @server_class.on_worker_wakeup(&p) }
+
       @server_class.router do
         service Factory.string, TestHandler.to_s
       end
 
-      @dat_tcp_server_spy = DatTCP::ServerSpy.new
+      @dat_tcp_server_spy = nil
       Assert.stub(DatTCP::Server, :new) do |&block|
+        @dat_tcp_server_spy = DatTCP::ServerSpy.new
         @dat_tcp_server_spy.serve_proc = block
         @dat_tcp_server_spy
       end
@@ -156,19 +187,31 @@ module Sanford::Server
       sd = subject.server_data
 
       assert_instance_of Sanford::ServerData, sd
-      assert_equal configuration.name, sd.name
-      assert_equal configuration.ip, sd.ip
-      assert_equal configuration.port, sd.port
-      assert_equal configuration.verbose_logging, sd.verbose_logging
-      assert_equal configuration.receives_keep_alive, sd.receives_keep_alive
-      assert_equal configuration.error_procs, sd.error_procs
-      assert_equal configuration.routes, sd.routes.values
+      assert_equal configuration.name,                  sd.name
+      assert_equal configuration.ip,                    sd.ip
+      assert_equal configuration.port,                  sd.port
+      assert_equal configuration.verbose_logging,       sd.verbose_logging
+      assert_equal configuration.receives_keep_alive,   sd.receives_keep_alive
+      assert_equal configuration.error_procs,           sd.error_procs
+      assert_equal configuration.worker_start_procs,    sd.worker_start_procs
+      assert_equal configuration.worker_shutdown_procs, sd.worker_shutdown_procs
+      assert_equal configuration.worker_sleep_procs,    sd.worker_sleep_procs
+      assert_equal configuration.worker_wakeup_procs,   sd.worker_wakeup_procs
+      assert_equal configuration.routes,                sd.routes.values
+
       assert_instance_of configuration.logger.class, sd.logger
     end
 
     should "know its dat tcp server" do
-      assert_equal @dat_tcp_server_spy, subject.dat_tcp_server
+      assert_not_nil @dat_tcp_server_spy
       assert_not_nil @dat_tcp_server_spy.serve_proc
+
+      assert_equal @start_procs,    @dat_tcp_server_spy.worker_start_procs
+      assert_equal @shutdown_procs, @dat_tcp_server_spy.worker_shutdown_procs
+      assert_equal @sleep_procs,    @dat_tcp_server_spy.worker_sleep_procs
+      assert_equal @wakeup_procs,   @dat_tcp_server_spy.worker_wakeup_procs
+
+      assert_equal @dat_tcp_server_spy, subject.dat_tcp_server
     end
 
     should "demeter its server data" do
@@ -419,6 +462,8 @@ module Sanford::Server
     should have_options :template_source
     should have_accessors :init_procs, :error_procs
     should have_accessors :router
+    should have_readers :worker_start_procs, :worker_shutdown_procs
+    should have_readers :worker_sleep_procs, :worker_wakeup_procs
     should have_imeths :routes
     should have_imeths :to_hash
     should have_imeths :valid?, :validate!
@@ -443,6 +488,11 @@ module Sanford::Server
       assert_equal [], config.init_procs
       assert_equal [], config.error_procs
 
+      assert_equal [], subject.worker_start_procs
+      assert_equal [], subject.worker_shutdown_procs
+      assert_equal [], subject.worker_sleep_procs
+      assert_equal [], subject.worker_wakeup_procs
+
       assert_instance_of Sanford::Router, config.router
       assert_empty config.router.routes
     end
@@ -466,12 +516,16 @@ module Sanford::Server
       assert_equal subject.router.routes, subject.routes
     end
 
-    should "include its init/error procs and router/routes in its `to_hash`" do
+    should "include its procs and router/routes in its `to_hash`" do
       config_hash = subject.to_hash
-      assert_equal subject.init_procs, config_hash[:init_procs]
-      assert_equal subject.error_procs, config_hash[:error_procs]
-      assert_equal subject.router, config_hash[:router]
-      assert_equal subject.routes, config_hash[:routes]
+      assert_equal subject.init_procs,            config_hash[:init_procs]
+      assert_equal subject.error_procs,           config_hash[:error_procs]
+      assert_equal subject.worker_start_procs,    config_hash[:worker_start_procs]
+      assert_equal subject.worker_shutdown_procs, config_hash[:worker_shutdown_procs]
+      assert_equal subject.worker_sleep_procs,    config_hash[:worker_sleep_procs]
+      assert_equal subject.worker_wakeup_procs,   config_hash[:worker_wakeup_procs]
+      assert_equal subject.router,                config_hash[:router]
+      assert_equal subject.routes,                config_hash[:routes]
     end
 
     should "call its init procs when validated" do
