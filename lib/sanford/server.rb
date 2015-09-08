@@ -83,6 +83,8 @@ module Sanford
         @dat_tcp_server.listen(*args) do |server_socket|
           configure_tcp_server(server_socket)
         end
+        @server_data.ip   = self.ip
+        @server_data.port = self.port
       end
 
       def start(*args)
@@ -244,7 +246,7 @@ module Sanford
       include NsOptions::Proxy
 
       option :name,     String,  :required => true
-      option :ip,       String,  :required => true, :default => '0.0.0.0'
+      option :ip,       String,  :required => true
       option :port,     Integer, :required => true
       option :pid_file, Pathname
 
@@ -259,6 +261,8 @@ module Sanford
 
       def initialize(values = nil)
         super(values)
+        self.ip   = !(v = ENV['SANFORD_IP'].to_s).empty?   ? v : '0.0.0.0'
+        self.port = !(v = ENV['SANFORD_PORT'].to_s).empty? ? v : nil
         @init_procs, @error_procs = [], []
         @router = Sanford::Router.new
         @valid = nil
@@ -272,8 +276,8 @@ module Sanford
         super.merge({
           :init_procs  => self.init_procs,
           :error_procs => self.error_procs,
-          :router => self.router,
-          :routes => self.routes
+          :router      => self.router,
+          :routes      => self.routes
         })
       end
 

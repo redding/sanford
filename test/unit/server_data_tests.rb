@@ -19,36 +19,36 @@ class Sanford::ServerData
       @logger          = Factory.string
       @template_source = Factory.string
 
-      @init_procs  = [ proc{} ]
-      @error_procs = [ proc{} ]
+      @init_procs  = [proc{}]
+      @error_procs = [proc{}]
 
       @router = Factory.string
       @route  = Sanford::Route.new(Factory.string, TestHandler.to_s).tap(&:validate!)
 
       @server_data = Sanford::ServerData.new({
-        :name     => @name,
-        :ip       => @ip,
-        :port     => @port,
-        :pid_file => @pid_file,
+        :name                => @name,
+        :ip                  => @ip,
+        :port                => @port,
+        :pid_file            => @pid_file,
         :receives_keep_alive => @receives_keep_alive,
-        :verbose_logging => @verbose_logging,
-        :logger          => @logger,
-        :template_source => @template_source,
-        :init_procs  => @init_procs,
-        :error_procs => @error_procs,
-        :router => @router,
-        :routes => [ @route ]
+        :verbose_logging     => @verbose_logging,
+        :logger              => @logger,
+        :template_source     => @template_source,
+        :init_procs          => @init_procs,
+        :error_procs         => @error_procs,
+        :router              => @router,
+        :routes              => [@route]
       })
     end
     subject{ @server_data }
 
     should have_readers :name
-    should have_readers :ip, :port
     should have_readers :pid_file
     should have_readers :receives_keep_alive
     should have_readers :verbose_logging, :logger, :template_source
     should have_readers :init_procs, :error_procs
     should have_readers :router, :routes
+    should have_accessors :ip, :port
 
     should "know its attributes" do
       assert_equal @name,     subject.name
