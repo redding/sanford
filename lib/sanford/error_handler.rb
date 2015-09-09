@@ -1,16 +1,15 @@
-require 'ostruct'
 require 'sanford-protocol'
 
 module Sanford
 
   class ErrorHandler
 
-    attr_reader :exception, :server_data, :request
-    attr_reader :error_procs
+    attr_reader :exception, :context, :error_procs
 
-    def initialize(exception, server_data = nil, request = nil)
-      @exception, @server_data, @request = exception, server_data, request
-      @error_procs = @server_data ? @server_data.error_procs.reverse : []
+    def initialize(exception, context_hash)
+      @exception   = exception
+      @context     = ErrorContext.new(context_hash)
+      @error_procs = context_hash[:server_data].error_procs.reverse
     end
 
     # The exception that we are generating a response for can change in the case
@@ -24,44 +23,69 @@ module Sanford
       @error_procs.each do |error_proc|
         result = nil
         begin
-          result = error_proc.call(@exception, @server_data, @request)
+          result = error_proc.call(@exception, @context)
         rescue StandardError => proc_exception
           @exception = proc_exception
         end
-        response ||= self.response_from_proc(result)
+        response ||= response_from_proc(result)
       end
-      response || self.response_from_exception(@exception)
+      response || response_from_exception(@exception)
     end
 
-    protected
+    private
 
     def response_from_proc(result)
-      case result
-      when Sanford::Protocol::Response
+      if result.kind_of?(Sanford::Protocol::Response)
         result
-      when Integer, Symbol
+      elsif result.kind_of?(Integer) || result.kind_of?(Symbol)
         build_response result
       end
     end
 
     def response_from_exception(exception)
-      case(exception)
-      when Sanford::Protocol::BadMessageError, Sanford::Protocol::Request::InvalidError
+      if exception.kind_of?(Sanford::Protocol::BadMessageError) ||
+         exception.kind_of?(Sanford::Protocol::Request::InvalidError)
         build_response :bad_request, :message => exception.message
-      when Sanford::NotFoundError
+      elsif exception.kind_of?(Sanford::NotFoundError)
         build_response :not_found
-      when Sanford::Protocol::TimeoutError
+      elsif exception.kind_of?(Sanford::Protocol::TimeoutError)
         build_response :timeout
-      when Exception
+      else
         build_response :error, :message => "An unexpected error occurred."
       end
     end
 
     def build_response(status, options = nil)
-      options = OpenStruct.new(options || {})
-      Sanford::Protocol::Response.new([ status, options.message ], options.data)
+      options ||= {}
+      Sanford::Protocol::Response.new(
+        [status, options[:message]],
+        options[:data]
+      )
     end
 
+  end
+
+  class ErrorContext
+    attr_reader :server_data
+    attr_reader :request, :handler_class, :response
+
+    def initialize(args)
+      @server_data   = args[:server_data]
+      @request       = args[:request]
+      @handler_class = args[:handler_class]
+      @response      = args[:response]
+    end
+
+    def ==(other)
+      if other.kind_of?(self.class)
+        self.server_data   == other.server_data &&
+        self.request       == other.request &&
+        self.handler_class == other.handler_class &&
+        self.response      == other.response
+      else
+        super
+      end
+    end
   end
 
 end

@@ -89,12 +89,11 @@ class Sanford::ConnectionHandler
     setup do
       Assert.stub(@route, :run){ raise @exception }
 
-      error_handler = Sanford::ErrorHandler.new(
-        @exception,
-        @server_data,
-        @request
-      )
-      @expected_response = error_handler.run
+      error_handler = Sanford::ErrorHandler.new(@exception, {
+        :server_data => @server_data,
+        :request     => @request
+      })
+      @expected_response  = error_handler.run
       @expected_exception = error_handler.exception
 
       @processed_service = @connection_handler.run
@@ -117,16 +116,13 @@ class Sanford::ConnectionHandler
   class RunWithExceptionWhileWritingTests < InitTests
     desc "and run with an exception thrown while writing the response"
     setup do
-      Assert.stub(@route, :run){ @response }
-
       @connection.raise_on_write = true
 
-      error_handler = Sanford::ErrorHandler.new(
-        @connection.write_exception,
-        @server_data,
-        @request
-      )
-      @expected_response = error_handler.run
+      error_handler = Sanford::ErrorHandler.new(@connection.write_exception, {
+        :server_data => @server_data,
+        :request     => @request
+      })
+      @expected_response  = error_handler.run
       @expected_exception = error_handler.exception
 
       @processed_service = @connection_handler.run
@@ -217,12 +213,14 @@ class Sanford::ConnectionHandler
     should "have logged the service" do
       time_taken = @processed_service.time_taken
       status = @processed_service.response.status.to_i
+      exception_msg = "#{@exception.class}: #{@exception.message}"
       expected = "[Sanford] " \
                  "time=#{time_taken} " \
                  "status=#{status} " \
                  "handler=#{@route.handler_class} " \
                  "service=#{@request.name.inspect} " \
-                 "params=#{@request.params.inspect}"
+                 "params=#{@request.params.inspect} " \
+                 "error=#{exception_msg.inspect}"
       assert_equal expected, subject.info_logged.join
     end
 

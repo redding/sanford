@@ -1,6 +1,7 @@
 require 'assert'
 require 'sanford/error_handler'
 
+require 'sanford-protocol'
 require 'sanford/server_data'
 
 class Sanford::ErrorHandler
@@ -8,176 +9,311 @@ class Sanford::ErrorHandler
   class UnitTests < Assert::Context
     desc "Sanford::ErrorHandler"
     setup do
-      @exception = RuntimeError.new('test')
+      @exception   = Factory.exception
       @server_data = Sanford::ServerData.new
-      @error_handler = Sanford::ErrorHandler.new(@exception, @server_data)
-    end
-    subject{ @error_handler }
-
-    should have_imeths :exception, :server_data, :request, :run
-
-    should "return a Sanford::Protocol::Response with `run`" do
-      assert_instance_of Sanford::Protocol::Response, subject.run
-    end
-
-    def generate_exception(exception_class, message = nil)
-      exception = nil
-      begin
-        raise exception_class, message
-      rescue Exception => exception
-      end
-      exception
-    end
-
-  end
-
-  class ResponseFromProcTests < UnitTests
-    desc "generating a respone from an error proc"
-
-    should "use the return-value of the error proc if it is a protocol response" do
-      error_proc = proc do |exception, host_data, request|
-        Sanford::Protocol::Response.new([ 567, 'custom message'], 'custom data')
-      end
-      server_data = Sanford::ServerData.new(:error_procs => [ error_proc ])
-      response = Sanford::ErrorHandler.new(@exception, server_data).run
-
-      assert_equal 567, response.code
-      assert_equal 'custom message', response.status.message
-      assert_equal 'custom data', response.data
-    end
-
-    should "use an integer returned by the error proc to generate a protocol response" do
-      server_data = Sanford::ServerData.new(:error_procs => [ proc{ 345 } ])
-      response = Sanford::ErrorHandler.new(@exception, server_data).run
-
-      assert_equal 345, response.code
-      assert_nil response.status.message
-      assert_nil response.data
-    end
-
-    should "use a symbol returned by the error proc to generate a protocol response" do
-      server_data = Sanford::ServerData.new({
-        :error_procs => [ proc{ :not_found } ]
+      @request     = Sanford::Protocol::Request.new(Factory.string, {
+        Factory.string => Factory.string
       })
-      response = Sanford::ErrorHandler.new(@exception, server_data).run
+      @response = Sanford::Protocol::Response.new(Factory.integer)
+      @context_hash = {
+        :server_data   => @server_data,
+        :request       => @request,
+        :handler_class => Factory.string,
+        :response      => @response
+      }
 
-      assert_equal 404, response.code
-      assert_nil response.status.message
-      assert_nil response.data
+      @handler_class = Sanford::ErrorHandler
     end
-
-    should "use the default behavior if the error proc doesn't return a valid response result" do
-      server_data = Sanford::ServerData.new(:error_procs => [ proc{ true } ])
-      response = Sanford::ErrorHandler.new(@exception, server_data).run
-
-      assert_equal 500, response.code
-      assert_equal 'An unexpected error occurred.', response.status.message
-    end
-
-    should "use the default behavior for an exception raised by the error proc " \
-           "and ignore the original exception" do
-      server_data = Sanford::ServerData.new({
-        :error_procs => [ proc{ raise Sanford::NotFoundError } ]
-      })
-      response = Sanford::ErrorHandler.new(@exception, server_data).run
-
-      assert_equal 404, response.code
-      assert_nil response.status.message
-      assert_nil response.data
-    end
+    subject{ @handler_class }
 
   end
 
-  class ResponseFromExceptionTests < UnitTests
-    desc "generating a respone from an exception"
-
-    should "build a 400 response with a protocol BadMessageError" do
-      exception = generate_exception(Sanford::Protocol::BadMessageError, 'bad message')
-      response = Sanford::ErrorHandler.new(exception, @server_data).run
-
-      assert_equal 400, response.code
-      assert_equal 'bad message', response.status.message
-    end
-
-    should "build a 400 response with a protocol request invalid error" do
-      exception = generate_exception(Sanford::Protocol::Request::InvalidError, 'bad request')
-      response = Sanford::ErrorHandler.new(exception, @server_data).run
-
-      assert_equal 400, response.code
-      assert_equal 'bad request', response.status.message
-    end
-
-    should "build a 404 response with a NotFoundError" do
-      exception = generate_exception(Sanford::NotFoundError, 'not found')
-      response = Sanford::ErrorHandler.new(exception, @server_data).run
-
-      assert_equal 404, response.code
-      assert_nil response.status.message
-    end
-
-    should "build a 500 response with all other exceptions" do
-      response = Sanford::ErrorHandler.new(RuntimeError.new('test'), @server_data).run
-
-      assert_equal 500, response.code
-      assert_equal 'An unexpected error occurred.', response.status.message
-    end
-
-  end
-
-  class MultipleErrorProcsTests < ResponseFromProcTests
-    desc "with multiple error procs"
+  class InitSetupTests < UnitTests
+    desc "when init"
     setup do
-      @first_called, @second_called, @third_called = nil, nil, nil
-      @server_data = Sanford::ServerData.new({
-        :error_procs => [ first_proc, second_proc, third_proc ]
-      })
+      # always make sure there are multiple error procs or tests can be false
+      # positives
+      @error_proc_spies = (1..(Factory.integer(3) + 1)).map{ ErrorProcSpy.new }
+      Assert.stub(@server_data, :error_procs){ @error_proc_spies }
     end
 
-    should "call every error proc" do
-      exception = RuntimeError.new('test')
-      @error_handler = Sanford::ErrorHandler.new(exception, @server_data)
-      @error_handler.run
+  end
 
-      assert_equal true, @first_called
-      assert_equal true, @second_called
-      assert_equal true, @third_called
+  class InitTests < InitSetupTests
+    desc "when init"
+    setup do
+      @handler = @handler_class.new(@exception, @context_hash)
+    end
+    subject{ @handler }
+
+    should have_readers :exception, :context
+    should have_imeths :run
+
+    should "know its exception and context" do
+      assert_equal @exception, subject.exception
+      exp = Sanford::ErrorContext.new(@context_hash)
+      assert_equal exp, subject.context
     end
 
-    should "should return the response of the last configured error proc " \
-           "that returned a valid response" do
-      exception = RuntimeError.new('test')
-      @error_handler = Sanford::ErrorHandler.new(exception, @server_data)
-      response = @error_handler.run
-
-      # use the second proc's generated response
-      assert_equal 987, response.code
-
-      exception = generate_exception(Sanford::NotFoundError, 'not found')
-      @error_handler = Sanford::ErrorHandler.new(exception, @server_data)
-      response = @error_handler.run
-
-      # use the third proc's generated response
-      assert_equal 876, response.code
+    should "know its error procs" do
+      assert_equal @error_proc_spies.reverse, subject.error_procs
     end
 
-    def first_proc
-      proc{ @first_called = true }
+  end
+
+  class RunSetupTests < InitTests
+    desc "and run"
+
+  end
+
+  class RunTests < RunSetupTests
+    setup do
+      @handler.run
     end
 
-    def second_proc
-      proc do |exception, server_data, request|
-        @second_called = true
-        987
+    should "call each of its procs" do
+      subject.error_procs.each_with_index do |spy, index|
+        assert_true spy.called
+        assert_equal subject.exception, spy.exception
+        assert_equal subject.context,   spy.context
       end
     end
 
-    def third_proc
-      proc do |exception, server_data, request|
-        @third_called = true
-        876 if exception.kind_of?(Sanford::NotFoundError)
-      end
+  end
+
+  class RunWithNoResponseFromErrorProcSetupTests < RunSetupTests
+    desc "without a response being returned from its error procs"
+    setup do
+      @error_proc_spies.each{ |s| s.response = nil }
     end
 
+  end
+
+  class RunWithBadMessageErrorTests < RunWithNoResponseFromErrorProcSetupTests
+    desc "but with a bad message error exception"
+    setup do
+      @exception = Factory.exception(Sanford::Protocol::BadMessageError)
+
+      @handler  = @handler_class.new(@exception, @context_hash)
+      @response = @handler.run
+    end
+    subject{ @response }
+
+    should "return a bad request response" do
+      exp = Sanford::Protocol::Response.new([:bad_request, @exception.message])
+      assert_equal exp, subject
+    end
+
+  end
+
+  class RunWithInvalidRequestErrorTests < RunWithNoResponseFromErrorProcSetupTests
+    desc "but with an invalid request error exception"
+    setup do
+      @exception = Factory.exception(Sanford::Protocol::Request::InvalidError)
+
+      @handler  = @handler_class.new(@exception, @context_hash)
+      @response = @handler.run
+    end
+    subject{ @response }
+
+    should "return a bad request response" do
+      exp = Sanford::Protocol::Response.new([:bad_request, @exception.message])
+      assert_equal exp, subject
+    end
+
+  end
+
+  class RunWithNotFoundErrorTests < RunWithNoResponseFromErrorProcSetupTests
+    desc "but with a not found error exception"
+    setup do
+      @exception = Factory.exception(Sanford::NotFoundError)
+
+      @handler  = @handler_class.new(@exception, @context_hash)
+      @response = @handler.run
+    end
+    subject{ @response }
+
+    should "return a not found response" do
+      exp = Sanford::Protocol::Response.new(:not_found)
+      assert_equal exp, subject
+    end
+
+  end
+
+  class RunWithTimeoutErrorTests < RunWithNoResponseFromErrorProcSetupTests
+    desc "but with a timeout error exception"
+    setup do
+      @exception = Factory.exception(Sanford::Protocol::TimeoutError)
+
+      @handler  = @handler_class.new(@exception, @context_hash)
+      @response = @handler.run
+    end
+    subject{ @response }
+
+    should "return a timeout response" do
+      exp = Sanford::Protocol::Response.new(:timeout)
+      assert_equal exp, subject
+    end
+
+  end
+
+  class RunWithGenericErrorTests < RunWithNoResponseFromErrorProcSetupTests
+    desc "but with a generic error"
+    setup do
+      @exception = Factory.exception
+
+      @handler  = @handler_class.new(@exception, @context_hash)
+      @response = @handler.run
+    end
+    subject{ @response }
+
+    should "return an error response" do
+      exp = Sanford::Protocol::Response.new([:error, "An unexpected error occurred."])
+      assert_equal exp, subject
+    end
+
+  end
+
+  class RunWithErrorProcExceptionsTests < InitSetupTests
+    desc "and run with error procs that throw exceptions"
+    setup do
+      @proc_exceptions = @error_proc_spies.reverse.map do |spy|
+        exception = Factory.exception(RuntimeError, @error_proc_spies.index(spy).to_s)
+        spy.raise_exception = exception
+        exception
+      end
+
+      @handler  = @handler_class.new(@exception, @context_hash)
+      @response = @handler.run
+    end
+    subject{ @handler }
+
+    should "pass the previously raised exception to the next proc" do
+      exp = [@exception] + @proc_exceptions[0..-2]
+      assert_equal exp, subject.error_procs.map(&:exception)
+    end
+
+    should "set its exception to the last exception thrown by the procs" do
+      assert_equal @proc_exceptions.last, subject.exception
+    end
+
+    should "return an error response" do
+      exp = Sanford::Protocol::Response.new([:error, "An unexpected error occurred."])
+      assert_equal exp, @response
+    end
+
+  end
+
+  class RunWithProtocolResponseFromErrorProcTests < RunSetupTests
+    desc "with a protocol response returned from an error proc"
+    setup do
+      @proc_response = Sanford::Protocol::Response.new(Factory.integer)
+      @error_proc_spies.choice.response = @proc_response
+
+      @response = @handler.run
+    end
+    subject{ @response }
+
+    should "return the protocol response from the error proc" do
+      assert_equal @proc_response, subject
+    end
+
+  end
+
+  class RunWithResponseCodeFromErrorProcTests < RunSetupTests
+    desc "with a response code returned from an error proc"
+    setup do
+      @response_code = Factory.integer
+      @error_proc_spies.choice.response = @response_code
+
+      @response = @handler.run
+    end
+    subject{ @response }
+
+    should "use the response code to build a response and return it" do
+      exp = Sanford::Protocol::Response.new(@response_code)
+      assert_equal exp, subject
+    end
+
+  end
+
+  class RunWithSymbolFromErrorProcTests < RunSetupTests
+    desc "with a response symbol returned from an error proc"
+    setup do
+      @response_symbol = [:not_found, :bad_request, :error].choice
+      @error_proc_spies.choice.response = @response_symbol
+
+      @response = @handler.run
+    end
+    subject{ @response }
+
+    should "use the response symbol to build a response and return it" do
+      exp = Sanford::Protocol::Response.new(@response_symbol)
+      assert_equal exp, subject
+    end
+
+  end
+
+  class RunWithMultipleResponseFromErrorProcTests < RunSetupTests
+    desc "with responses from multiple error procs"
+    setup do
+      @error_proc_spies.each do |spy|
+        spy.response = Sanford::Protocol::Response.new(Factory.integer)
+      end
+
+      @response = @handler.run
+    end
+    subject{ @response }
+
+    should "return the last response from its error procs" do
+      assert_equal @error_proc_spies.last.response, subject
+    end
+
+  end
+
+  class ErrorContextTests < UnitTests
+    desc "ErrorContext"
+    setup do
+      @context = Sanford::ErrorContext.new(@context_hash)
+    end
+    subject{ @context }
+
+    should have_readers :server_data
+    should have_readers :request, :handler_class, :response
+
+    should "know its attributes" do
+      assert_equal @context_hash[:server_data],   subject.server_data
+      assert_equal @context_hash[:request],       subject.request
+      assert_equal @context_hash[:handler_class], subject.handler_class
+      assert_equal @context_hash[:response],      subject.response
+    end
+
+    should "know if it equals another context" do
+      exp = Sanford::ErrorContext.new(@context_hash)
+      assert_equal exp, subject
+
+      exp = Sanford::ErrorContext.new({})
+      assert_not_equal exp, subject
+    end
+
+  end
+
+  class ErrorProcSpy
+    attr_reader :called, :exception, :context
+    attr_accessor :response, :raise_exception
+
+    def initialize
+      @called = false
+    end
+
+    def call(exception, context)
+      @called    = true
+      @exception = exception
+      @context   = context
+
+      raise self.raise_exception if self.raise_exception
+      @response
+    end
   end
 
 end

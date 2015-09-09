@@ -45,9 +45,10 @@ class AppServer
     template_source s
   end
 
-  error do |exception, server_data, request|
-    if request && request.name == 'custom_error'
-      data = "The server on #{server_data.ip}:#{server_data.port} " \
+  error do |exception, context|
+    if context.request && context.request.name == 'custom_error'
+      data = "The server on " \
+             "#{context.server_data.ip}:#{context.server_data.port} " \
              "threw a #{exception.class}."
       Sanford::Protocol::Response.new(200, data)
     end
