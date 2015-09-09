@@ -28,7 +28,7 @@ module Sanford
       def initialize
         self.class.configuration.validate!
         @server_data = ServerData.new(self.class.configuration.to_hash)
-        @dat_tcp_server = DatTCP::Server.new{ |socket| serve(socket) }
+        @dat_tcp_server = build_dat_tcp_server
       rescue InvalidError => exception
         exception.set_backtrace(caller)
         raise exception
@@ -109,6 +109,18 @@ module Sanford
 
       private
 
+      def build_dat_tcp_server
+        s = DatTCP::Server.new{ |socket| serve(socket) }
+
+        # add any configured callbacks
+        self.server_data.worker_start_procs.each{ |p| s.on_worker_start(&p) }
+        self.server_data.worker_shutdown_procs.each{ |p|  s.on_worker_shutdown(&p) }
+        self.server_data.worker_sleep_procs.each{ |p| s.on_worker_sleep(&p) }
+        self.server_data.worker_wakeup_procs.each{ |p| s.on_worker_wakeup(&p) }
+
+        s
+      end
+
       def serve(socket)
         connection = Connection.new(socket)
         if !keep_alive_connection?(connection)
@@ -171,6 +183,22 @@ module Sanford
 
       def error(&block)
         self.configuration.error_procs << block
+      end
+
+      def on_worker_start(&block)
+        self.configuration.worker_start_procs << block
+      end
+
+      def on_worker_shutdown(&block)
+        self.configuration.worker_shutdown_procs << block
+      end
+
+      def on_worker_sleep(&block)
+        self.configuration.worker_sleep_procs << block
+      end
+
+      def on_worker_wakeup(&block)
+        self.configuration.worker_wakeup_procs << block
       end
 
       def router(value = nil, &block)
@@ -258,14 +286,18 @@ module Sanford
 
       attr_accessor :init_procs, :error_procs
       attr_accessor :router
+      attr_reader :worker_start_procs, :worker_shutdown_procs
+      attr_reader :worker_sleep_procs, :worker_wakeup_procs
 
       def initialize(values = nil)
         super(values)
         self.ip   = !(v = ENV['SANFORD_IP'].to_s).empty?   ? v : '0.0.0.0'
         self.port = !(v = ENV['SANFORD_PORT'].to_s).empty? ? v : nil
         @init_procs, @error_procs = [], []
+        @worker_start_procs, @worker_shutdown_procs = [], []
+        @worker_sleep_procs, @worker_wakeup_procs   = [], []
         @router = Sanford::Router.new
-        @valid = nil
+        @valid  = nil
       end
 
       def routes
@@ -274,10 +306,14 @@ module Sanford
 
       def to_hash
         super.merge({
-          :init_procs  => self.init_procs,
-          :error_procs => self.error_procs,
-          :router      => self.router,
-          :routes      => self.routes
+          :init_procs            => self.init_procs,
+          :error_procs           => self.error_procs,
+          :worker_start_procs    => self.worker_start_procs,
+          :worker_shutdown_procs => self.worker_shutdown_procs,
+          :worker_sleep_procs    => self.worker_sleep_procs,
+          :worker_wakeup_procs   => self.worker_wakeup_procs,
+          :router                => self.router,
+          :routes                => self.routes
         })
       end
 

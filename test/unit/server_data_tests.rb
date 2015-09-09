@@ -19,25 +19,34 @@ class Sanford::ServerData
       @logger          = Factory.string
       @template_source = Factory.string
 
-      @init_procs  = [proc{}]
-      @error_procs = [proc{}]
+      @init_procs  = Factory.integer(3).times.map{ proc{} }
+      @error_procs = Factory.integer(3).times.map{ proc{} }
+
+      @start_procs    = Factory.integer(3).times.map{ proc{} }
+      @shutdown_procs = Factory.integer(3).times.map{ proc{} }
+      @sleep_procs    = Factory.integer(3).times.map{ proc{} }
+      @wakeup_procs   = Factory.integer(3).times.map{ proc{} }
 
       @router = Factory.string
       @route  = Sanford::Route.new(Factory.string, TestHandler.to_s).tap(&:validate!)
 
       @server_data = Sanford::ServerData.new({
-        :name                => @name,
-        :ip                  => @ip,
-        :port                => @port,
-        :pid_file            => @pid_file,
-        :receives_keep_alive => @receives_keep_alive,
-        :verbose_logging     => @verbose_logging,
-        :logger              => @logger,
-        :template_source     => @template_source,
-        :init_procs          => @init_procs,
-        :error_procs         => @error_procs,
-        :router              => @router,
-        :routes              => [@route]
+        :name                  => @name,
+        :ip                    => @ip,
+        :port                  => @port,
+        :pid_file              => @pid_file,
+        :receives_keep_alive   => @receives_keep_alive,
+        :verbose_logging       => @verbose_logging,
+        :logger                => @logger,
+        :template_source       => @template_source,
+        :init_procs            => @init_procs,
+        :error_procs           => @error_procs,
+        :worker_start_procs    => @start_procs,
+        :worker_shutdown_procs => @shutdown_procs,
+        :worker_sleep_procs    => @sleep_procs,
+        :worker_wakeup_procs   => @wakeup_procs,
+        :router                => @router,
+        :routes                => [@route]
       })
     end
     subject{ @server_data }
@@ -47,6 +56,8 @@ class Sanford::ServerData
     should have_readers :receives_keep_alive
     should have_readers :verbose_logging, :logger, :template_source
     should have_readers :init_procs, :error_procs
+    should have_readers :worker_start_procs, :worker_shutdown_procs
+    should have_readers :worker_sleep_procs, :worker_wakeup_procs
     should have_readers :router, :routes
     should have_accessors :ip, :port
 
@@ -62,8 +73,13 @@ class Sanford::ServerData
       assert_equal @logger,          subject.logger
       assert_equal @template_source, subject.template_source
 
-      assert_equal @init_procs,  subject.error_procs
+      assert_equal @init_procs,  subject.init_procs
       assert_equal @error_procs, subject.error_procs
+
+      assert_equal @start_procs,    subject.worker_start_procs
+      assert_equal @shutdown_procs, subject.worker_shutdown_procs
+      assert_equal @sleep_procs,    subject.worker_sleep_procs
+      assert_equal @wakeup_procs,   subject.worker_wakeup_procs
 
       assert_equal @router, subject.router
     end

@@ -21,7 +21,7 @@ class AppServer
   include Sanford::Server
 
   name 'app'
-  ip   'localhost'
+  ip   '127.0.0.1'
   port 12000
 
   receives_keep_alive true
