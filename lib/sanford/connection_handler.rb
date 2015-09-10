@@ -7,10 +7,6 @@ module Sanford
 
   class ConnectionHandler
 
-    ProcessedService = Struct.new(
-      :request, :handler_class, :response, :exception, :time_taken
-    )
-
     attr_reader :server_data, :connection
     attr_reader :logger
 
@@ -38,47 +34,52 @@ module Sanford
     protected
 
     def run!
-      service = ProcessedService.new
+      processed_service = ProcessedService.new
       begin
         request = Sanford::Protocol::Request.parse(@connection.read_data)
         self.log_request(request)
-        service.request = request
+        processed_service.request = request
 
         route = @server_data.route_for(request.name)
         self.log_handler_class(route.handler_class)
-        service.handler_class = route.handler_class
+        processed_service.handler_class = route.handler_class
 
         response = route.run(request, @server_data)
-        service.response = response
+        processed_service.response = response
       rescue StandardError => exception
-        self.handle_exception(service, exception, @server_data)
+        self.handle_exception(exception, @server_data, processed_service)
       ensure
-        self.write_response(service)
+        self.write_response(processed_service)
       end
-      service
+      processed_service
     end
 
-    def write_response(service)
+    def write_response(processed_service)
       begin
-        @connection.write_data service.response.to_hash
+        @connection.write_data processed_service.response.to_hash
       rescue StandardError => exception
-        service = self.handle_exception(service, exception)
-        @connection.write_data service.response.to_hash
+        processed_service = self.handle_exception(
+          exception,
+          @server_data,
+          processed_service
+        )
+        @connection.write_data processed_service.response.to_hash
       end
       @connection.close_write
-      service
+      processed_service
     end
 
-    def handle_exception(service, exception, server_data = nil)
-      error_handler = Sanford::ErrorHandler.new(
-        exception,
-        server_data,
-        service.request
-      )
-      service.response  = error_handler.run
-      service.exception = error_handler.exception
-      self.log_exception(service.exception)
-      service
+    def handle_exception(exception, server_data, processed_service)
+      error_handler = Sanford::ErrorHandler.new(exception, {
+        :server_data   => server_data,
+        :request       => processed_service.request,
+        :handler_class => processed_service.handler_class,
+        :response      => processed_service.response
+      })
+      processed_service.response  = error_handler.run
+      processed_service.exception = error_handler.exception
+      self.log_exception(processed_service.exception)
+      processed_service
     end
 
     def raise_if_debugging!(exception)
@@ -101,18 +102,7 @@ module Sanford
     def log_complete(processed_service)
       log_verbose "===== Completed in #{processed_service.time_taken}ms " \
                   "#{processed_service.response.status} ====="
-      summary_line_args = {
-        'time'    => processed_service.time_taken,
-        'handler' => processed_service.handler_class
-      }
-      if processed_service.response
-        summary_line_args['status'] = processed_service.response.code
-      end
-      if (request = processed_service.request)
-        summary_line_args['service'] = request.name
-        summary_line_args['params']  = request.params
-      end
-      log_summary SummaryLine.new(summary_line_args)
+      log_summary build_summary_line(processed_service)
     end
 
     def log_exception(exception)
@@ -129,6 +119,32 @@ module Sanford
       self.logger.summary.send(level, "[Sanford] #{message}")
     end
 
+    def build_summary_line(processed_service)
+      summary_line_args = {
+        'time'    => processed_service.time_taken,
+        'handler' => processed_service.handler_class
+      }
+      if (request = processed_service.request)
+        summary_line_args['service'] = request.name
+        summary_line_args['params']  = request.params.to_hash
+      end
+      if (response = processed_service.response)
+        summary_line_args['status'] = response.code
+      end
+      if (exception = processed_service.exception)
+        summary_line_args['error'] = "#{exception.class}: #{exception.message}"
+      end
+      SummaryLine.new(summary_line_args)
+    end
+
+    module SummaryLine
+      KEYS = %w{time status handler service params error}.freeze
+
+      def self.new(line_attrs)
+        KEYS.map{ |k| "#{k}=#{line_attrs[k].inspect}" }.join(' ')
+      end
+    end
+
     module RoundedTime
       ROUND_PRECISION = 2
       ROUND_MODIFIER = 10 ** ROUND_PRECISION
@@ -137,12 +153,9 @@ module Sanford
       end
     end
 
-    module SummaryLine
-      def self.new(line_attrs)
-        attr_keys = %w{time status handler service params}
-        attr_keys.map{ |k| "#{k}=#{line_attrs[k].inspect}" }.join(' ')
-      end
-    end
+    ProcessedService = Struct.new(
+      :request, :handler_class, :response, :exception, :time_taken
+    )
 
   end
 
