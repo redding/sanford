@@ -20,8 +20,8 @@ module Sanford
     def initialize(args = nil)
       args ||= {}
       @name     = args[:name]
-      @ip       = args[:ip]
-      @port     = args[:port]
+      @ip       = !(v = ENV['SANFORD_IP'].to_s).empty?   ? v      : args[:ip]
+      @port     = !(v = ENV['SANFORD_PORT'].to_s).empty? ? v.to_i : args[:port]
       @pid_file = args[:pid_file]
 
       @receives_keep_alive = !!args[:receives_keep_alive]

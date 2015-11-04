@@ -23,21 +23,28 @@ module Sanford::Server
       # results
       @current_sanford_debug = ENV['SANFORD_DEBUG']
       ENV.delete('SANFORD_DEBUG')
+    end
+    teardown do
+      ENV['SANFORD_DEBUG'] = @current_sanford_debug
+      ENV['SANFORD_PROTOCOL_DEBUG'] = @current_sanford_protocol_debug
+    end
 
+  end
+
+  class RunningAppServerTests < SystemTests
+    setup do
       @server = AppServer.new
       @client = TestClient.new(AppServer.ip, AppServer.port)
       @server_runner = ServerRunner.new(@server).tap(&:start)
     end
     teardown do
       @server_runner.stop
-      ENV['SANFORD_DEBUG'] = @current_sanford_debug
-      ENV['SANFORD_PROTOCOL_DEBUG'] = @current_sanford_protocol_debug
     end
     subject{ @response }
 
   end
 
-  class SuccessTests < SystemTests
+  class SuccessTests < RunningAppServerTests
     desc "calling a service"
     setup do
       @message = Factory.string
@@ -53,7 +60,7 @@ module Sanford::Server
 
   end
 
-  class BadProtocolVersionTests < SystemTests
+  class BadProtocolVersionTests < RunningAppServerTests
     desc "calling a server with an invalid protocol version"
     setup do
       @client.bytes = "\000"
@@ -68,7 +75,7 @@ module Sanford::Server
 
   end
 
-  class BadMessageTests < SystemTests
+  class BadMessageTests < RunningAppServerTests
     desc "calling a server with an invalid message size"
     setup do
       @client.bytes = [ Sanford::Protocol.msg_version, "\000" ].join
@@ -83,7 +90,7 @@ module Sanford::Server
 
   end
 
-  class BadBodyTests < SystemTests
+  class BadBodyTests < RunningAppServerTests
     desc "calling a server with an invalid message body"
     setup do
       # these are a special set of bytes that cause BSON to throw an exception
@@ -99,7 +106,7 @@ module Sanford::Server
 
   end
 
-  class NotFoundTests < SystemTests
+  class NotFoundTests < RunningAppServerTests
     desc "with a request for a service the server doesn't provide"
     setup do
       @client.set_request('doesnt_exist')
@@ -114,7 +121,7 @@ module Sanford::Server
 
   end
 
-  class ServerErrorTests < SystemTests
+  class ServerErrorTests < RunningAppServerTests
     desc "with a request that causes a server error"
     setup do
       @client.set_request('raise')
@@ -129,7 +136,7 @@ module Sanford::Server
 
   end
 
-  class BadRequestTests < SystemTests
+  class BadRequestTests < RunningAppServerTests
     desc "calling a server with an invalid request"
     setup do
       @client.set_msg_body({})
@@ -144,7 +151,7 @@ module Sanford::Server
 
   end
 
-  class BadResponseTests < SystemTests
+  class BadResponseTests < RunningAppServerTests
     desc "calling a service that builds an invalid response"
     setup do
       @client.set_request('bad_response')
@@ -159,7 +166,7 @@ module Sanford::Server
 
   end
 
-  class TemplateTests < SystemTests
+  class TemplateTests < RunningAppServerTests
     desc "calling a service that renders a template"
     setup do
       @message = Factory.text
@@ -175,7 +182,7 @@ module Sanford::Server
 
   end
 
-  class KeepAliveTests < SystemTests
+  class KeepAliveTests < RunningAppServerTests
     desc "receiving a keep-alive connection"
     setup do
       # no bytes means our client won't write any, this mimics a keep-alive
@@ -190,7 +197,7 @@ module Sanford::Server
 
   end
 
-  class TimeoutErrorTests < SystemTests
+  class TimeoutErrorTests < RunningAppServerTests
     desc "with a client that connects but doesn't send anything"
     setup do
       @current_sanford_timeout = ENV['SANFORD_TIMEOUT']
@@ -215,7 +222,7 @@ module Sanford::Server
 
   end
 
-  class HaltTests < SystemTests
+  class HaltTests < RunningAppServerTests
 
     should "allow halting in a before callback" do
       @client.set_request('halt', :when => 'before')
@@ -291,7 +298,7 @@ module Sanford::Server
 
   end
 
-  class ErrorHandlerResponseTests < SystemTests
+  class ErrorHandlerResponseTests < RunningAppServerTests
     desc "calling a service that triggers an error handler"
     setup do
       @client.set_request('custom_error')
@@ -304,6 +311,33 @@ module Sanford::Server
       expected = "The server on #{AppServer.ip}:#{AppServer.port} " \
                  "threw a StandardError."
       assert_equal expected, subject.data
+    end
+
+  end
+
+  class WithEnvIpAndPortTests < SystemTests
+    desc "with an env var ip and port"
+    setup do
+      # get our current ip address, need something different than 0.0.0.0 and
+      # 127.0.0.1 to bind to
+      ENV['SANFORD_IP']   = IPSocket.getaddress(Socket.gethostname)
+      ENV['SANFORD_PORT'] = (AppServer.port + 1).to_s
+
+      @server = AppServer.new
+      @client = TestClient.new(ENV['SANFORD_IP'], ENV['SANFORD_PORT'])
+      @server_runner = ServerRunner.new(@server).tap(&:start)
+    end
+    teardown do
+      @server_runner.stop
+      ENV.delete('SANFORD_IP')
+      ENV.delete('SANFORD_PORT')
+    end
+
+    should "run the server on the env var ip and port" do
+      @client.set_request('echo', :message => Factory.string)
+      response = nil
+      assert_nothing_raised{ response = @client.call }
+      assert_equal 200, response.code
     end
 
   end

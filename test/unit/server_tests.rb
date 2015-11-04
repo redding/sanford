@@ -439,20 +439,11 @@ module Sanford::Server
 
     desc "Configuration"
     setup do
-      @orig_ip_env_var   = ENV['SANFORD_IP']
-      @orig_port_env_var = ENV['SANFORD_PORT']
-      ENV.delete('SANFORD_IP')
-      ENV.delete('SANFORD_PORT')
-
       @configuration = Configuration.new.tap do |c|
         c.name Factory.string
         c.ip   Factory.string
         c.port Factory.integer
       end
-    end
-    teardown do
-      ENV['SANFORD_IP']   = @orig_ip_env_var
-      ENV['SANFORD_PORT'] = @orig_port_env_var
     end
     subject{ @configuration }
 
@@ -495,15 +486,6 @@ module Sanford::Server
 
       assert_instance_of Sanford::Router, config.router
       assert_empty config.router.routes
-    end
-
-    should "use env vars for its options if they are set" do
-      ENV['SANFORD_IP']   = Factory.string
-      ENV['SANFORD_PORT'] = Factory.integer.to_s
-
-      config = Configuration.new
-      assert_equal ENV['SANFORD_IP'],        config.ip
-      assert_equal ENV['SANFORD_PORT'].to_i, config.port
     end
 
     should "not be valid by default" do
