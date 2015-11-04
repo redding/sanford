@@ -79,7 +79,7 @@ module Sanford
       end
 
       def listen(*args)
-        args = [ @server_data.ip, @server_data.port ] if args.empty?
+        args = [@server_data.ip, @server_data.port] if args.empty?
         @dat_tcp_server.listen(*args) do |server_socket|
           configure_tcp_server(server_socket)
         end
@@ -274,7 +274,7 @@ module Sanford
       include NsOptions::Proxy
 
       option :name,     String,  :required => true
-      option :ip,       String,  :required => true
+      option :ip,       String,  :required => true, :default => '0.0.0.0'
       option :port,     Integer, :required => true
       option :pid_file, Pathname
 
@@ -291,8 +291,6 @@ module Sanford
 
       def initialize(values = nil)
         super(values)
-        self.ip   = !(v = ENV['SANFORD_IP'].to_s).empty?   ? v : '0.0.0.0'
-        self.port = !(v = ENV['SANFORD_PORT'].to_s).empty? ? v : nil
         @init_procs, @error_procs = [], []
         @worker_start_procs, @worker_shutdown_procs = [], []
         @worker_sleep_procs, @worker_wakeup_procs   = [], []

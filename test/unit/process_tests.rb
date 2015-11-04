@@ -223,23 +223,6 @@ class Sanford::Process
 
   end
 
-  class RunWithIPAndPortTests < RunSetupTests
-    desc "with a custom IP and port is run"
-    setup do
-      ENV['SANFORD_IP'] = Factory.string
-      ENV['SANFORD_PORT'] = Factory.integer.to_s
-      @process = @process_class.new(@server_spy)
-      @process.run
-    end
-
-    should "have used the custom IP and port when listening" do
-      assert_true @server_spy.listen_called
-      expected = [ @process.server_ip, @process.server_port ]
-      assert_equal expected, @server_spy.listen_args
-    end
-
-  end
-
   class RunWithServerFDTests < RunSetupTests
     desc "with a server file descriptor is run"
     setup do
