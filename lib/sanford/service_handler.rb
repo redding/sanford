@@ -40,6 +40,10 @@ module Sanford
         "#<#{self.class}:#{reference} @request=#{request.inspect}>"
       end
 
+      def ==(other_handler)
+        self.class == other_handler.class
+      end
+
       private
 
       # Helpers
@@ -80,6 +84,22 @@ module Sanford
       def prepend_after_init(&block);  self.after_init_callbacks.unshift(block);  end
       def prepend_before_run(&block);  self.before_run_callbacks.unshift(block);  end
       def prepend_after_run(&block);   self.after_run_callbacks.unshift(block);   end
+
+    end
+
+    module TestHelpers
+
+      def self.included(klass)
+        require 'sanford/test_runner'
+      end
+
+      def test_runner(handler_class, args = nil)
+        TestRunner.new(handler_class, args)
+      end
+
+      def test_handler(handler_class, args = nil)
+        test_runner(handler_class, args).handler
+      end
 
     end
 
