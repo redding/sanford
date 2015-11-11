@@ -3,6 +3,7 @@ require 'sanford/service_handler'
 
 require 'sanford/template_engine'
 require 'sanford/template_source'
+require 'sanford/test_runner'
 
 module Sanford::ServiceHandler
 
@@ -167,13 +168,6 @@ module Sanford::ServiceHandler
       assert_equal 5, subject.second_after_run_call_order
     end
 
-    should "have a custom inspect" do
-      reference = '0x0%x' % (subject.object_id << 1)
-      expected = "#<#{subject.class}:#{reference} " \
-                 "@request=#{@runner.request.inspect}>"
-      assert_equal expected, subject.inspect
-    end
-
     should "delegate its runner's `render` method" do
       path = Factory.file_path
       locals = { 'something' => Factory.string }
@@ -189,6 +183,48 @@ module Sanford::ServiceHandler
 
     should "raise a not implemented error when `run!` by default" do
       assert_raises(NotImplementedError){ @handler_class.new(@runner).run! }
+    end
+
+    should "have a custom inspect" do
+      reference = '0x0%x' % (subject.object_id << 1)
+      expected = "#<#{subject.class}:#{reference} " \
+                 "@request=#{@runner.request.inspect}>"
+      assert_equal expected, subject.inspect
+    end
+
+    should "know if it is equal to another service handler" do
+      handler = TestServiceHandler.new(@runner)
+      assert_equal handler, subject
+
+      handler = Class.new{ include Sanford::ServiceHandler }.new(Factory.string)
+      assert_not_equal handler, subject
+    end
+
+  end
+
+  class TestHelpersTests < UnitTests
+    desc "TestHelpers"
+    setup do
+      context_class = Class.new{ include Sanford::ServiceHandler::TestHelpers }
+      @context = context_class.new
+    end
+    subject{ @context }
+
+    should have_imeths :test_runner, :test_handler
+
+    should "build a test runner for a given handler class" do
+      runner  = subject.test_runner(@handler_class)
+
+      assert_kind_of ::Sanford::TestRunner, runner
+      assert_equal @handler_class, runner.handler_class
+    end
+
+    should "return an initialized handler instance" do
+      handler = subject.test_handler(@handler_class)
+      assert_kind_of @handler_class, handler
+
+      exp = subject.test_runner(@handler_class).handler
+      assert_equal exp, handler
     end
 
   end

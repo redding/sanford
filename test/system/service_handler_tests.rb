@@ -1,13 +1,12 @@
 require 'assert'
 require 'sanford/service_handler'
 
-require 'sanford/test_helpers'
 require 'test/support/app_server'
 
 module Sanford::ServiceHandler
 
   class SystemTests < Assert::Context
-    include Sanford::TestHelpers
+    include Sanford::ServiceHandler::TestHelpers
 
     desc "Sanford::ServiceHandler"
 
