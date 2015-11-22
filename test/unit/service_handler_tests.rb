@@ -8,6 +8,8 @@ require 'sanford/test_runner'
 module Sanford::ServiceHandler
 
   class UnitTests < Assert::Context
+    include Sanford::ServiceHandler::TestHelpers
+
     desc "Sanford::ServiceHandler"
     setup do
       @handler_class = Class.new{ include Sanford::ServiceHandler }
@@ -137,21 +139,15 @@ module Sanford::ServiceHandler
   class InitTests < UnitTests
     desc "when init"
     setup do
-      @runner = FakeRunner.new
-      @handler = TestServiceHandler.new(@runner)
+      @runner  = test_runner(TestServiceHandler)
+      @handler = @runner.handler
     end
     subject{ @handler }
 
-    should have_imeths :init, :init!, :run, :run!
+    should have_imeths :sanford_init, :init!, :sanford_run, :run!
+    should have_imeths :sanford_run_callback
 
-    should "know its request, params and logger" do
-      assert_equal @runner.request, subject.public_request
-      assert_equal @runner.params,  subject.public_params
-      assert_equal @runner.logger,  subject.public_logger
-    end
-
-    should "call `init!` and its before/after init callbacks using `init`" do
-      subject.init
+    should "have called `init!` and its before/after init callbacks" do
       assert_equal 1, subject.first_before_init_call_order
       assert_equal 2, subject.second_before_init_call_order
       assert_equal 3, subject.init_call_order
@@ -159,45 +155,93 @@ module Sanford::ServiceHandler
       assert_equal 5, subject.second_after_init_call_order
     end
 
-    should "call `run!` and its before/after run callbacks using `run`" do
-      subject.run
-      assert_equal 1, subject.first_before_run_call_order
-      assert_equal 2, subject.second_before_run_call_order
-      assert_equal 3, subject.run_call_order
-      assert_equal 4, subject.first_after_run_call_order
-      assert_equal 5, subject.second_after_run_call_order
+    should "not have called `run!` and its before/after run callbacks" do
+      assert_nil subject.first_before_run_call_order
+      assert_nil subject.second_before_run_call_order
+      assert_nil subject.run_call_order
+      assert_nil subject.first_after_run_call_order
+      assert_nil subject.second_after_run_call_order
     end
 
-    should "delegate its runner's `render` method" do
-      path = Factory.file_path
-      locals = { 'something' => Factory.string }
-      result = subject.render(path, locals)
-      assert_equal [path, locals], @runner.render_calls.last
-    end
-
-    should "delegate its runner's `halt` method" do
-      code = Factory.integer
-      result = subject.halt(code)
-      assert_equal [code], @runner.halt_calls.last
-    end
-
-    should "raise a not implemented error when `run!` by default" do
-      assert_raises(NotImplementedError){ @handler_class.new(@runner).run! }
-    end
-
-    should "have a custom inspect" do
-      reference = '0x0%x' % (subject.object_id << 1)
-      expected = "#<#{subject.class}:#{reference} " \
-                 "@request=#{@runner.request.inspect}>"
-      assert_equal expected, subject.inspect
+    should "run its callbacks with `sanford_run_callback`" do
+      subject.sanford_run_callback 'before_run'
+      assert_equal 6, subject.first_before_run_call_order
+      assert_equal 7, subject.second_before_run_call_order
     end
 
     should "know if it is equal to another service handler" do
-      handler = TestServiceHandler.new(@runner)
+      handler = test_handler(TestServiceHandler)
       assert_equal handler, subject
 
-      handler = Class.new{ include Sanford::ServiceHandler }.new(Factory.string)
+      handler = test_handler(Class.new{ include Sanford::ServiceHandler })
       assert_not_equal handler, subject
+    end
+
+  end
+
+  class RunTests < InitTests
+    desc "and run"
+    setup do
+      @handler.sanford_run
+    end
+
+    should "call `run!` and it's callbacks" do
+      assert_equal 6,  subject.first_before_run_call_order
+      assert_equal 7,  subject.second_before_run_call_order
+      assert_equal 8,  subject.run_call_order
+      assert_equal 9,  subject.first_after_run_call_order
+      assert_equal 10, subject.second_after_run_call_order
+    end
+
+  end
+
+  class PrivateHelpersTests < InitTests
+    setup do
+      @something = Factory.string
+      @args      = (Factory.integer(3)+1).times.map{ Factory.string }
+    end
+
+    should "call to the runner for its logger" do
+      stub_runner_with_something_for(:logger)
+      assert_equal @runner.logger, subject.instance_eval{ logger }
+    end
+
+    should "call to the runner for its request" do
+      stub_runner_with_something_for(:request)
+      assert_equal @runner.request, subject.instance_eval{ request }
+    end
+
+    should "call to the runner for its params" do
+      stub_runner_with_something_for(:params)
+      assert_equal @runner.params, subject.instance_eval{ params }
+    end
+
+    should "call to the runner for its halt helper" do
+      capture_runner_meth_args_for(:halt)
+      exp_args = @args
+      subject.instance_eval{ halt(*exp_args) }
+
+      assert_equal exp_args, @meth_args
+    end
+
+    should "call to the runner for its render helper" do
+      capture_runner_meth_args_for(:render)
+      exp_args = @args
+      subject.instance_eval{ render(*exp_args) }
+
+      assert_equal exp_args, @meth_args
+    end
+
+    private
+
+    def stub_runner_with_something_for(meth)
+      Assert.stub(@runner, meth){ @something }
+    end
+
+    def capture_runner_meth_args_for(meth)
+      Assert.stub(@runner, meth) do |*args|
+        @meth_args = args
+      end
     end
 
   end
@@ -238,11 +282,6 @@ module Sanford::ServiceHandler
     attr_reader :first_after_run_call_order, :second_after_run_call_order
     attr_reader :init_call_order, :run_call_order
 
-    # these methods are made public so they can be tested, they are being tested
-    # because they are used by classes that mixin this, essentially they are
-    # "public" to classes that use the mixin
-    public :render, :halt
-
     before_init{ @first_before_init_call_order = next_call_order }
     before_init{ @second_before_init_call_order = next_call_order }
 
@@ -263,38 +302,13 @@ module Sanford::ServiceHandler
       @run_call_order = next_call_order
     end
 
-    def public_request
-      request
-    end
-
-    def public_params
-      params
-    end
-
-    def public_logger
-      logger
-    end
-
     private
 
     def next_call_order
       @order ||= 0
       @order += 1
     end
-  end
 
-  class FakeRunner
-    attr_accessor :request, :params, :logger
-    attr_reader :render_calls, :halt_calls
-
-    def initialize
-      @request = Factory.string
-      @params = Factory.string
-      @logger = Factory.string
-    end
-
-    def render(*args); @render_calls ||= []; @render_calls << args; end
-    def halt(*args);   @halt_calls   ||= []; @halt_calls   << args; end
   end
 
 end

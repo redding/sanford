@@ -15,27 +15,23 @@ module Sanford
     ResponseArgs = Struct.new(:status, :data)
 
     attr_reader :handler_class, :handler
-    attr_reader :request, :params, :logger, :router, :template_source
+    attr_reader :logger, :router, :template_source
+    attr_reader :request, :params
 
     def initialize(handler_class, args = nil)
       @handler_class = handler_class
-
-      a = args || {}
-      @request         = a[:request]
-      @params          = a[:params] || {}
-      @logger          = a[:logger] || Sanford::NullLogger.new
-      @router          = a[:router] || Sanford::Router.new
-      @template_source = a[:template_source] || Sanford::NullTemplateSource.new
-
       @handler = @handler_class.new(self)
+
+      args ||= {}
+      @logger          = args[:logger] || Sanford::NullLogger.new
+      @router          = args[:router] || Sanford::Router.new
+      @template_source = args[:template_source] || Sanford::NullTemplateSource.new
+      @request         = args[:request]
+      @params          = args[:params] || {}
     end
 
     def run
       raise NotImplementedError
-    end
-
-    def render(path, locals = nil)
-      self.template_source.render(path, self.handler, locals || {})
     end
 
     # It's best to keep what `halt` and `catch_halt` return in the same format.
@@ -49,6 +45,10 @@ module Sanford
       response_status = [ status, message ]
       response_data = options[:data] || options['data']
       throw :halt, ResponseArgs.new(response_status, response_data)
+    end
+
+    def render(path, locals = nil)
+      self.template_source.render(path, self.handler, locals || {})
     end
 
     private

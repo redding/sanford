@@ -15,24 +15,29 @@ module Sanford
         @sanford_runner = runner
       end
 
-      def init
-        run_callback 'before_init'
+      def sanford_init
+        self.sanford_run_callback 'before_init'
         self.init!
-        run_callback 'after_init'
+        self.sanford_run_callback 'after_init'
       end
 
       def init!
       end
 
-      def run
-        run_callback 'before_run'
+      def sanford_run
+        self.sanford_run_callback 'before_run'
         data = self.run!
-        run_callback 'after_run'
-        [ 200, data ]
+        self.sanford_run_callback 'after_run'
+        [200, data]
       end
 
       def run!
-        raise NotImplementedError
+      end
+
+      def sanford_run_callback(callback)
+        (self.class.send("#{callback}_callbacks") || []).each do |callback|
+          self.instance_eval(&callback)
+        end
       end
 
       def inspect
@@ -48,17 +53,11 @@ module Sanford
 
       # Helpers
 
-      def render(*args); @sanford_runner.render(*args); end
-      def halt(*args);   @sanford_runner.halt(*args);   end
+      def logger;        @sanford_runner.logger;        end
       def request;       @sanford_runner.request;       end
       def params;        @sanford_runner.params;        end
-      def logger;        @sanford_runner.logger;        end
-
-      def run_callback(callback)
-        (self.class.send("#{callback}_callbacks") || []).each do |callback|
-          self.instance_eval(&callback)
-        end
-      end
+      def halt(*args);   @sanford_runner.halt(*args);   end
+      def render(*args); @sanford_runner.render(*args); end
 
     end
 

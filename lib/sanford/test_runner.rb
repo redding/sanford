@@ -12,21 +12,21 @@ module Sanford
 
     def initialize(handler_class, args = nil)
       if !handler_class.include?(Sanford::ServiceHandler)
-        raise InvalidServiceHandlerError, "#{handler_class.inspect} is not a"\
-                                          " Sanford::ServiceHandler"
+        raise InvalidServiceHandlerError, "#{handler_class.inspect} is not a " \
+                                          "Sanford::ServiceHandler"
       end
 
-      args = (args || {}).dup
+      a = (args || {}).dup
       super(handler_class, {
-        :request         => args.delete(:request),
-        :params          => normalize_params(args.delete(:params) || {}),
-        :logger          => args.delete(:logger),
-        :router          => args.delete(:router),
-        :template_source => args.delete(:template_source)
+        :logger          => a.delete(:logger),
+        :router          => a.delete(:router),
+        :template_source => a.delete(:template_source),
+        :request         => a.delete(:request),
+        :params          => normalize_params(a.delete(:params) || {})
       })
-      args.each{ |key, value| @handler.send("#{key}=", value) }
+      a.each{ |key, value| @handler.send("#{key}=", value) }
 
-      return_value = catch(:halt){ @handler.init; nil }
+      return_value = catch(:halt){ @handler.sanford_init; nil }
       @response = build_and_serialize_response{ return_value } if return_value
     end
 
@@ -35,7 +35,7 @@ module Sanford
     # `init` stops processing where `halt` is called.
 
     def run
-      @response ||= build_and_serialize_response{ self.handler.run }
+      @response ||= build_and_serialize_response{ self.handler.sanford_run }
     end
 
     private

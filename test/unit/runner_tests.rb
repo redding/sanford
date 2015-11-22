@@ -12,7 +12,7 @@ class Sanford::Runner
     desc "Sanford::Runner"
     setup do
       @handler_class = TestServiceHandler
-      @runner_class = Sanford::Runner
+      @runner_class  = Sanford::Runner
     end
     subject{ @runner_class }
 
@@ -21,13 +21,13 @@ class Sanford::Runner
   class InitTests < UnitTests
     desc "when init"
     setup do
-      source = FakeTemplateSource.new
-      @runner = @runner_class.new(@handler_class, :template_source => source)
+      @runner = @runner_class.new(@handler_class)
     end
     subject{ @runner }
 
     should have_readers :handler_class, :handler
-    should have_readers :request, :params, :logger, :router, :template_source
+    should have_readers :logger, :router, :template_source
+    should have_readers :request, :params
     should have_imeths :run
     should have_imeths :halt
 
@@ -36,68 +36,94 @@ class Sanford::Runner
       assert_instance_of @handler_class, subject.handler
     end
 
-    should "default its settings" do
+    should "default its attrs" do
       runner = @runner_class.new(@handler_class)
-      assert_nil runner.request
-      assert_equal ::Hash.new, runner.params
       assert_kind_of Sanford::NullLogger, runner.logger
       assert_kind_of Sanford::Router, runner.router
       assert_kind_of Sanford::NullTemplateSource, runner.template_source
+
+      assert_nil runner.request
+
+      assert_equal({}, subject.params)
+    end
+
+    should "know its attrs" do
+      args = {
+        :logger          => 'a-logger',
+        :router          => 'a-router',
+        :template_source => 'a-source',
+        :request         => 'a-request',
+        :params          => {}
+      }
+
+      runner = @runner_class.new(@handler_class, args)
+
+      assert_equal args[:logger],          runner.logger
+      assert_equal args[:router],          runner.router
+      assert_equal args[:template_source], runner.template_source
+      assert_equal args[:request],         runner.request
+      assert_equal args[:params],          runner.params
     end
 
     should "not implement its run method" do
       assert_raises(NotImplementedError){ subject.run }
     end
 
-    should "use the template source to render" do
-      path = 'template.json'
-      locals = { 'something' => Factory.string }
-      exp = subject.template_source.render(path, subject.handler, locals)
-      assert_equal exp, subject.render(path, locals)
+  end
+
+  class HaltTests < InitTests
+    desc "the `halt` method"
+    setup do
+      @code    = Factory.integer
+      @message = Factory.string
+      @data    = Factory.string
     end
 
-    should "default its locals to an empty hash when rendering" do
-      path = Factory.file_path
-      exp = subject.template_source.render(path, subject.handler, {})
-      assert_equal exp, subject.render(path)
-    end
-
-    should "throw halt with response args using `halt`" do
-      code = Factory.integer
-      message = Factory.string
-      data = Factory.string
-
-      result = catch(:halt) do
-        subject.halt(code, :message => message, :data => data)
-      end
+    should "throw halt with response args" do
+      result = runner_halted_with(@code, :message => @message, :data => @data)
       assert_instance_of ResponseArgs, result
-      assert_equal [ code, message ], result.status
-      assert_equal data, result.data
+      assert_equal [@code, @message], result.status
+      assert_equal @data, result.data
+
+      result = runner_halted_with(@code, 'message' => @message, 'data' => @data)
+      assert_instance_of ResponseArgs, result
+      assert_equal [@code, @message], result.status
+      assert_equal @data, result.data
     end
 
-    should "accept string keys using `halt`" do
-      code = Factory.integer
-      message = Factory.string
-      data = Factory.string
+    private
 
-      result = catch(:halt) do
-        subject.halt(code, 'message' => message, 'data' => data)
-      end
-      assert_instance_of ResponseArgs, result
-      assert_equal [ code, message ], result.status
-      assert_equal data, result.data
+    def runner_halted_with(*halt_args)
+      catch(:halt){ @runner_class.new(@handler_class).halt(*halt_args) }
+    end
+
+  end
+
+  class RenderTests < InitTests
+    desc "the `render` method"
+    setup do
+      @template_name = Factory.path
+      @locals = { Factory.string => Factory.string }
+      @render_called_with = nil
+      @source = @runner.template_source
+      Assert.stub(@source, :render){ |*args| @render_called_with = args }
+    end
+
+    should "call to the given source's render method" do
+      subject.render(@template_name, @locals)
+      exp = [@template_name, subject.handler, @locals]
+      assert_equal exp, @render_called_with
+
+      subject.render(@template_name)
+      exp = [@template_name, subject.handler, {}]
+      assert_equal exp, @render_called_with
     end
 
   end
 
   class TestServiceHandler
     include Sanford::ServiceHandler
-  end
 
-  class FakeTemplateSource
-    def render(path, service_handler, locals)
-      [path.to_s, service_handler.class.to_s, locals]
-    end
   end
 
 end
