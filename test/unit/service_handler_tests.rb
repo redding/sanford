@@ -216,6 +216,24 @@ module Sanford::ServiceHandler
       assert_equal @runner.params, subject.instance_eval{ params }
     end
 
+    should "call to the runner for its status helper" do
+      capture_runner_meth_args_for(:status)
+      exp_args = @args
+      subject.instance_eval{ status(*exp_args) }
+
+      assert_equal exp_args, @meth_args
+      assert_nil @meth_block
+    end
+
+    should "call to the runner for its data helper" do
+      capture_runner_meth_args_for(:data)
+      exp_args = @args
+      subject.instance_eval{ data(*exp_args) }
+
+      assert_equal exp_args, @meth_args
+      assert_nil @meth_block
+    end
+
     should "call to the runner for its halt helper" do
       capture_runner_meth_args_for(:halt)
       exp_args = @args

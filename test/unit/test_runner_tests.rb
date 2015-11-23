@@ -35,8 +35,7 @@ class Sanford::TestRunner
     end
     subject{ @runner }
 
-    should have_readers :response
-    should have_imeths :run
+    should have_imeths :halted?, :run
 
     should "raise an invalid error when passed a non service handler" do
       assert_raises(Sanford::InvalidServiceHandlerError) do
@@ -50,6 +49,24 @@ class Sanford::TestRunner
       assert_equal @args[:template_source], subject.template_source
       assert_equal @args[:request],         subject.request
       assert_equal @args[:params],          subject.params
+    end
+
+    should "normalize the params passed to it" do
+      params = {
+        Factory.string        => Factory.string,
+        Factory.string.to_sym => Factory.string.to_sym,
+        Factory.integer       => Factory.integer
+      }
+      runner = @runner_class.new(@handler_class, :params => params)
+      exp = Sanford::Protocol::StringifyParams.new(params)
+      assert_equal exp, runner.params
+    end
+
+    should "complain if the params can't be serialized" do
+      params = { Factory.string => Class.new }
+      assert_raises(BSON::InvalidDocument) do
+        @runner_class.new(@handler_class, :params => params)
+      end
     end
 
     should "write any non-standard args to its handler" do
@@ -76,103 +93,24 @@ class Sanford::TestRunner
       assert_nil @handler.after_called
     end
 
-    should "not have a response by default" do
-      assert_nil @handler.response
+    should "not be halted by default" do
+      assert_false subject.halted?
     end
 
-    should "normalize the params passed to it" do
-      params = {
-        Factory.string        => Factory.string,
-        Factory.string.to_sym => Factory.string.to_sym,
-        Factory.integer       => Factory.integer
-      }
-      runner = @runner_class.new(@handler_class, :params => params)
-      exp = Sanford::Protocol::StringifyParams.new(params)
-      assert_equal exp, runner.params
+    should "not call `run` on its handler if halted when run" do
+      catch(:halt){ subject.halt }
+      assert_true subject.halted?
+      subject.run
+      assert_nil @handler.run_called
     end
 
-    should "raise a serialization error if the params can't be serialized" do
-      params = { Factory.string => Class.new }
-      assert_raises(BSON::InvalidDocument) do
-        @runner_class.new(@handler_class, :params => params)
-      end
+    should "return its `to_response` value on run" do
+      assert_equal subject.to_response, subject.run
     end
 
-  end
-
-  class RunTests < InitTests
-    desc "and run"
-    setup do
-      @response = @runner.run
-    end
-    subject{ @response }
-
-    should "know its response" do
-      assert_equal subject, @runner.response
-      assert_instance_of Sanford::Protocol::Response, subject
-    end
-
-    should "run its service handler" do
-      assert_true @runner.handler.run_called
-    end
-
-    should "not call its service handler's after callbacks" do
-      assert_nil @runner.handler.after_called
-    end
-
-  end
-
-  class RunWithInvalidResponseTests < InitTests
-    desc "and run with an invalid response"
-    setup do
-      @runner.handler.response = Class.new
-    end
-
-    should "raise a serialization error" do
+    should "complain if the respose value can't be encoded" do
+      subject.data(Class.new)
       assert_raises(BSON::InvalidDocument){ subject.run }
-    end
-
-  end
-
-  class InitThatHaltsTests < UnitTests
-    desc "when init with a handler that halts in its init"
-    setup do
-      @runner = @runner_class.new(HaltServiceHandler)
-    end
-    subject{ @runner }
-
-    should "know the response from the init halting" do
-      assert_instance_of Sanford::Protocol::Response, subject.response
-      assert_equal subject.handler.response_code, subject.response.code
-    end
-
-  end
-
-  class RunWithInitThatHaltsTests < InitThatHaltsTests
-    desc "is run"
-    setup do
-      @response = @runner.run
-    end
-    subject{ @response }
-
-    should "not call run on the service handler" do
-      assert_false @runner.handler.run_called
-    end
-
-    should "return the response from the init halting" do
-      assert_instance_of Sanford::Protocol::Response, subject
-      assert_equal @runner.handler.response_code, subject.code
-    end
-
-  end
-
-  class RunWithInvalidResponseFromInitHaltTests < UnitTests
-    desc "when init with a handler that halts in its init an invalid response"
-
-    should "raise a serialization error" do
-      assert_raises(BSON::InvalidDocument) do
-        @runner_class.new(HaltServiceHandler, :response_data => Class.new)
-      end
     end
 
   end

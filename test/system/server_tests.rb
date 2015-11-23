@@ -284,7 +284,7 @@ module Sanford::Server
 
       assert_equal 200, subject.code
       assert_equal 'in after run', subject.status.message
-      assert_nil subject.data
+      assert_false subject.data
     end
 
     should "allow halting in an after callback" do
@@ -293,7 +293,7 @@ module Sanford::Server
 
       assert_equal 200, subject.code
       assert_equal 'in after', subject.status.message
-      assert_nil subject.data
+      assert_false subject.data
     end
 
   end
