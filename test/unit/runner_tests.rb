@@ -1,6 +1,7 @@
 require 'assert'
 require 'sanford/runner'
 
+require 'sanford-protocol'
 require 'sanford/logger'
 require 'sanford/router'
 require 'sanford/template_source'
@@ -16,6 +17,18 @@ class Sanford::Runner
     end
     subject{ @runner_class }
 
+    should "know its default status code " do
+      assert_equal 200, subject::DEFAULT_STATUS_CODE
+    end
+
+    should "know its default status msg " do
+      assert_equal nil, subject::DEFAULT_STATUS_MSG
+    end
+
+    should "know its default data" do
+      assert_equal nil, subject::DEFAULT_DATA
+    end
+
   end
 
   class InitTests < UnitTests
@@ -28,7 +41,7 @@ class Sanford::Runner
     should have_readers :handler_class, :handler
     should have_readers :logger, :router, :template_source
     should have_readers :request, :params
-    should have_imeths :run
+    should have_imeths :run, :to_response
     should have_imeths :halt
 
     should "know its handler class and handler" do
@@ -69,6 +82,36 @@ class Sanford::Runner
       assert_raises(NotImplementedError){ subject.run }
     end
 
+    should "know its `to_response` representation" do
+      exp = Sanford::Protocol::Response.new(
+        [subject.class::DEFAULT_STATUS_CODE, subject.class::DEFAULT_STATUS_MSG],
+        subject.class::DEFAULT_DATA
+      )
+      assert_equal exp, subject.to_response
+
+      code, msg, data = Factory.integer, Factory.string, Factory.text
+      subject.status(code, :message => msg)
+      subject.data(data)
+      exp = Sanford::Protocol::Response.new([code, msg], data)
+      assert_equal exp, subject.to_response
+    end
+
+    should "know and set its response status" do
+      assert_equal [nil, nil], subject.status
+
+      code, msg = Factory.integer, Factory.string
+      subject.status(code, :message => msg)
+      assert_equal [code, msg], subject.status
+    end
+
+    should "know and set its response data" do
+      assert_nil subject.data
+
+      exp = Factory.text
+      subject.data exp
+      assert_equal exp, subject.data
+    end
+
   end
 
   class HaltTests < InitTests
@@ -79,22 +122,60 @@ class Sanford::Runner
       @data    = Factory.string
     end
 
-    should "throw halt with response args" do
-      result = runner_halted_with(@code, :message => @message, :data => @data)
-      assert_instance_of ResponseArgs, result
-      assert_equal [@code, @message], result.status
-      assert_equal @data, result.data
+    should "set response attrs and halt execution" do
+      runner = runner_halted_with()
+      assert_nil runner.status.first
+      assert_nil runner.status.last
+      assert_nil runner.data
 
-      result = runner_halted_with(@code, 'message' => @message, 'data' => @data)
-      assert_instance_of ResponseArgs, result
-      assert_equal [@code, @message], result.status
-      assert_equal @data, result.data
+      runner = runner_halted_with(@code)
+      assert_equal @code, runner.status.first
+      assert_nil runner.status.last
+      assert_nil runner.data
+
+      runner = runner_halted_with(:message => @message)
+      assert_nil runner.status.first
+      assert_equal @message, runner.status.last
+      assert_nil runner.data
+
+      runner = runner_halted_with(:data => @data)
+      assert_nil runner.status.first
+      assert_nil runner.status.last
+      assert_equal @data, runner.data
+
+      runner = runner_halted_with(@code, :message => @message)
+      assert_equal @code,    runner.status.first
+      assert_equal @message, runner.status.last
+      assert_nil runner.data
+
+      runner = runner_halted_with(@code, :data => @data)
+      assert_equal @code, runner.status.first
+      assert_nil runner.status.last
+      assert_equal @data, runner.data
+
+      runner = runner_halted_with({
+        :message => @message,
+        :data => @data
+      })
+      assert_nil runner.status.first
+      assert_equal @message, runner.status.last
+      assert_equal @data,    runner.data
+
+      runner = runner_halted_with(@code, {
+        :message => @message,
+        :data => @data
+      })
+      assert_equal @code,    runner.status.first
+      assert_equal @message, runner.status.last
+      assert_equal @data,    runner.data
     end
 
     private
 
     def runner_halted_with(*halt_args)
-      catch(:halt){ @runner_class.new(@handler_class).halt(*halt_args) }
+      @runner_class.new(@handler_class).tap do |runner|
+        catch(:halt){ runner.halt(*halt_args) }
+      end
     end
 
   end
@@ -104,16 +185,20 @@ class Sanford::Runner
     setup do
       @template_name = Factory.path
       @locals = { Factory.string => Factory.string }
+      data = @data = Factory.text
       @render_called_with = nil
       @source = @runner.template_source
-      Assert.stub(@source, :render){ |*args| @render_called_with = args }
+      Assert.stub(@source, :render){ |*args| @render_called_with = args; data }
     end
 
-    should "call to the given source's render method" do
+    should "call to the template source's render method and set the return value as data" do
       subject.render(@template_name, @locals)
       exp = [@template_name, subject.handler, @locals]
-      assert_equal exp, @render_called_with
+      assert_equal exp,   @render_called_with
+      assert_equal @data, subject.data
+    end
 
+    should "default the locals if none given" do
       subject.render(@template_name)
       exp = [@template_name, subject.handler, {}]
       assert_equal exp, @render_called_with

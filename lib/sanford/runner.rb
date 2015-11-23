@@ -12,7 +12,9 @@ module Sanford
 
   class Runner
 
-    ResponseArgs = Struct.new(:status, :data)
+    DEFAULT_STATUS_CODE = 200.freeze
+    DEFAULT_STATUS_MSG  = nil.freeze
+    DEFAULT_DATA        = nil.freeze
 
     attr_reader :handler_class, :handler
     attr_reader :logger, :router, :template_source
@@ -28,38 +30,42 @@ module Sanford
       @template_source = args[:template_source] || Sanford::NullTemplateSource.new
       @request         = args[:request]
       @params          = args[:params] || {}
+
+      @status_code, @status_msg, @data = nil, nil, nil
     end
 
     def run
       raise NotImplementedError
     end
 
-    # It's best to keep what `halt` and `catch_halt` return in the same format.
-    # Currently this is a `ResponseArgs` object. This is so no matter how the
-    # block returns (either by throwing or running normally), you get the same
-    # thing kind of object.
+    def to_response
+      Sanford::Protocol::Response.new(
+        [@status_code || DEFAULT_STATUS_CODE, @status_msg || DEFAULT_STATUS_MSG],
+        @data.nil? ? DEFAULT_DATA : @data
+      )
+    end
 
-    def halt(status, options = nil)
-      options ||= {}
-      message = options[:message] || options['message']
-      response_status = [ status, message ]
-      response_data = options[:data] || options['data']
-      throw :halt, ResponseArgs.new(response_status, response_data)
+    def status(*args)
+      if !args.empty?
+        @status_msg  = (args.pop)[:message] if args.last.kind_of?(::Hash)
+        @status_code = args.first           if !args.empty?
+      end
+      [@status_code, @status_msg]
+    end
+
+    def data(value = nil)
+      @data = value if !value.nil?
+      @data
+    end
+
+    def halt(*args)
+      self.status(*args)
+      self.data((args.pop)[:data]) if args.last.kind_of?(::Hash)
+      throw :halt
     end
 
     def render(path, locals = nil)
-      self.template_source.render(path, self.handler, locals || {})
-    end
-
-    private
-
-    def catch_halt(&block)
-      catch(:halt){ ResponseArgs.new(*block.call) }
-    end
-
-    def build_response(&block)
-      args = catch_halt(&block)
-      Sanford::Protocol::Response.new(args.status, args.data)
+      self.data(self.template_source.render(path, self.handler, locals || {}))
     end
 
   end

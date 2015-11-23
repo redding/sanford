@@ -5,13 +5,12 @@ module Sanford
   class SanfordRunner < Runner
 
     def run
-      build_response do
+      catch(:halt) do
         self.handler.sanford_run_callback 'before'
-        self.handler.sanford_init
-        return_value = self.handler.sanford_run
+        catch(:halt){ self.handler.sanford_init; self.handler.sanford_run }
         self.handler.sanford_run_callback 'after'
-        return_value
       end
+      self.to_response
     end
 
   end

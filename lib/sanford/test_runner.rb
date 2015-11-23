@@ -8,8 +8,6 @@ module Sanford
 
   class TestRunner < Runner
 
-    attr_reader :response
-
     def initialize(handler_class, args = nil)
       if !handler_class.include?(Sanford::ServiceHandler)
         raise InvalidServiceHandlerError, "#{handler_class.inspect} is not a " \
@@ -26,33 +24,39 @@ module Sanford
       })
       a.each{ |key, value| @handler.send("#{key}=", value) }
 
-      return_value = catch(:halt){ @handler.sanford_init; nil }
-      @response = build_and_serialize_response{ return_value } if return_value
+      @halted = false
+      catch(:halt){ self.handler.sanford_init }
     end
 
-    # If `init` generated a response, we don't want to `run` at all. This makes
-    # the `TestRunner` behave similar to the `SanfordRunner`, i.e. `halt` in
-    # `init` stops processing where `halt` is called.
+    def halted?; @halted; end
 
     def run
-      @response ||= build_and_serialize_response{ self.handler.sanford_run }
+      catch(:halt){ self.handler.sanford_run } if !self.halted?
+      self.to_response
+    end
+
+    # attempt to encode (and then throw away) the response
+    # this will error on the developer if it can't encode their response
+    def to_response
+      super.tap do |response|
+        Sanford::Protocol.msg_body.encode(response.to_hash) if response
+      end
+    end
+
+    # helpers
+
+    def halt(*args)
+      @halted = true
+      super
     end
 
     private
 
-    # Stringify and encode/decode to ensure params are valid and are
+    # stringify and encode/decode to ensure params are valid and are
     # in the format they would normally be when a handler is built and run.
     def normalize_params(params)
       p = Sanford::Protocol::StringifyParams.new(params)
       Sanford::Protocol.msg_body.decode(Sanford::Protocol.msg_body.encode(p))
-    end
-
-    def build_and_serialize_response(&block)
-      build_response(&block).tap do |response|
-        # attempt to serialize (and then throw away) the response data
-        # this will error on the developer if it can't serialize their response
-        Sanford::Protocol.msg_body.encode(response.to_hash) if response
-      end
     end
 
   end

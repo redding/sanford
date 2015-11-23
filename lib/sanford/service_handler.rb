@@ -53,9 +53,16 @@ module Sanford
 
       # Helpers
 
-      def logger;        @sanford_runner.logger;        end
-      def request;       @sanford_runner.request;       end
-      def params;        @sanford_runner.params;        end
+      # utils
+      def logger; @sanford_runner.logger; end
+
+      # request
+      def request; @sanford_runner.request; end
+      def params;  @sanford_runner.params;  end
+
+      # response
+      def status(*args); @sanford_runner.status(*args); end
+      def data(*args);   @sanford_runner.data(*args);   end
       def halt(*args);   @sanford_runner.halt(*args);   end
       def render(*args); @sanford_runner.render(*args); end
 

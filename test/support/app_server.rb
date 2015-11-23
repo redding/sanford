@@ -62,7 +62,7 @@ module AppHandlers
     include Sanford::ServiceHandler
 
     def run!
-      params['message']
+      data(params['message'])
     end
   end
 
@@ -78,7 +78,7 @@ module AppHandlers
     include Sanford::ServiceHandler
 
     def run!
-      Class.new
+      data(Class.new)
     end
   end
 
@@ -121,7 +121,7 @@ module AppHandlers
 
     def run!
       halt(200, :message => "in run") if params['when'] == 'run'
-      false
+      data(false)
     end
 
     after_run do
