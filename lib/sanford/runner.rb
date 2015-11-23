@@ -21,6 +21,8 @@ module Sanford
     attr_reader :request, :params
 
     def initialize(handler_class, args = nil)
+      @status_code, @status_msg, @data = nil, nil, nil
+
       @handler_class = handler_class
       @handler = @handler_class.new(self)
 
@@ -30,8 +32,6 @@ module Sanford
       @template_source = args[:template_source] || Sanford::NullTemplateSource.new
       @request         = args[:request]
       @params          = args[:params] || {}
-
-      @status_code, @status_msg, @data = nil, nil, nil
     end
 
     def run
