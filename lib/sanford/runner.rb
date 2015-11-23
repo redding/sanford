@@ -23,15 +23,15 @@ module Sanford
     def initialize(handler_class, args = nil)
       @status_code, @status_msg, @data = nil, nil, nil
 
-      @handler_class = handler_class
-      @handler = @handler_class.new(self)
-
       args ||= {}
       @logger          = args[:logger] || Sanford::NullLogger.new
       @router          = args[:router] || Sanford::Router.new
       @template_source = args[:template_source] || Sanford::NullTemplateSource.new
       @request         = args[:request]
       @params          = args[:params] || {}
+
+      @handler_class = handler_class
+      @handler = @handler_class.new(self)
     end
 
     def run
