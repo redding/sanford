@@ -1,3 +1,6 @@
+LOGGER = Logger.new(STDOUT)
+LOGGER.datetime_format = "" # turn off the datetime in the logs
+
 class BenchServer
   include Sanford::Server
 
@@ -5,7 +8,7 @@ class BenchServer
   port     59284
   pid_file File.expand_path("../../tmp/bench_server.pid", __FILE__)
 
-  logger          Logger.new(STDOUT)
+  logger          LOGGER
   verbose_logging false
 
   router do

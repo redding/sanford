@@ -142,22 +142,6 @@ class Sanford::ConnectionHandler
 
   end
 
-  class RunWithExceptionWhileDebuggingTests < InitTests
-    desc "and run with a route that throws an exception in debug mode"
-    setup do
-      ENV['SANFORD_DEBUG'] = '1'
-      Assert.stub(@route, :run){ raise @exception }
-    end
-    teardown do
-      ENV.delete('SANFORD_DEBUG')
-    end
-
-    should "raise the exception" do
-      assert_raises(@exception.class){ @connection_handler.run }
-    end
-
-  end
-
   class RunWithVerboseLoggingTests < UnitTests
     desc "run with verbose logging"
     setup do

@@ -27,7 +27,6 @@ module Sanford
       end
       processed_service.time_taken = RoundedTime.new(benchmark.real)
       self.log_complete(processed_service)
-      self.raise_if_debugging!(processed_service.exception)
       processed_service
     end
 
@@ -80,10 +79,6 @@ module Sanford
       processed_service.exception = error_handler.exception
       self.log_exception(processed_service.exception)
       processed_service
-    end
-
-    def raise_if_debugging!(exception)
-      raise exception if exception && ENV['SANFORD_DEBUG']
     end
 
     def log_received
