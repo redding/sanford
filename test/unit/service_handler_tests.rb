@@ -1,6 +1,7 @@
 require 'assert'
 require 'sanford/service_handler'
 
+require 'much-plugin'
 require 'sanford/template_engine'
 require 'sanford/template_source'
 require 'sanford/test_runner'
@@ -25,6 +26,10 @@ module Sanford::ServiceHandler
     should have_imeths :prepend_before, :prepend_after
     should have_imeths :prepend_before_init, :prepend_after_init
     should have_imeths :prepend_before_run,  :prepend_after_run
+
+    should "use much-plugin" do
+      assert_includes MuchPlugin, Sanford::ServiceHandler
+    end
 
     should "return an empty array by default using `before_callbacks`" do
       assert_equal [], subject.before_callbacks
