@@ -2,10 +2,9 @@ require 'assert'
 require 'sanford/server'
 
 require 'dat-tcp/server_spy'
+require 'much-plugin'
 require 'ns-options/assert_macros'
 require 'sanford/route'
-require 'sanford-protocol/fake_connection'
-require 'test/support/fake_server_connection'
 
 module Sanford::Server
 
@@ -21,11 +20,14 @@ module Sanford::Server
     should have_imeths :configuration
     should have_imeths :name, :ip, :port, :pid_file
     should have_imeths :receives_keep_alive
+    should have_imeths :worker_class, :worker_params
     should have_imeths :verbose_logging, :logger
     should have_imeths :init, :error
-    should have_imeths :on_worker_start, :on_worker_shutdown
-    should have_imeths :on_worker_sleep, :on_worker_wakeup
     should have_imeths :router, :template_source
+
+    should "use much-plugin" do
+      assert_includes MuchPlugin, Sanford::Server
+    end
 
     should "know its configuration" do
       config = subject.configuration
@@ -57,9 +59,9 @@ module Sanford::Server
     should "allow reading/writing its configuration pid file" do
       new_pid_file = Factory.string
       subject.pid_file(new_pid_file)
-      expected = Pathname.new(new_pid_file)
-      assert_equal expected, subject.configuration.pid_file
-      assert_equal expected, subject.pid_file
+      exp = Pathname.new(new_pid_file)
+      assert_equal exp, subject.configuration.pid_file
+      assert_equal exp, subject.pid_file
     end
 
     should "allow reading/writing its configuration receives keep alive" do
@@ -67,6 +69,20 @@ module Sanford::Server
       subject.receives_keep_alive(new_keep_alive)
       assert_equal new_keep_alive, subject.configuration.receives_keep_alive
       assert_equal new_keep_alive, subject.receives_keep_alive
+    end
+
+    should "allow reading/writing its configuration worker class" do
+      new_worker_class = Class.new
+      subject.worker_class(new_worker_class)
+      assert_equal new_worker_class, subject.configuration.worker_class
+      assert_equal new_worker_class, subject.worker_class
+    end
+
+    should "allow reading/writing its configuration worker params" do
+      new_worker_params = { Factory.string => Factory.string }
+      subject.worker_params(new_worker_params)
+      assert_equal new_worker_params, subject.configuration.worker_params
+      assert_equal new_worker_params, subject.worker_params
     end
 
     should "allow reading/writing its configuration verbose logging" do
@@ -93,22 +109,6 @@ module Sanford::Server
       new_error_proc = proc{ Factory.string }
       subject.error(&new_error_proc)
       assert_includes new_error_proc, subject.configuration.error_procs
-    end
-
-    should "allow reading/writing its configuration worker procs" do
-      p = proc{}
-
-      subject.on_worker_start(&p)
-      assert_equal [p], subject.configuration.worker_start_procs
-
-      subject.on_worker_shutdown(&p)
-      assert_equal [p], subject.configuration.worker_shutdown_procs
-
-      subject.on_worker_sleep(&p)
-      assert_equal [p], subject.configuration.worker_sleep_procs
-
-      subject.on_worker_wakeup(&p)
-      assert_equal [p], subject.configuration.worker_wakeup_procs
     end
 
     should "allow reading/writing its configuration router" do
@@ -142,28 +142,18 @@ module Sanford::Server
       @server_class.name Factory.string
       @server_class.ip Factory.string
       @server_class.port Factory.integer
+      @server_class.worker_params(Factory.string => Factory.string)
 
       @error_procs = Factory.integer(3).times.map{ proc{} }
       @error_procs.each{ |p| @server_class.error(&p) }
-
-      @start_procs    = Factory.integer(3).times.map{ proc{} }
-      @shutdown_procs = Factory.integer(3).times.map{ proc{} }
-      @sleep_procs    = Factory.integer(3).times.map{ proc{} }
-      @wakeup_procs   = Factory.integer(3).times.map{ proc{} }
-      @start_procs.each    { |p| @server_class.on_worker_start(&p) }
-      @shutdown_procs.each { |p| @server_class.on_worker_shutdown(&p) }
-      @sleep_procs.each    { |p| @server_class.on_worker_sleep(&p) }
-      @wakeup_procs.each   { |p| @server_class.on_worker_wakeup(&p) }
 
       @server_class.router do
         service Factory.string, TestHandler.to_s
       end
 
-      @dat_tcp_server_spy = nil
-      Assert.stub(DatTCP::Server, :new) do |&block|
-        @dat_tcp_server_spy = DatTCP::ServerSpy.new
-        @dat_tcp_server_spy.serve_proc = block
-        @dat_tcp_server_spy
+      @dtcp_spy = nil
+      Assert.stub(DatTCP::Server, :new) do |*args|
+        @dtcp_spy = DatTCP::ServerSpy.new(*args)
       end
 
       @server = @server_class.new
@@ -184,34 +174,33 @@ module Sanford::Server
 
     should "know its server data" do
       configuration = subject.class.configuration
-      sd = subject.server_data
+      data = subject.server_data
 
-      assert_instance_of Sanford::ServerData, sd
-      assert_equal configuration.name,                  sd.name
-      assert_equal configuration.ip,                    sd.ip
-      assert_equal configuration.port,                  sd.port
-      assert_equal configuration.verbose_logging,       sd.verbose_logging
-      assert_equal configuration.receives_keep_alive,   sd.receives_keep_alive
-      assert_equal configuration.error_procs,           sd.error_procs
-      assert_equal configuration.worker_start_procs,    sd.worker_start_procs
-      assert_equal configuration.worker_shutdown_procs, sd.worker_shutdown_procs
-      assert_equal configuration.worker_sleep_procs,    sd.worker_sleep_procs
-      assert_equal configuration.worker_wakeup_procs,   sd.worker_wakeup_procs
-      assert_equal configuration.routes,                sd.routes.values
+      assert_instance_of Sanford::ServerData, data
+      assert_equal configuration.name,                data.name
+      assert_equal configuration.ip,                  data.ip
+      assert_equal configuration.port,                data.port
+      assert_equal configuration.worker_class,        data.worker_class
+      assert_equal configuration.worker_params,       data.worker_params
+      assert_equal configuration.verbose_logging,     data.verbose_logging
+      assert_equal configuration.receives_keep_alive, data.receives_keep_alive
+      assert_equal configuration.error_procs,         data.error_procs
+      assert_equal configuration.routes,              data.routes.values
 
-      assert_instance_of configuration.logger.class, sd.logger
+      assert_instance_of configuration.logger.class, data.logger
     end
 
     should "know its dat tcp server" do
-      assert_not_nil @dat_tcp_server_spy
-      assert_not_nil @dat_tcp_server_spy.serve_proc
+      data = subject.server_data
 
-      assert_equal @start_procs,    @dat_tcp_server_spy.worker_start_procs
-      assert_equal @shutdown_procs, @dat_tcp_server_spy.worker_shutdown_procs
-      assert_equal @sleep_procs,    @dat_tcp_server_spy.worker_sleep_procs
-      assert_equal @wakeup_procs,   @dat_tcp_server_spy.worker_wakeup_procs
+      assert_not_nil @dtcp_spy
+      assert_equal data.worker_class, @dtcp_spy.worker_class
+      exp = data.worker_params.merge({
+        :sanford_server_data => data
+      })
+      assert_equal exp, @dtcp_spy.worker_params
 
-      assert_equal @dat_tcp_server_spy, subject.dat_tcp_server
+      assert_equal @dtcp_spy, subject.dat_tcp_server
     end
 
     should "demeter its server data" do
@@ -229,13 +218,13 @@ module Sanford::Server
 
     should "call listen on its dat tcp server using `listen`" do
       subject.listen
-      assert_true @dat_tcp_server_spy.listen_called
+      assert_true @dtcp_spy.listen_called
     end
 
     should "use its configured ip and port by default when listening" do
       subject.listen
-      assert_equal subject.server_data.ip, @dat_tcp_server_spy.ip
-      assert_equal subject.server_data.port, @dat_tcp_server_spy.port
+      assert_equal subject.server_data.ip,   @dtcp_spy.ip
+      assert_equal subject.server_data.port, @dtcp_spy.port
     end
 
     should "write its ip and port back to its server data" do
@@ -251,60 +240,60 @@ module Sanford::Server
     should "pass any args to its dat tcp server using `listen`" do
       ip, port = Factory.string, Factory.integer
       subject.listen(ip, port)
-      assert_equal ip, @dat_tcp_server_spy.ip
-      assert_equal port, @dat_tcp_server_spy.port
+      assert_equal ip,   @dtcp_spy.ip
+      assert_equal port, @dtcp_spy.port
 
       file_descriptor = Factory.integer
       subject.listen(file_descriptor)
-      assert_equal file_descriptor, @dat_tcp_server_spy.file_descriptor
+      assert_equal file_descriptor, @dtcp_spy.file_descriptor
     end
 
     should "know its ip, port and file descriptor" do
-      assert_equal @dat_tcp_server_spy.ip, subject.ip
-      assert_equal @dat_tcp_server_spy.port, subject.port
+      assert_equal @dtcp_spy.ip,   subject.ip
+      assert_equal @dtcp_spy.port, subject.port
       subject.listen
-      assert_equal @dat_tcp_server_spy.ip, subject.ip
-      assert_equal @dat_tcp_server_spy.port, subject.port
+      assert_equal @dtcp_spy.ip,   subject.ip
+      assert_equal @dtcp_spy.port, subject.port
 
-      assert_equal @dat_tcp_server_spy.file_descriptor, subject.file_descriptor
+      assert_equal @dtcp_spy.file_descriptor, subject.file_descriptor
       subject.listen(Factory.integer)
-      assert_equal @dat_tcp_server_spy.file_descriptor, subject.file_descriptor
+      assert_equal @dtcp_spy.file_descriptor, subject.file_descriptor
     end
 
     should "call start on its dat tcp server using `start`" do
-      client_fds = [ Factory.integer ]
+      client_fds = [Factory.integer]
       subject.start(client_fds)
-      assert_true @dat_tcp_server_spy.start_called
-      assert_equal client_fds, @dat_tcp_server_spy.client_file_descriptors
+      assert_true @dtcp_spy.start_called
+      assert_equal client_fds, @dtcp_spy.client_file_descriptors
     end
 
     should "know its client file descriptors" do
-      expected = @dat_tcp_server_spy.client_file_descriptors
-      assert_equal expected, subject.client_file_descriptors
-      subject.start([ Factory.integer ])
-      expected = @dat_tcp_server_spy.client_file_descriptors
-      assert_equal expected, subject.client_file_descriptors
+      exp = @dtcp_spy.client_file_descriptors
+      assert_equal exp, subject.client_file_descriptors
+      subject.start([Factory.integer])
+      exp = @dtcp_spy.client_file_descriptors
+      assert_equal exp, subject.client_file_descriptors
     end
 
     should "call pause on its dat tcp server using `pause`" do
       wait = Factory.boolean
       subject.pause(wait)
-      assert_true @dat_tcp_server_spy.pause_called
-      assert_equal wait, @dat_tcp_server_spy.waiting_for_pause
+      assert_true @dtcp_spy.pause_called
+      assert_equal wait, @dtcp_spy.waiting_for_pause
     end
 
     should "call stop on its dat tcp server using `stop`" do
       wait = Factory.boolean
       subject.stop(wait)
-      assert_true @dat_tcp_server_spy.stop_called
-      assert_equal wait, @dat_tcp_server_spy.waiting_for_stop
+      assert_true @dtcp_spy.stop_called
+      assert_equal wait, @dtcp_spy.waiting_for_stop
     end
 
     should "call halt on its dat tcp server using `halt`" do
       wait = Factory.boolean
       subject.halt(wait)
-      assert_true @dat_tcp_server_spy.halt_called
-      assert_equal wait, @dat_tcp_server_spy.waiting_for_halt
+      assert_true @dtcp_spy.halt_called
+      assert_equal wait, @dtcp_spy.waiting_for_halt
     end
 
     should "know if its been paused" do
@@ -323,7 +312,7 @@ module Sanford::Server
     desc "configuring its tcp server"
     setup do
       @tcp_server = TCPServerSpy.new
-      Assert.stub(@dat_tcp_server_spy, :listen) do |*args, &block|
+      Assert.stub(@dtcp_spy, :listen) do |*args, &block|
         @configure_tcp_server_proc = block
       end
       @server.listen
@@ -332,105 +321,9 @@ module Sanford::Server
     subject{ @tcp_server }
 
     should "set the TCP_NODELAY option" do
-      expected = [ ::Socket::IPPROTO_TCP, ::Socket::TCP_NODELAY, true ]
-      assert_includes expected, @tcp_server.set_socket_option_calls
+      exp = [ ::Socket::IPPROTO_TCP, ::Socket::TCP_NODELAY, true ]
+      assert_includes exp, @tcp_server.set_socket_option_calls
     end
-
-  end
-
-  class ServeTests < InitTests
-    desc "serve"
-    setup do
-      @socket = Factory.binary
-
-      @connection = FakeServerConnection.new
-      Assert.stub(Connection, :new).with(@socket){ @connection }
-
-      @connection_handler_spy = ConnectionHandlerSpy.new
-      Assert.stub(Sanford::ConnectionHandler, :new).tap do |s|
-        s.with(@server.server_data, @connection){ @connection_handler_spy }
-      end
-
-      @serve_proc = @dat_tcp_server_spy.serve_proc
-    end
-    subject{ @serve_proc }
-
-    should "run a connection_handler when called with a socket" do
-      Assert.stub(@server.server_data, :receives_keep_alive){ false }
-      @connection.read_data = Factory.boolean
-      assert_false @connection_handler_spy.run_called
-      subject.call(@socket)
-      assert_true @connection_handler_spy.run_called
-    end
-
-    should "not run a keep-alive connection when configured to receive them" do
-      Assert.stub(@server.server_data, :receives_keep_alive){ true }
-      @connection.read_data = nil # nothing to read makes it a keep-alive
-      assert_false @connection_handler_spy.run_called
-      subject.call(@socket)
-      assert_false @connection_handler_spy.run_called
-    end
-
-    should "run a keep-alive connection when configured to receive them" do
-      Assert.stub(@server.server_data, :receives_keep_alive){ false }
-      @connection.read_data = nil # nothing to read makes it a keep-alive
-      assert_false @connection_handler_spy.run_called
-      subject.call(@socket)
-      assert_true @connection_handler_spy.run_called
-    end
-
-  end
-
-  class ConnectionTests < UnitTests
-    desc "Connection"
-    setup do
-      fake_socket = Factory.string
-      @protocol_conn = Sanford::Protocol::FakeConnection.new(Factory.binary)
-      Assert.stub(Sanford::Protocol::Connection, :new).with(fake_socket) do
-        @protocol_conn
-      end
-      @connection = Connection.new(fake_socket)
-    end
-    subject{ @connection }
-
-    should have_imeths :read_data, :write_data, :peek_data
-    should have_imeths :close_write
-
-    should "default its timeout" do
-      assert_equal 1.0, subject.timeout
-    end
-
-    should "allowing reading from the protocol connection" do
-      result = subject.read_data
-      assert_equal @protocol_conn.read_data, result
-      assert_equal @protocol_conn.read_timeout, subject.timeout
-    end
-
-    should "allowing writing to the protocol connection" do
-      data = Factory.binary
-      subject.write_data(data)
-      assert_equal @protocol_conn.write_data, data
-    end
-
-    should "allowing peeking from the protocol connection" do
-      result = subject.peek_data
-      assert_equal @protocol_conn.peek_data, result
-      assert_equal @protocol_conn.peek_timeout, subject.timeout
-    end
-
-    should "allow closing the write stream on the protocol connection" do
-      assert_false @protocol_conn.closed_write
-      subject.close_write
-      assert_true @protocol_conn.closed_write
-    end
-
-  end
-
-  class TCPCorkTests < UnitTests
-    desc "TCPCork"
-    subject{ TCPCork }
-
-    should have_imeths :apply, :remove
 
   end
 
@@ -452,9 +345,8 @@ module Sanford::Server
     should have_options :verbose_logging, :logger
     should have_options :template_source
     should have_accessors :init_procs, :error_procs
+    should have_accessors :worker_class, :worker_params
     should have_accessors :router
-    should have_readers :worker_start_procs, :worker_shutdown_procs
-    should have_readers :worker_sleep_procs, :worker_wakeup_procs
     should have_imeths :routes
     should have_imeths :to_hash
     should have_imeths :valid?, :validate!
@@ -476,13 +368,11 @@ module Sanford::Server
       assert_instance_of Sanford::NullLogger, config.logger
       assert_instance_of Sanford::NullTemplateSource, config.template_source
 
+      assert_equal DefaultWorker, config.worker_class
+      assert_nil config.worker_params
+
       assert_equal [], config.init_procs
       assert_equal [], config.error_procs
-
-      assert_equal [], subject.worker_start_procs
-      assert_equal [], subject.worker_shutdown_procs
-      assert_equal [], subject.worker_sleep_procs
-      assert_equal [], subject.worker_wakeup_procs
 
       assert_instance_of Sanford::Router, config.router
       assert_empty config.router.routes
@@ -500,14 +390,12 @@ module Sanford::Server
 
     should "include its procs and router/routes in its `to_hash`" do
       config_hash = subject.to_hash
-      assert_equal subject.init_procs,            config_hash[:init_procs]
-      assert_equal subject.error_procs,           config_hash[:error_procs]
-      assert_equal subject.worker_start_procs,    config_hash[:worker_start_procs]
-      assert_equal subject.worker_shutdown_procs, config_hash[:worker_shutdown_procs]
-      assert_equal subject.worker_sleep_procs,    config_hash[:worker_sleep_procs]
-      assert_equal subject.worker_wakeup_procs,   config_hash[:worker_wakeup_procs]
-      assert_equal subject.router,                config_hash[:router]
-      assert_equal subject.routes,                config_hash[:routes]
+      assert_equal subject.worker_class,  config_hash[:worker_class]
+      assert_equal subject.worker_params, config_hash[:worker_params]
+      assert_equal subject.init_procs,    config_hash[:init_procs]
+      assert_equal subject.error_procs,   config_hash[:error_procs]
+      assert_equal subject.router,        config_hash[:router]
+      assert_equal subject.routes,        config_hash[:routes]
     end
 
     should "call its init procs when validated" do
@@ -531,6 +419,14 @@ module Sanford::Server
       subject.port = Factory.integer
 
       assert_nothing_raised{ subject.validate! }
+    end
+
+    should "validate its worker class when validated" do
+      subject.worker_class = Module.new
+      assert_raises(InvalidError){ subject.validate! }
+
+      subject.worker_class = Class.new
+      assert_raises(InvalidError){ subject.validate! }
     end
 
     should "validate its routes when validated" do
@@ -568,18 +464,6 @@ module Sanford::Server
 
     def setsockopt(*args)
       @set_socket_option_calls << args
-    end
-  end
-
-  class ConnectionHandlerSpy
-    attr_reader :run_called
-
-    def initialize
-      @run_called = false
-    end
-
-    def run
-      @run_called = true
     end
   end
 

@@ -10,10 +10,9 @@ module Sanford
     attr_reader :name
     attr_reader :pid_file
     attr_reader :receives_keep_alive
+    attr_reader :worker_class, :worker_params
     attr_reader :verbose_logging, :logger, :template_source
     attr_reader :init_procs, :error_procs
-    attr_reader :worker_start_procs, :worker_shutdown_procs
-    attr_reader :worker_sleep_procs, :worker_wakeup_procs
     attr_reader :router, :routes
     attr_accessor :ip, :port
 
@@ -26,17 +25,15 @@ module Sanford
 
       @receives_keep_alive = !!args[:receives_keep_alive]
 
+      @worker_class  = args[:worker_class]
+      @worker_params = args[:worker_params] || {}
+
       @verbose_logging = !!args[:verbose_logging]
       @logger          = args[:logger]
       @template_source = args[:template_source]
 
       @init_procs  = args[:init_procs]  || []
       @error_procs = args[:error_procs] || []
-
-      @worker_start_procs    = args[:worker_start_procs]
-      @worker_shutdown_procs = args[:worker_shutdown_procs]
-      @worker_sleep_procs    = args[:worker_sleep_procs]
-      @worker_wakeup_procs   = args[:worker_wakeup_procs]
 
       @router = args[:router]
       @routes = build_routes(args[:routes] || [])
