@@ -6,6 +6,9 @@ if !defined?(ROOT_PATH)
   ROOT_PATH = Pathname.new(File.expand_path('../../..', __FILE__))
 end
 
+LOGGER = Logger.new(ROOT_PATH.join('log/app_server.log').to_s)
+LOGGER.datetime_format = "" # turn off the datetime in the logs
+
 class AppERBEngine < Sanford::TemplateEngine
   RenderScope = Struct.new(:view)
 
@@ -26,7 +29,7 @@ class AppServer
 
   receives_keep_alive true
 
-  logger Logger.new(ROOT_PATH.join('log/app_server.log').to_s)
+  logger LOGGER
   verbose_logging true
 
   router do

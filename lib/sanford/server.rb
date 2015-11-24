@@ -29,7 +29,10 @@ module Sanford
         self.class.configuration.validate!
         @server_data = ServerData.new(self.class.configuration.to_hash)
         @dat_tcp_server = DatTCP::Server.new(self.server_data.worker_class, {
-          :worker_params => self.server_data.worker_params.merge({
+          :num_workers      => self.server_data.num_workers,
+          :logger           => self.server_data.dtcp_logger,
+          :shutdown_timeout => self.server_data.shutdown_timeout,
+          :worker_params    => self.server_data.worker_params.merge({
             :sanford_server_data => self.server_data
           })
         })
@@ -150,10 +153,16 @@ module Sanford
         self.configuration.worker_class
       end
 
-      def worker_params(new_worker_params = nil )
+      def worker_params(new_worker_params = nil)
         self.configuration.worker_params = new_worker_params if new_worker_params
         self.configuration.worker_params
       end
+
+      def num_workers(new_num_workers = nil)
+        self.configuration.num_workers = new_num_workers if new_num_workers
+        self.configuration.num_workers
+      end
+      alias :workers :num_workers
 
       def receives_keep_alive(*args)
         self.configuration.receives_keep_alive *args
@@ -165,6 +174,11 @@ module Sanford
 
       def logger(*args)
         self.configuration.logger *args
+      end
+
+      def shutdown_timeout(new_timeout = nil)
+        self.configuration.shutdown_timeout = new_timeout if new_timeout
+        self.configuration.shutdown_timeout
       end
 
       def init(&block)
@@ -190,6 +204,8 @@ module Sanford
     class Configuration
       include NsOptions::Proxy
 
+      DEFAULT_NUM_WORKERS = 4
+
       option :name,     String,  :required => true
       option :ip,       String,  :required => true, :default => '0.0.0.0'
       option :port,     Integer, :required => true
@@ -202,15 +218,18 @@ module Sanford
       option :template_source, :default => proc{ NullTemplateSource.new }
 
       attr_accessor :init_procs, :error_procs
-      attr_accessor :worker_class, :worker_params
+      attr_accessor :worker_class, :worker_params, :num_workers
+      attr_accessor :shutdown_timeout
       attr_accessor :router
 
       def initialize(values = nil)
         super(values)
         @init_procs, @error_procs = [], []
-        @worker_class  = DefaultWorker
-        @worker_params = nil
-        @router        = Sanford::Router.new
+        @worker_class     = DefaultWorker
+        @worker_params    = nil
+        @num_workers      = DEFAULT_NUM_WORKERS
+        @shutdown_timeout = nil
+        @router           = Sanford::Router.new
         @valid  = nil
       end
 
@@ -224,6 +243,8 @@ module Sanford
           :error_procs      => self.error_procs,
           :worker_class     => self.worker_class,
           :worker_params    => self.worker_params,
+          :num_workers      => self.num_workers,
+          :shutdown_timeout => self.shutdown_timeout,
           :router           => self.router,
           :routes           => self.routes
         })

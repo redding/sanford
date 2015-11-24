@@ -21,7 +21,9 @@ module Sanford::Server
     should have_imeths :name, :ip, :port, :pid_file
     should have_imeths :receives_keep_alive
     should have_imeths :worker_class, :worker_params
+    should have_imeths :num_workers, :workers
     should have_imeths :verbose_logging, :logger
+    should have_imeths :shutdown_timeout
     should have_imeths :init, :error
     should have_imeths :router, :template_source
 
@@ -85,6 +87,20 @@ module Sanford::Server
       assert_equal new_worker_params, subject.worker_params
     end
 
+    should "allow reading/writing its configuration num workers" do
+      new_num_workers = Factory.integer
+      subject.num_workers(new_num_workers)
+      assert_equal new_num_workers, subject.configuration.num_workers
+      assert_equal new_num_workers, subject.num_workers
+    end
+
+    should "alias workers as num workers" do
+      new_workers = Factory.integer
+      subject.workers(new_workers)
+      assert_equal new_workers, subject.configuration.num_workers
+      assert_equal new_workers, subject.workers
+    end
+
     should "allow reading/writing its configuration verbose logging" do
       new_verbose = Factory.boolean
       subject.verbose_logging(new_verbose)
@@ -97,6 +113,13 @@ module Sanford::Server
       subject.logger(new_logger)
       assert_equal new_logger, subject.configuration.logger
       assert_equal new_logger, subject.logger
+    end
+
+    should "allow reading/writing its configuration shutdown timeout" do
+      new_shutdown_timeout = Factory.integer
+      subject.shutdown_timeout(new_shutdown_timeout)
+      assert_equal new_shutdown_timeout, subject.configuration.shutdown_timeout
+      assert_equal new_shutdown_timeout, subject.shutdown_timeout
     end
 
     should "allow adding init procs to its configuration" do
@@ -142,7 +165,9 @@ module Sanford::Server
       @server_class.name Factory.string
       @server_class.ip Factory.string
       @server_class.port Factory.integer
+      @server_class.num_workers Factory.integer
       @server_class.worker_params(Factory.string => Factory.string)
+      @server_class.shutdown_timeout Factory.integer
 
       @error_procs = Factory.integer(3).times.map{ proc{} }
       @error_procs.each{ |p| @server_class.error(&p) }
@@ -194,7 +219,10 @@ module Sanford::Server
       data = subject.server_data
 
       assert_not_nil @dtcp_spy
-      assert_equal data.worker_class, @dtcp_spy.worker_class
+      assert_equal data.worker_class,     @dtcp_spy.worker_class
+      assert_equal data.num_workers,      @dtcp_spy.num_workers
+      assert_equal data.dtcp_logger,      @dtcp_spy.logger
+      assert_equal data.shutdown_timeout, @dtcp_spy.shutdown_timeout
       exp = data.worker_params.merge({
         :sanford_server_data => data
       })
@@ -345,7 +373,8 @@ module Sanford::Server
     should have_options :verbose_logging, :logger
     should have_options :template_source
     should have_accessors :init_procs, :error_procs
-    should have_accessors :worker_class, :worker_params
+    should have_accessors :worker_class, :worker_params, :num_workers
+    should have_accessors :shutdown_timeout
     should have_accessors :router
     should have_imeths :routes
     should have_imeths :to_hash
@@ -353,6 +382,10 @@ module Sanford::Server
 
     should "be an ns-options proxy" do
       assert_includes NsOptions::Proxy, subject.class
+    end
+
+    should "know its default num workers" do
+      assert_equal 4, Configuration::DEFAULT_NUM_WORKERS
     end
 
     should "default its options" do
@@ -370,6 +403,9 @@ module Sanford::Server
 
       assert_equal DefaultWorker, config.worker_class
       assert_nil config.worker_params
+      assert_equal Configuration::DEFAULT_NUM_WORKERS, config.num_workers
+
+      assert_nil config.shutdown_timeout
 
       assert_equal [], config.init_procs
       assert_equal [], config.error_procs
@@ -390,12 +426,14 @@ module Sanford::Server
 
     should "include its procs and router/routes in its `to_hash`" do
       config_hash = subject.to_hash
-      assert_equal subject.worker_class,  config_hash[:worker_class]
-      assert_equal subject.worker_params, config_hash[:worker_params]
-      assert_equal subject.init_procs,    config_hash[:init_procs]
-      assert_equal subject.error_procs,   config_hash[:error_procs]
-      assert_equal subject.router,        config_hash[:router]
-      assert_equal subject.routes,        config_hash[:routes]
+      assert_equal subject.worker_class,     config_hash[:worker_class]
+      assert_equal subject.worker_params,    config_hash[:worker_params]
+      assert_equal subject.num_workers,      config_hash[:num_workers]
+      assert_equal subject.shutdown_timeout, config_hash[:shutdown_timeout]
+      assert_equal subject.init_procs,       config_hash[:init_procs]
+      assert_equal subject.error_procs,      config_hash[:error_procs]
+      assert_equal subject.router,           config_hash[:router]
+      assert_equal subject.routes,           config_hash[:routes]
     end
 
     should "call its init procs when validated" do
