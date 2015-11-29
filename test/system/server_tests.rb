@@ -320,7 +320,11 @@ module Sanford::Server
     setup do
       # get our current ip address, need something different than 0.0.0.0 and
       # 127.0.0.1 to bind to
-      ENV['SANFORD_IP']   = IPSocket.getaddress(Socket.gethostname)
+      ENV['SANFORD_IP'] = Socket.getaddrinfo(
+        Socket.gethostname,
+        80,
+        Socket::AF_INET
+      ).first[3]
       ENV['SANFORD_PORT'] = (AppServer.port + 1).to_s
 
       @server = AppServer.new
