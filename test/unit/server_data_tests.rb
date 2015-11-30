@@ -15,22 +15,22 @@ class Sanford::ServerData
 
       @route = Sanford::Route.new(Factory.string, TestHandler.to_s).tap(&:validate!)
       @config_hash = {
-        :name                  => Factory.string,
-        :ip                    => Factory.string,
-        :port                  => Factory.integer,
-        :pid_file              => Factory.file_path,
-        :receives_keep_alive   => Factory.boolean,
-        :verbose_logging       => Factory.boolean,
-        :logger                => Factory.string,
-        :template_source       => Factory.string,
-        :init_procs            => Factory.integer(3).times.map{ proc{} },
-        :error_procs           => Factory.integer(3).times.map{ proc{} },
-        :worker_start_procs    => Factory.integer(3).times.map{ proc{} },
-        :worker_shutdown_procs => Factory.integer(3).times.map{ proc{} },
-        :worker_sleep_procs    => Factory.integer(3).times.map{ proc{} },
-        :worker_wakeup_procs   => Factory.integer(3).times.map{ proc{} },
-        :router                => Factory.string,
-        :routes                => [@route]
+        :name                => Factory.string,
+        :ip                  => Factory.string,
+        :port                => Factory.integer,
+        :pid_file            => Factory.file_path,
+        :receives_keep_alive => Factory.boolean,
+        :worker_class        => Class.new,
+        :worker_params       => { Factory.string => Factory.string },
+        :num_workers         => Factory.integer,
+        :verbose_logging     => Factory.boolean,
+        :logger              => Factory.string,
+        :template_source     => Factory.string,
+        :shutdown_timeout    => Factory.integer,
+        :init_procs          => Factory.integer(3).times.map{ proc{} },
+        :error_procs         => Factory.integer(3).times.map{ proc{} },
+        :router              => Factory.string,
+        :routes              => [@route]
       }
       @server_data = Sanford::ServerData.new(@config_hash)
     end
@@ -43,10 +43,10 @@ class Sanford::ServerData
     should have_readers :name
     should have_readers :pid_file
     should have_readers :receives_keep_alive
-    should have_readers :verbose_logging, :logger, :template_source
+    should have_readers :worker_class, :worker_params, :num_workers
+    should have_readers :debug, :logger, :dtcp_logger, :verbose_logging
+    should have_readers :template_source, :shutdown_timeout
     should have_readers :init_procs, :error_procs
-    should have_readers :worker_start_procs, :worker_shutdown_procs
-    should have_readers :worker_sleep_procs, :worker_wakeup_procs
     should have_readers :router, :routes
     should have_accessors :ip, :port
 
@@ -59,17 +59,19 @@ class Sanford::ServerData
 
       assert_equal h[:receives_keep_alive], subject.receives_keep_alive
 
+      assert_equal h[:worker_class],  subject.worker_class
+      assert_equal h[:worker_params], subject.worker_params
+      assert_equal h[:num_workers],   subject.num_workers
+
       assert_equal h[:verbose_logging], subject.verbose_logging
       assert_equal h[:logger],          subject.logger
+
       assert_equal h[:template_source], subject.template_source
+
+      assert_equal h[:shutdown_timeout], subject.shutdown_timeout
 
       assert_equal h[:init_procs],  subject.init_procs
       assert_equal h[:error_procs], subject.error_procs
-
-      assert_equal h[:worker_start_procs],    subject.worker_start_procs
-      assert_equal h[:worker_shutdown_procs], subject.worker_shutdown_procs
-      assert_equal h[:worker_sleep_procs],    subject.worker_sleep_procs
-      assert_equal h[:worker_wakeup_procs],   subject.worker_wakeup_procs
 
       assert_equal h[:router], subject.router
     end
@@ -113,9 +115,16 @@ class Sanford::ServerData
 
       assert_false server_data.receives_keep_alive
 
+      assert_nil server_data.worker_class
+      assert_equal({}, server_data.worker_params)
+      assert_nil server_data.num_workers
+
       assert_false server_data.verbose_logging
       assert_nil   server_data.logger
-      assert_nil   server_data.template_source
+
+      assert_nil server_data.template_source
+
+      assert_nil server_data.shutdown_timeout
 
       assert_equal [], server_data.init_procs
       assert_equal [], server_data.error_procs

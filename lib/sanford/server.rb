@@ -1,4 +1,5 @@
 require 'dat-tcp'
+require 'much-plugin'
 require 'ns-options'
 require 'ns-options/boolean'
 require 'pathname'
@@ -8,17 +9,16 @@ require 'sanford/logger'
 require 'sanford/router'
 require 'sanford/server_data'
 require 'sanford/template_source'
-require 'sanford/connection_handler'
+require 'sanford/worker'
 
 module Sanford
 
   module Server
+    include MuchPlugin
 
-    def self.included(klass)
-      klass.class_eval do
-        extend ClassMethods
-        include InstanceMethods
-      end
+    plugin_included do
+      extend ClassMethods
+      include InstanceMethods
     end
 
     module InstanceMethods
@@ -28,7 +28,14 @@ module Sanford
       def initialize
         self.class.configuration.validate!
         @server_data = ServerData.new(self.class.configuration.to_hash)
-        @dat_tcp_server = build_dat_tcp_server
+        @dat_tcp_server = DatTCP::Server.new(self.server_data.worker_class, {
+          :num_workers      => self.server_data.num_workers,
+          :logger           => self.server_data.dtcp_logger,
+          :shutdown_timeout => self.server_data.shutdown_timeout,
+          :worker_params    => self.server_data.worker_params.merge({
+            :sanford_server_data => self.server_data
+          })
+        })
       rescue InvalidError => exception
         exception.set_backtrace(caller)
         raise exception
@@ -109,34 +116,10 @@ module Sanford
 
       private
 
-      def build_dat_tcp_server
-        s = DatTCP::Server.new{ |socket| serve(socket) }
-
-        # add any configured callbacks
-        self.server_data.worker_start_procs.each{ |p| s.on_worker_start(&p) }
-        self.server_data.worker_shutdown_procs.each{ |p|  s.on_worker_shutdown(&p) }
-        self.server_data.worker_sleep_procs.each{ |p| s.on_worker_sleep(&p) }
-        self.server_data.worker_wakeup_procs.each{ |p| s.on_worker_wakeup(&p) }
-
-        s
-      end
-
-      def serve(socket)
-        connection = Connection.new(socket)
-        if !keep_alive_connection?(connection)
-          Sanford::ConnectionHandler.new(@server_data, connection).run
-        end
-      end
-
-      def keep_alive_connection?(connection)
-        @server_data.receives_keep_alive && connection.peek_data.empty?
-      end
-
       # TCP_NODELAY is set to disable buffering. In the case of Sanford
       # communication, we have all the information we need to send up front and
       # are closing the connection, so it doesn't need to buffer.
       # See http://linux.die.net/man/7/tcp
-
       def configure_tcp_server(tcp_server)
         tcp_server.setsockopt(::Socket::IPPROTO_TCP, ::Socket::TCP_NODELAY, true)
       end
@@ -165,6 +148,22 @@ module Sanford
         self.configuration.pid_file *args
       end
 
+      def worker_class(new_worker_class = nil)
+        self.configuration.worker_class = new_worker_class if new_worker_class
+        self.configuration.worker_class
+      end
+
+      def worker_params(new_worker_params = nil)
+        self.configuration.worker_params = new_worker_params if new_worker_params
+        self.configuration.worker_params
+      end
+
+      def num_workers(new_num_workers = nil)
+        self.configuration.num_workers = new_num_workers if new_num_workers
+        self.configuration.num_workers
+      end
+      alias :workers :num_workers
+
       def receives_keep_alive(*args)
         self.configuration.receives_keep_alive *args
       end
@@ -177,28 +176,17 @@ module Sanford
         self.configuration.logger *args
       end
 
+      def shutdown_timeout(new_timeout = nil)
+        self.configuration.shutdown_timeout = new_timeout if new_timeout
+        self.configuration.shutdown_timeout
+      end
+
       def init(&block)
         self.configuration.init_procs << block
       end
 
       def error(&block)
         self.configuration.error_procs << block
-      end
-
-      def on_worker_start(&block)
-        self.configuration.worker_start_procs << block
-      end
-
-      def on_worker_shutdown(&block)
-        self.configuration.worker_shutdown_procs << block
-      end
-
-      def on_worker_sleep(&block)
-        self.configuration.worker_sleep_procs << block
-      end
-
-      def on_worker_wakeup(&block)
-        self.configuration.worker_wakeup_procs << block
       end
 
       def router(value = nil, &block)
@@ -213,65 +201,10 @@ module Sanford
 
     end
 
-    class Connection
-      DEFAULT_TIMEOUT = 1
-
-      attr_reader :timeout
-
-      def initialize(socket)
-        @socket     = socket
-        @connection = Sanford::Protocol::Connection.new(@socket)
-        @timeout    = (ENV['SANFORD_TIMEOUT'] || DEFAULT_TIMEOUT).to_f
-      end
-
-      def read_data
-        @connection.read(@timeout)
-      end
-
-      def write_data(data)
-        TCPCork.apply(@socket)
-        @connection.write data
-        TCPCork.remove(@socket)
-      end
-
-      def peek_data
-        @connection.peek(@timeout)
-      end
-
-      def close_write
-        @connection.close_write
-      end
-    end
-
-    module TCPCork
-      # On Linux, use TCP_CORK to better control how the TCP stack
-      # packetizes our stream. This improves both latency and throughput.
-      # TCP_CORK disables Nagle's algorithm, which is ideal for sporadic
-      # traffic (like Telnet) but is less optimal for HTTP. Sanford is similar
-      # to HTTP, it doesn't receive sporadic packets, it has all its data
-      # come in at once.
-      # For more information: http://baus.net/on-tcp_cork
-
-      if RUBY_PLATFORM =~ /linux/
-        # 3 == TCP_CORK
-        def self.apply(socket)
-          socket.setsockopt(::Socket::IPPROTO_TCP, 3, true)
-        end
-
-        def self.remove(socket)
-          socket.setsockopt(::Socket::IPPROTO_TCP, 3, false)
-        end
-      else
-        def self.apply(socket)
-        end
-
-        def self.remove(socket)
-        end
-      end
-    end
-
     class Configuration
       include NsOptions::Proxy
+
+      DEFAULT_NUM_WORKERS = 4
 
       option :name,     String,  :required => true
       option :ip,       String,  :required => true, :default => '0.0.0.0'
@@ -285,16 +218,18 @@ module Sanford
       option :template_source, :default => proc{ NullTemplateSource.new }
 
       attr_accessor :init_procs, :error_procs
+      attr_accessor :worker_class, :worker_params, :num_workers
+      attr_accessor :shutdown_timeout
       attr_accessor :router
-      attr_reader :worker_start_procs, :worker_shutdown_procs
-      attr_reader :worker_sleep_procs, :worker_wakeup_procs
 
       def initialize(values = nil)
         super(values)
         @init_procs, @error_procs = [], []
-        @worker_start_procs, @worker_shutdown_procs = [], []
-        @worker_sleep_procs, @worker_wakeup_procs   = [], []
-        @router = Sanford::Router.new
+        @worker_class     = DefaultWorker
+        @worker_params    = nil
+        @num_workers      = DEFAULT_NUM_WORKERS
+        @shutdown_timeout = nil
+        @router           = Sanford::Router.new
         @valid  = nil
       end
 
@@ -304,14 +239,14 @@ module Sanford
 
       def to_hash
         super.merge({
-          :init_procs            => self.init_procs,
-          :error_procs           => self.error_procs,
-          :worker_start_procs    => self.worker_start_procs,
-          :worker_shutdown_procs => self.worker_shutdown_procs,
-          :worker_sleep_procs    => self.worker_sleep_procs,
-          :worker_wakeup_procs   => self.worker_wakeup_procs,
-          :router                => self.router,
-          :routes                => self.routes
+          :init_procs       => self.init_procs,
+          :error_procs      => self.error_procs,
+          :worker_class     => self.worker_class,
+          :worker_params    => self.worker_params,
+          :num_workers      => self.num_workers,
+          :shutdown_timeout => self.shutdown_timeout,
+          :router           => self.router,
+          :routes           => self.routes
         })
       end
 
@@ -325,10 +260,15 @@ module Sanford
         if !self.required_set?
           raise InvalidError, "a name, ip and port must be configured"
         end
+        if !self.worker_class.kind_of?(Class) || !self.worker_class.include?(Sanford::Worker)
+          raise InvalidError, "worker class must include `#{Sanford::Worker}`"
+        end
         self.routes.each(&:validate!)
         @valid = true
       end
     end
+
+    DefaultWorker = Class.new{ include Sanford::Worker }
 
     InvalidError = Class.new(RuntimeError)
 
