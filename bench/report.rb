@@ -81,7 +81,7 @@ module Bench
             output "  #{response.status}"
             output "  #{response.data.inspect}"
           end
-        rescue Exception => exception
+        rescue StandardError => exception
           puts "FAILED -> #{exception.class}: #{exception.message}"
           puts exception.backtrace.join("\n")
         end
