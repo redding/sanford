@@ -22,9 +22,11 @@ class Sanford::ServerData
         :receives_keep_alive => Factory.boolean,
         :worker_class        => Class.new,
         :worker_params       => { Factory.string => Factory.string },
+        :num_workers         => Factory.integer,
         :verbose_logging     => Factory.boolean,
         :logger              => Factory.string,
         :template_source     => Factory.string,
+        :shutdown_timeout    => Factory.integer,
         :init_procs          => Factory.integer(3).times.map{ proc{} },
         :error_procs         => Factory.integer(3).times.map{ proc{} },
         :router              => Factory.string,
@@ -41,8 +43,9 @@ class Sanford::ServerData
     should have_readers :name
     should have_readers :pid_file
     should have_readers :receives_keep_alive
-    should have_readers :worker_class, :worker_params
-    should have_readers :verbose_logging, :logger, :template_source
+    should have_readers :worker_class, :worker_params, :num_workers
+    should have_readers :debug, :logger, :dtcp_logger, :verbose_logging
+    should have_readers :template_source, :shutdown_timeout
     should have_readers :init_procs, :error_procs
     should have_readers :router, :routes
     should have_accessors :ip, :port
@@ -58,10 +61,14 @@ class Sanford::ServerData
 
       assert_equal h[:worker_class],  subject.worker_class
       assert_equal h[:worker_params], subject.worker_params
+      assert_equal h[:num_workers],   subject.num_workers
 
       assert_equal h[:verbose_logging], subject.verbose_logging
       assert_equal h[:logger],          subject.logger
+
       assert_equal h[:template_source], subject.template_source
+
+      assert_equal h[:shutdown_timeout], subject.shutdown_timeout
 
       assert_equal h[:init_procs],  subject.init_procs
       assert_equal h[:error_procs], subject.error_procs
@@ -110,10 +117,14 @@ class Sanford::ServerData
 
       assert_nil server_data.worker_class
       assert_equal({}, server_data.worker_params)
+      assert_nil server_data.num_workers
 
       assert_false server_data.verbose_logging
       assert_nil   server_data.logger
-      assert_nil   server_data.template_source
+
+      assert_nil server_data.template_source
+
+      assert_nil server_data.shutdown_timeout
 
       assert_equal [], server_data.init_procs
       assert_equal [], server_data.error_procs

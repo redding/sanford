@@ -10,8 +10,9 @@ module Sanford
     attr_reader :name
     attr_reader :pid_file
     attr_reader :receives_keep_alive
-    attr_reader :worker_class, :worker_params
-    attr_reader :verbose_logging, :logger, :template_source
+    attr_reader :worker_class, :worker_params, :num_workers
+    attr_reader :debug, :logger, :dtcp_logger, :verbose_logging
+    attr_reader :template_source, :shutdown_timeout
     attr_reader :init_procs, :error_procs
     attr_reader :router, :routes
     attr_accessor :ip, :port
@@ -27,10 +28,16 @@ module Sanford
 
       @worker_class  = args[:worker_class]
       @worker_params = args[:worker_params] || {}
+      @num_workers   = args[:num_workers]
 
-      @verbose_logging = !!args[:verbose_logging]
+      @debug           = !ENV['SANFORD_DEBUG'].to_s.empty?
       @logger          = args[:logger]
+      @dtcp_logger     = @logger if @debug
+      @verbose_logging = !!args[:verbose_logging]
+
       @template_source = args[:template_source]
+
+      @shutdown_timeout = args[:shutdown_timeout]
 
       @init_procs  = args[:init_procs]  || []
       @error_procs = args[:error_procs] || []
