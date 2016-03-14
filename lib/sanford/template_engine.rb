@@ -17,6 +17,15 @@ module Sanford
       raise NotImplementedError
     end
 
+    def ==(other_engine)
+      if other_engine.kind_of?(TemplateEngine)
+        self.source_path == other_engine.source_path &&
+        self.opts        == other_engine.opts
+      else
+        super
+      end
+    end
+
   end
 
   class NullTemplateEngine < TemplateEngine
