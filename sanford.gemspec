@@ -8,8 +8,8 @@ Gem::Specification.new do |gem|
   gem.version       = Sanford::VERSION
   gem.authors       = ["Collin Redding", "Kelly Redding"]
   gem.email         = ["collin.redding@me.com", "kelly@kellyredding.com"]
-  gem.description   = "Sanford TCP protocol server for hosting services"
   gem.summary       = "Sanford TCP protocol server for hosting services"
+  gem.description   = "Sanford TCP protocol server for hosting services"
   gem.homepage      = "https://github.com/redding/sanford"
   gem.license       = 'MIT'
 
@@ -18,10 +18,10 @@ Gem::Specification.new do |gem|
   gem.test_files    = gem.files.grep(%r{^(test|spec|features)/})
   gem.require_paths = ["lib"]
 
-  gem.add_dependency("dat-tcp",          ["~> 0.8"])
-  gem.add_dependency("much-plugin",      ["~> 0.1"])
-  gem.add_dependency("ns-options",       ["~> 1.1"])
-  gem.add_dependency("sanford-protocol", ["~> 0.11"])
+  gem.add_development_dependency("assert", ["~> 2.15.0"])
 
-  gem.add_development_dependency("assert", ["~> 2.15"])
+  gem.add_dependency("dat-tcp",          ["~> 0.8.0"])
+  gem.add_dependency("much-plugin",      ["~> 0.1.0"])
+  gem.add_dependency("ns-options",       ["~> 1.1.6"])
+  gem.add_dependency("sanford-protocol", ["~> 0.11.0"])
 end
