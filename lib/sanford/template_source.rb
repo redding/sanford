@@ -42,6 +42,15 @@ module Sanford
       engine.render(template_path, service_handler, locals)
     end
 
+    def ==(other_template_source)
+      if other_template_source.kind_of?(TemplateSource)
+        self.path    == other_template_source.path &&
+        self.engines == other_template_source.engines
+      else
+        super
+      end
+    end
+
     private
 
     def get_template_ext(template_path)
