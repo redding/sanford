@@ -30,12 +30,17 @@ module Sanford
 
   class NullTemplateEngine < TemplateEngine
 
-    def render(name, service_handler, locals)
-      template_file = self.source_path.join(name).to_s
-      unless File.exists?(template_file)
-        raise ArgumentError, "template file `#{template_file}` does not exist"
+    def render(template_name, service_handler, locals)
+      paths = Dir.glob(self.source_path.join("#{template_name}*"))
+      if paths.size > 1
+        raise ArgumentError, "#{template_name.inspect} matches more than one " \
+                             "file, consider using a more specific template name"
       end
-      File.read(template_file)
+      if paths.size < 1
+        raise ArgumentError, "a template file named #{template_name.inspect} " \
+                             "does not exist"
+      end
+      File.read(paths.first.to_s)
     end
 
   end

@@ -10,11 +10,6 @@ class Sanford::TemplateSource
     desc "Sanford::TemplateSource"
     subject{ Sanford::TemplateSource }
 
-    should "disallow certain engine extensions" do
-      exp = [ 'rb' ]
-      assert_equal exp, subject::DISALLOWED_ENGINE_EXTS
-    end
-
   end
 
   class InitTests < Assert::Context
@@ -86,14 +81,6 @@ class Sanford::TemplateSource
       assert_true subject.engine_for?(engine_ext)
     end
 
-    should "complain if registering a disallowed temp" do
-      assert_kind_of Sanford::NullTemplateEngine, subject.engines['rb']
-      assert_raises DisallowedEngineExtError do
-        subject.engine 'rb', @test_engine
-      end
-      assert_kind_of Sanford::NullTemplateEngine, subject.engines['rb']
-    end
-
     should "know if it has an engine registered for a given template name" do
       assert_false subject.engine_for?(Factory.string)
       assert_false subject.engine_for?('test')
@@ -118,18 +105,22 @@ class Sanford::TemplateSource
       locals = { :something => Factory.string }
       result = subject.render('test_template', TestServiceHandler, locals)
       assert_equal 'test-engine', result
-    end
 
-    should "only try rendering template files its has engines for" do
-      # there should be 2 files called "template" in `test/support` with diff
-      # extensions
-      result = subject.render('template', TestServiceHandler, {})
-      assert_equal 'json-engine', result
+      result = subject.render('test_template.test', TestServiceHandler, locals)
+      assert_equal 'test-engine', result
     end
 
     should "use the null template engine when an engine can't be found" do
       assert_raises(ArgumentError) do
         subject.render(Factory.string, TestServiceHandler, {})
+      end
+    end
+
+    should "complain if the given template name matches multiple templates" do
+      # there should be 2 files called "conflict_template" in `test/support`
+      # with diff extensions
+      assert_raises(ArgumentError) do
+        subject.render('conflict_template', TestServiceHandler, {})
       end
     end
 

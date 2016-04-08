@@ -70,9 +70,16 @@ class Sanford::TemplateEngine
     end
 
     should "read and return the given path in its source path on `render" do
-      exists_file = 'test/support/template.json'
-      exp = File.read(subject.source_path.join(exists_file).to_s)
+      exists_file = ['test/support/template', 'test/support/template.erb'].choice
+      exp = File.read(Dir.glob("#{subject.source_path.join(exists_file)}*").first)
       assert_equal exp, subject.render(exists_file, @service_handler, @locals)
+    end
+
+    should "complain if given a path that matches multiple files" do
+      conflict_file = 'test/support/conflict_template'
+      assert_raises ArgumentError do
+        subject.render(conflict_file, @service_handler, @locals)
+      end
     end
 
     should "complain if given a path that does not exist in its source path" do
