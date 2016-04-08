@@ -13,7 +13,7 @@ module Sanford
       @logger = @opts['logger'] || Sanford::NullLogger.new
     end
 
-    def render(path, service_handler, locals)
+    def render(name, service_handler, locals)
       raise NotImplementedError
     end
 
@@ -30,8 +30,8 @@ module Sanford
 
   class NullTemplateEngine < TemplateEngine
 
-    def render(path, service_handler, locals)
-      template_file = self.source_path.join(path).to_s
+    def render(name, service_handler, locals)
+      template_file = self.source_path.join(name).to_s
       unless File.exists?(template_file)
         raise ArgumentError, "template file `#{template_file}` does not exist"
       end

@@ -48,34 +48,36 @@ class Sanford::TemplateSource
     end
 
     should "register with default options" do
-      subject.engine 'test', @test_engine
-      exp_opts = {
-        'source_path' => subject.path,
-        'logger'      => @logger
-      }
-      assert_equal exp_opts, subject.engines['test'].opts
-
-      source = Sanford::TemplateSource.new(@source_path)
-      source.engine 'test', @test_engine
-      assert_kind_of Sanford::NullLogger, source.engines['test'].opts['logger']
-
-      subject.engine 'test', @test_engine, 'an' => 'opt'
+      engine_ext = Factory.string
+      subject.engine engine_ext, @test_engine
       exp_opts = {
         'source_path' => subject.path,
         'logger'      => @logger,
-        'an'          => 'opt'
+        'ext'         => engine_ext
       }
-      assert_equal exp_opts, subject.engines['test'].opts
+      assert_equal exp_opts, subject.engines[engine_ext].opts
 
-      subject.engine('test', @test_engine, {
-        'source_path' => 'something',
-        'logger'      => 'another'
-      })
+      source = Sanford::TemplateSource.new(@source_path)
+      source.engine engine_ext, @test_engine
+      assert_kind_of Sanford::NullLogger, source.engines[engine_ext].opts['logger']
+
+      custom_opts = { Factory.string => Factory.string }
+      subject.engine engine_ext, @test_engine, custom_opts
       exp_opts = {
-        'source_path' => 'something',
-        'logger'      => 'another'
+        'source_path' => subject.path,
+        'logger'      => @logger,
+        'ext'         => engine_ext
+      }.merge(custom_opts)
+      assert_equal exp_opts, subject.engines[engine_ext].opts
+
+      custom_opts = {
+        'source_path' => Factory.string,
+        'logger'      => Factory.string,
+        'ext'         => Factory.string
       }
-      assert_equal exp_opts, subject.engines['test'].opts
+      subject.engine(engine_ext, @test_engine, custom_opts)
+      exp_opts = custom_opts.merge('ext' => engine_ext)
+      assert_equal exp_opts, subject.engines[engine_ext].opts
     end
 
     should "complain if registering a disallowed temp" do
