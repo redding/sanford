@@ -17,7 +17,12 @@ module Sanford
         'source_path' => @path,
         'logger'      => logger || Sanford::NullLogger.new
       }
-      @engines = Hash.new{ |h,k| Sanford::NullTemplateEngine.new(@default_opts) }
+      @engines = Hash.new do |hash, ext|
+        # cache null template exts so we don't repeatedly call this block for
+        # known null template exts
+        hash[ext.to_s] = Sanford::NullTemplateEngine.new(@default_opts)
+      end
+      @engine_exts = []
     end
 
     def engine(input_ext, engine_class, registered_opts = nil)
@@ -25,13 +30,15 @@ module Sanford
         raise DisallowedEngineExtError, "`#{input_ext}` is disallowed as an"\
                                         " engine extension."
       end
+      @engine_exts << input_ext.to_s
+
       engine_opts = @default_opts.merge(registered_opts || {})
       engine_opts['ext'] = input_ext.to_s
       @engines[input_ext.to_s] = engine_class.new(engine_opts)
     end
 
     def engine_for?(ext)
-      @engines.keys.include?(ext)
+      @engine_exts.include?(ext.to_s)
     end
 
     def engine_for_template?(template_name)
