@@ -5,10 +5,6 @@ module Sanford
 
   class TemplateSource
 
-    DISALLOWED_ENGINE_EXTS = [ 'rb' ]
-
-    DisallowedEngineExtError = Class.new(ArgumentError)
-
     attr_reader :path, :engines
 
     def initialize(path, logger = nil)
@@ -26,12 +22,7 @@ module Sanford
     end
 
     def engine(input_ext, engine_class, registered_opts = nil)
-      if DISALLOWED_ENGINE_EXTS.include?(input_ext)
-        raise DisallowedEngineExtError, "`#{input_ext}` is disallowed as an"\
-                                        " engine extension."
-      end
       @engine_exts << input_ext.to_s
-
       engine_opts = @default_opts.merge(registered_opts || {})
       engine_opts['ext'] = input_ext.to_s
       @engines[input_ext.to_s] = engine_class.new(engine_opts)
@@ -62,9 +53,12 @@ module Sanford
     private
 
     def get_template_ext(template_name)
-      files = Dir.glob("#{File.join(@path, template_name.to_s)}.*")
-      files = files.reject{ |p| !@engines.keys.include?(parse_ext(p)) }
-      parse_ext(files.first.to_s || '')
+      files = Dir.glob("#{File.join(@path, template_name.to_s)}*")
+      if files.size > 1
+        raise ArgumentError, "#{template_name.inspect} matches more than one " \
+                             "file, consider using a more specific template name"
+      end
+      parse_ext(files.first.to_s)
     end
 
     def parse_ext(template_name)
