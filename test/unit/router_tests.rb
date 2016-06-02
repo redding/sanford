@@ -8,12 +8,21 @@ class Sanford::Router
   class UnitTests < Assert::Context
     desc "Sanford::Router"
     setup do
-      @router = Sanford::Router.new
+      @router_class = Sanford::Router
+    end
+    subject{ @router_class }
+
+  end
+
+  class InitTests < UnitTests
+    desc "when init"
+    setup do
+      @router = @router_class.new
     end
     subject{ @router }
 
     should have_readers :routes
-    should have_imeths :service_handler_ns, :service
+    should have_imeths :service_handler_ns, :service, :validate!
 
     should "build an empty array for its routes by default" do
       assert_equal [], subject.routes
@@ -53,6 +62,13 @@ class Sanford::Router
       assert_equal expected, route.handler_class_name
     end
 
+    should "validate each route when validating" do
+      subject.service(Factory.string, TestHandler.to_s)
+      subject.routes.each{ |route| assert_nil route.handler_class }
+      subject.validate!
+      subject.routes.each{ |route| assert_not_nil route.handler_class }
+    end
+
     should "know its custom inspect" do
       reference = '0x0%x' % (subject.object_id << 1)
       expected = "#<#{subject.class}:#{reference} " \
@@ -61,5 +77,7 @@ class Sanford::Router
     end
 
   end
+
+  TestHandler = Class.new
 
 end

@@ -1,8 +1,5 @@
 require 'dat-tcp'
 require 'much-plugin'
-require 'ns-options'
-require 'ns-options/boolean'
-require 'pathname'
 require 'sanford-protocol'
 require 'socket'
 require 'sanford/logger'
@@ -26,8 +23,28 @@ module Sanford
       attr_reader :server_data, :dat_tcp_server
 
       def initialize
-        self.class.configuration.validate!
-        @server_data = ServerData.new(self.class.configuration.to_hash)
+        config = self.class.config
+        config.validate!
+
+        @server_data = ServerData.new({
+          :name                => config.name,
+          :ip                  => config.ip,
+          :port                => config.port,
+          :pid_file            => config.pid_file,
+          :shutdown_timeout    => config.shutdown_timeout,
+          :worker_class        => config.worker_class,
+          :worker_params       => config.worker_params,
+          :num_workers         => config.num_workers,
+          :init_procs          => config.init_procs,
+          :error_procs         => config.error_procs,
+          :template_source     => config.template_source,
+          :logger              => config.logger,
+          :router              => config.router,
+          :receives_keep_alive => config.receives_keep_alive,
+          :verbose_logging     => config.verbose_logging,
+          :routes              => config.routes
+        })
+
         @dat_tcp_server = DatTCP::Server.new(self.server_data.worker_class, {
           :num_workers      => self.server_data.num_workers,
           :logger           => self.server_data.dtcp_logger,
@@ -128,149 +145,157 @@ module Sanford
 
     module ClassMethods
 
-      def configuration
-        @configuration ||= Configuration.new
+      def config
+        @config ||= Config.new
       end
 
-      def name(*args)
-        self.configuration.name *args
+      def name(value = nil)
+        self.config.name = value if !value.nil?
+        self.config.name
       end
 
-      def ip(*args)
-        self.configuration.ip *args
+      def ip(value = nil)
+        self.config.ip = value if !value.nil?
+        self.config.ip
       end
 
-      def port(*args)
-        self.configuration.port *args
+      def port(value = nil)
+        self.config.port = value if !value.nil?
+        self.config.port
       end
 
-      def pid_file(*args)
-        self.configuration.pid_file *args
+      def pid_file(value = nil)
+        self.config.pid_file = value if !value.nil?
+        self.config.pid_file
       end
 
-      def worker_class(new_worker_class = nil)
-        self.configuration.worker_class = new_worker_class if new_worker_class
-        self.configuration.worker_class
+      def shutdown_timeout(value = nil)
+        self.config.shutdown_timeout = value if !value.nil?
+        self.config.shutdown_timeout
       end
 
-      def worker_params(new_worker_params = nil)
-        self.configuration.worker_params = new_worker_params if new_worker_params
-        self.configuration.worker_params
+      def worker_class(value = nil)
+        self.config.worker_class = value if !value.nil?
+        self.config.worker_class
+      end
+
+      def worker_params(value = nil)
+        self.config.worker_params = value if !value.nil?
+        self.config.worker_params
       end
 
       def num_workers(new_num_workers = nil)
-        self.configuration.num_workers = new_num_workers if new_num_workers
-        self.configuration.num_workers
+        self.config.num_workers = new_num_workers if new_num_workers
+        self.config.num_workers
       end
       alias :workers :num_workers
 
-      def receives_keep_alive(*args)
-        self.configuration.receives_keep_alive *args
-      end
-
-      def verbose_logging(*args)
-        self.configuration.verbose_logging *args
-      end
-
-      def logger(*args)
-        self.configuration.logger *args
-      end
-
-      def shutdown_timeout(new_timeout = nil)
-        self.configuration.shutdown_timeout = new_timeout if new_timeout
-        self.configuration.shutdown_timeout
-      end
-
       def init(&block)
-        self.configuration.init_procs << block
+        self.config.init_procs << block
       end
 
       def error(&block)
-        self.configuration.error_procs << block
+        self.config.error_procs << block
+      end
+
+      def template_source(value = nil)
+        self.config.template_source = value if !value.nil?
+        self.config.template_source
+      end
+
+      def logger(value = nil)
+        self.config.logger = value if !value.nil?
+        self.config.logger
       end
 
       def router(value = nil, &block)
-        self.configuration.router = value if !value.nil?
-        self.configuration.router.instance_eval(&block) if block
-        self.configuration.router
+        self.config.router = value if !value.nil?
+        self.config.router.instance_eval(&block) if block
+        self.config.router
       end
 
-      def template_source(*args)
-        self.configuration.template_source(*args)
+      # flags
+
+      def receives_keep_alive(value = nil)
+        self.config.receives_keep_alive = value if !value.nil?
+        self.config.receives_keep_alive
+      end
+
+      def verbose_logging(value = nil)
+        self.config.verbose_logging = value if !value.nil?
+        self.config.verbose_logging
       end
 
     end
 
-    class Configuration
-      include NsOptions::Proxy
+    class Config
 
-      DEFAULT_NUM_WORKERS = 4
+      DEFAULT_NUM_WORKERS = 4.freeze
+      DEFAULT_IP_ADDRESS  = '0.0.0.0'.freeze
 
-      option :name,     String,  :required => true
-      option :ip,       String,  :required => true, :default => '0.0.0.0'
-      option :port,     Integer, :required => true
-      option :pid_file, Pathname
-
-      option :receives_keep_alive, NsOptions::Boolean, :default => false
-
-      option :verbose_logging, :default => true
-      option :logger,          :default => proc{ NullLogger.new }
-      option :template_source, :default => proc{ NullTemplateSource.new }
-
-      attr_accessor :init_procs, :error_procs
+      attr_accessor :name, :ip, :port, :pid_file, :shutdown_timeout
       attr_accessor :worker_class, :worker_params, :num_workers
-      attr_accessor :shutdown_timeout
-      attr_accessor :router
+      attr_accessor :init_procs, :error_procs, :template_source, :logger, :router
+      attr_accessor :receives_keep_alive, :verbose_logging
 
-      def initialize(values = nil)
-        super(values)
-        @init_procs, @error_procs = [], []
+      def initialize
+        @name             = nil
+        @ip               = DEFAULT_IP_ADDRESS
+        @port             = nil
+        @pid_file         = nil
+        @shutdown_timeout = nil
         @worker_class     = DefaultWorker
         @worker_params    = nil
         @num_workers      = DEFAULT_NUM_WORKERS
-        @shutdown_timeout = nil
+        @init_procs       = []
+        @error_procs      = []
+        @template_source  = Sanford::NullTemplateSource.new(ENV['PWD'])
+        @logger           = Sanford::NullLogger.new
         @router           = Sanford::Router.new
-        @valid  = nil
+
+        @receives_keep_alive = false
+        @verbose_logging     = true
+
+        @valid = nil
       end
 
       def routes
-        @router.routes
-      end
-
-      def to_hash
-        super.merge({
-          :init_procs       => self.init_procs,
-          :error_procs      => self.error_procs,
-          :worker_class     => self.worker_class,
-          :worker_params    => self.worker_params,
-          :num_workers      => self.num_workers,
-          :shutdown_timeout => self.shutdown_timeout,
-          :router           => self.router,
-          :routes           => self.routes
-        })
+        self.router.routes
       end
 
       def valid?
         !!@valid
       end
 
+      # for the config to be considered "valid", a few things need to happen.
+      # The key here is that this only needs to be done _once_ for each config.
+
       def validate!
-        return @valid if !@valid.nil?
-        self.init_procs.each(&:call)
-        if !self.required_set?
-          raise InvalidError, "a name, ip and port must be configured"
+        return @valid if !@valid.nil? # only need to run this once per config
+
+        # ensure all user and plugin configs/settings are applied
+        self.init_procs.each{ |p| p.call }
+        [:name, :ip, :port].each do |a|
+          if self.send(a).nil?
+            raise InvalidError, "a name, ip and port must be configured"
+          end
         end
+
+        # validate the worker class
         if !self.worker_class.kind_of?(Class) || !self.worker_class.include?(Sanford::Worker)
           raise InvalidError, "worker class must include `#{Sanford::Worker}`"
         end
-        self.routes.each(&:validate!)
-        @valid = true
+
+        # validate the router
+        self.router.validate!
+
+        @valid = true # if it made it this far, it's valid!
       end
+
     end
 
     DefaultWorker = Class.new{ include Sanford::Worker }
-
-    InvalidError = Class.new(RuntimeError)
+    InvalidError  = Class.new(RuntimeError)
 
   end
 
