@@ -2,15 +2,15 @@ module Sanford
 
   class ServerData
 
-    # The server uses this to "compile" its configuration for speed. NsOptions
-    # is relatively slow everytime an option is read. To avoid this, we read the
-    # options one time here and memoize their values. This way, we don't pay the
-    # NsOptions overhead when reading them while handling a request.
+    # The server uses this to "compile" the common configuration data used
+    # by the server instances, error handlers and routes. The goal here is
+    # to provide these with a simplified interface with the minimal data needed
+    # and to decouple the configuration from each thing that needs its data.
 
     attr_accessor :ip, :port
     attr_reader :name, :pid_file, :shutdown_timeout
     attr_reader :worker_class, :worker_params, :num_workers
-    attr_reader :init_procs, :error_procs, :template_source, :logger, :router
+    attr_reader :error_procs, :template_source, :logger, :router
     attr_reader :receives_keep_alive, :verbose_logging
     attr_reader :debug, :dtcp_logger, :routes
 
@@ -26,7 +26,6 @@ module Sanford
       @worker_class    = args[:worker_class]
       @worker_params   = args[:worker_params] || {}
       @num_workers     = args[:num_workers]
-      @init_procs      = args[:init_procs]  || []
       @error_procs     = args[:error_procs] || []
       @template_source = args[:template_source]
       @logger          = args[:logger]
