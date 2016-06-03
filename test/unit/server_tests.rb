@@ -114,9 +114,9 @@ module Sanford::Server
       @server_class.name Factory.string
       @server_class.ip Factory.string
       @server_class.port Factory.integer
-      @server_class.num_workers Factory.integer
-      @server_class.worker_params(Factory.string => Factory.string)
       @server_class.shutdown_timeout Factory.integer
+      @server_class.worker_params(Factory.string => Factory.string)
+      @server_class.num_workers Factory.integer
 
       @error_procs = Factory.integer(3).times.map{ proc{} }
       @error_procs.each{ |p| @server_class.error(&p) }
@@ -130,7 +130,7 @@ module Sanford::Server
     end
     subject{ @server }
 
-    should have_readers :server_data, :dat_tcp_server
+    should have_readers :server_data
     should have_imeths :name, :ip, :port
     should have_imeths :file_descriptor, :client_file_descriptors
     should have_imeths :configured_ip, :configured_port
@@ -139,28 +139,36 @@ module Sanford::Server
     should have_imeths :paused?
 
     should "have validated its config" do
-      assert_true subject.class.config.valid?
+      assert_true @server_class.config.valid?
     end
 
     should "know its server data" do
-      config = subject.class.config
+      config = @server_class.config
       data   = subject.server_data
 
       assert_instance_of Sanford::ServerData, data
-      assert_equal config.name,                data.name
-      assert_equal config.ip,                  data.ip
-      assert_equal config.port,                data.port
-      assert_equal config.worker_class,        data.worker_class
-      assert_equal config.worker_params,       data.worker_params
-      assert_equal config.verbose_logging,     data.verbose_logging
-      assert_equal config.receives_keep_alive, data.receives_keep_alive
-      assert_equal config.error_procs,         data.error_procs
-      assert_equal config.routes,              data.routes.values
+
+      assert_equal config.name,             data.name
+      assert_equal config.ip,               data.ip
+      assert_equal config.port,             data.port
+      assert_equal config.pid_file,         data.pid_file
+      assert_equal config.shutdown_timeout, data.shutdown_timeout
+      assert_equal config.worker_class,     data.worker_class
+      assert_equal config.worker_params,    data.worker_params
+      assert_equal config.num_workers,      data.num_workers
+      assert_equal config.error_procs,      data.error_procs
 
       assert_instance_of config.logger.class, data.logger
+      assert_instance_of config.router.class, data.router
+
+      assert_equal config.template_source,     data.template_source
+      assert_equal config.verbose_logging,     data.verbose_logging
+      assert_equal config.receives_keep_alive, data.receives_keep_alive
+
+      assert_equal config.routes, data.routes.values
     end
 
-    should "know its dat tcp server" do
+    should "build a dat-tcp server" do
       data = subject.server_data
 
       assert_not_nil @dtcp_spy
@@ -172,21 +180,18 @@ module Sanford::Server
         :sanford_server_data => data
       })
       assert_equal exp, @dtcp_spy.worker_params
-
-      assert_equal @dtcp_spy, subject.dat_tcp_server
     end
 
     should "demeter its server data" do
-      assert_equal subject.server_data.name, subject.name
-      assert_equal subject.server_data.ip, subject.configured_ip
-      assert_equal subject.server_data.port, subject.configured_port
-      assert_equal subject.server_data.pid_file, subject.pid_file
-    end
+      data = subject.server_data
 
-    should "know its logger, router and template source" do
-      assert_equal subject.server_data.logger,          subject.logger
-      assert_equal subject.server_data.router,          subject.router
-      assert_equal subject.server_data.template_source, subject.template_source
+      assert_equal data.name,            subject.name
+      assert_equal data.ip,              subject.configured_ip
+      assert_equal data.port,            subject.configured_port
+      assert_equal data.pid_file,        subject.pid_file
+      assert_equal data.logger,          subject.logger
+      assert_equal data.router,          subject.router
+      assert_equal data.template_source, subject.template_source
     end
 
     should "call listen on its dat tcp server using `listen`" do

@@ -20,11 +20,16 @@ module Sanford
 
     module InstanceMethods
 
-      attr_reader :server_data, :dat_tcp_server
+      attr_reader :server_data
 
       def initialize
         config = self.class.config
-        config.validate!
+        begin
+          config.validate!
+        rescue InvalidError => exception
+          exception.set_backtrace(caller)
+          raise exception
+        end
 
         @server_data = ServerData.new({
           :name                => config.name,
@@ -35,7 +40,6 @@ module Sanford
           :worker_class        => config.worker_class,
           :worker_params       => config.worker_params,
           :num_workers         => config.num_workers,
-          :init_procs          => config.init_procs,
           :error_procs         => config.error_procs,
           :template_source     => config.template_source,
           :logger              => config.logger,
@@ -53,9 +57,6 @@ module Sanford
             :sanford_server_data => self.server_data
           })
         })
-      rescue InvalidError => exception
-        exception.set_backtrace(caller)
-        raise exception
       end
 
       def name
@@ -274,7 +275,7 @@ module Sanford
         return @valid if !@valid.nil? # only need to run this once per config
 
         # ensure all user and plugin configs/settings are applied
-        self.init_procs.each{ |p| p.call }
+        self.init_procs.each(&:call)
         [:name, :ip, :port].each do |a|
           if self.send(a).nil?
             raise InvalidError, "a name, ip and port must be configured"

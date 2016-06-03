@@ -16,6 +16,7 @@ class Sanford::ServerData
       ENV.delete('SANFORD_DEBUG')
 
       @route = Sanford::Route.new(Factory.string, TestHandler.to_s).tap(&:validate!)
+
       @config_hash = {
         :name                => Factory.string,
         :ip                  => Factory.string,
@@ -25,7 +26,6 @@ class Sanford::ServerData
         :worker_class        => Class.new,
         :worker_params       => { Factory.string => Factory.string },
         :num_workers         => Factory.integer,
-        :init_procs          => Factory.integer(3).times.map{ proc{} },
         :error_procs         => Factory.integer(3).times.map{ proc{} },
         :template_source     => Factory.string,
         :logger              => Factory.string,
@@ -46,7 +46,7 @@ class Sanford::ServerData
     should have_accessors :ip, :port
     should have_readers :name, :pid_file, :shutdown_timeout
     should have_readers :worker_class, :worker_params, :num_workers
-    should have_readers :init_procs, :error_procs, :template_source, :logger, :router
+    should have_readers :error_procs, :template_source, :logger, :router
     should have_readers :receives_keep_alive, :verbose_logging
     should have_readers :debug, :dtcp_logger, :routes
     should have_imeths :route_for
@@ -63,7 +63,6 @@ class Sanford::ServerData
       assert_equal h[:worker_class],    subject.worker_class
       assert_equal h[:worker_params],   subject.worker_params
       assert_equal h[:num_workers],     subject.num_workers
-      assert_equal h[:init_procs],      subject.init_procs
       assert_equal h[:error_procs],     subject.error_procs
       assert_equal h[:template_source], subject.template_source
       assert_equal h[:logger],          subject.logger
@@ -93,16 +92,15 @@ class Sanford::ServerData
       assert_equal @config_hash[:port], server_data.port
     end
 
-    should "set a dctp logger if in debug mode" do
+    should "use the debug env var if set" do
       ENV['SANFORD_DEBUG'] = Factory.string
       server_data = Sanford::ServerData.new(@config_hash)
       assert_true server_data.debug
       assert_equal server_data.logger, server_data.dtcp_logger
     end
 
-    should "allow lookup a route using `route_for`" do
-      route = subject.route_for(@route.name)
-      assert_equal @route, route
+    should "look up a route using `route_for`" do
+      assert_equal @route, subject.route_for(@route.name)
     end
 
     should "raise a not found error using `route_for` with an invalid name" do
@@ -123,7 +121,6 @@ class Sanford::ServerData
       assert_equal({}, server_data.worker_params)
       assert_nil server_data.num_workers
 
-      assert_equal [], server_data.init_procs
       assert_equal [], server_data.error_procs
 
       assert_nil server_data.template_source
