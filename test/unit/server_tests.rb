@@ -3,158 +3,107 @@ require 'sanford/server'
 
 require 'dat-tcp/server_spy'
 require 'much-plugin'
-require 'ns-options/assert_macros'
-require 'sanford/route'
+require 'sanford/logger'
+require 'sanford/router'
+require 'sanford/template_source'
 
 module Sanford::Server
 
   class UnitTests < Assert::Context
     desc "Sanford::Server"
     setup do
-      @server_class = Class.new do
-        include Sanford::Server
-      end
+      @server_class = Class.new{ include Sanford::Server }
     end
     subject{ @server_class }
 
-    should have_imeths :configuration
-    should have_imeths :name, :ip, :port, :pid_file
-    should have_imeths :receives_keep_alive
-    should have_imeths :worker_class, :worker_params
-    should have_imeths :num_workers, :workers
-    should have_imeths :verbose_logging, :logger
-    should have_imeths :shutdown_timeout
-    should have_imeths :init, :error
-    should have_imeths :router, :template_source
+    should have_imeths :config
+    should have_imeths :name, :ip, :port, :pid_file, :shutdown_timeout
+    should have_imeths :worker_class, :worker_params, :num_workers, :workers
+    should have_imeths :init, :error, :template_source, :logger, :router
+    should have_imeths :receives_keep_alive, :verbose_logging
 
     should "use much-plugin" do
       assert_includes MuchPlugin, Sanford::Server
     end
 
-    should "know its configuration" do
-      config = subject.configuration
-      assert_instance_of Configuration, config
-      assert_same config, subject.configuration
+    should "allow setting its config values" do
+      config = subject.config
+
+      exp = Factory.string
+      subject.name exp
+      assert_equal exp, config.name
+
+      exp = Factory.string
+      subject.ip exp
+      assert_equal exp, config.ip
+
+      exp = Factory.integer
+      subject.port exp
+      assert_equal exp, config.port
+
+      exp = Factory.file_path
+      subject.pid_file exp
+      assert_equal exp, config.pid_file
+
+      exp = Factory.integer
+      subject.shutdown_timeout exp
+      assert_equal exp, config.shutdown_timeout
+
+      exp = Class.new
+      subject.worker_class exp
+      assert_equal exp, subject.config.worker_class
+
+      exp = { Factory.string => Factory.string }
+      subject.worker_params exp
+      assert_equal exp, subject.config.worker_params
+
+      exp = Factory.integer
+      subject.num_workers(exp)
+      assert_equal exp, subject.config.num_workers
+      assert_equal exp, subject.workers
+
+      exp = proc{ }
+      assert_equal 0, config.init_procs.size
+      subject.init(&exp)
+      assert_equal 1, config.init_procs.size
+      assert_equal exp, config.init_procs.first
+
+      exp = proc{ }
+      assert_equal 0, config.error_procs.size
+      subject.error(&exp)
+      assert_equal 1, config.error_procs.size
+      assert_equal exp, config.error_procs.first
+
+      exp = Sanford::TemplateSource.new(Factory.path)
+      subject.template_source exp
+      assert_equal exp, config.template_source
+
+      exp = Logger.new(STDOUT)
+      subject.logger exp
+      assert_equal exp, config.logger
+
+      exp = Factory.boolean
+      subject.receives_keep_alive exp
+      assert_equal exp, config.receives_keep_alive
+
+      exp = Factory.boolean
+      subject.verbose_logging exp
+      assert_equal exp, config.verbose_logging
     end
 
-    should "allow reading/writing its configuration name" do
-      new_name = Factory.string
-      subject.name(new_name)
-      assert_equal new_name, subject.configuration.name
-      assert_equal new_name, subject.name
-    end
+    should "have a router by default and allow overriding it" do
+      assert_kind_of Sanford::Router, subject.router
 
-    should "allow reading/writing its configuration ip" do
-      new_ip = Factory.string
-      subject.ip(new_ip)
-      assert_equal new_ip, subject.configuration.ip
-      assert_equal new_ip, subject.ip
-    end
-
-    should "allow reading/writing its configuration port" do
-      new_port = Factory.integer
-      subject.port(new_port)
-      assert_equal new_port, subject.configuration.port
-      assert_equal new_port, subject.port
-    end
-
-    should "allow reading/writing its configuration pid file" do
-      new_pid_file = Factory.string
-      subject.pid_file(new_pid_file)
-      exp = Pathname.new(new_pid_file)
-      assert_equal exp, subject.configuration.pid_file
-      assert_equal exp, subject.pid_file
-    end
-
-    should "allow reading/writing its configuration receives keep alive" do
-      new_keep_alive = Factory.boolean
-      subject.receives_keep_alive(new_keep_alive)
-      assert_equal new_keep_alive, subject.configuration.receives_keep_alive
-      assert_equal new_keep_alive, subject.receives_keep_alive
-    end
-
-    should "allow reading/writing its configuration worker class" do
-      new_worker_class = Class.new
-      subject.worker_class(new_worker_class)
-      assert_equal new_worker_class, subject.configuration.worker_class
-      assert_equal new_worker_class, subject.worker_class
-    end
-
-    should "allow reading/writing its configuration worker params" do
-      new_worker_params = { Factory.string => Factory.string }
-      subject.worker_params(new_worker_params)
-      assert_equal new_worker_params, subject.configuration.worker_params
-      assert_equal new_worker_params, subject.worker_params
-    end
-
-    should "allow reading/writing its configuration num workers" do
-      new_num_workers = Factory.integer
-      subject.num_workers(new_num_workers)
-      assert_equal new_num_workers, subject.configuration.num_workers
-      assert_equal new_num_workers, subject.num_workers
-    end
-
-    should "alias workers as num workers" do
-      new_workers = Factory.integer
-      subject.workers(new_workers)
-      assert_equal new_workers, subject.configuration.num_workers
-      assert_equal new_workers, subject.workers
-    end
-
-    should "allow reading/writing its configuration verbose logging" do
-      new_verbose = Factory.boolean
-      subject.verbose_logging(new_verbose)
-      assert_equal new_verbose, subject.configuration.verbose_logging
-      assert_equal new_verbose, subject.verbose_logging
-    end
-
-    should "allow reading/writing its configuration logger" do
-      new_logger = Factory.string
-      subject.logger(new_logger)
-      assert_equal new_logger, subject.configuration.logger
-      assert_equal new_logger, subject.logger
-    end
-
-    should "allow reading/writing its configuration shutdown timeout" do
-      new_shutdown_timeout = Factory.integer
-      subject.shutdown_timeout(new_shutdown_timeout)
-      assert_equal new_shutdown_timeout, subject.configuration.shutdown_timeout
-      assert_equal new_shutdown_timeout, subject.shutdown_timeout
-    end
-
-    should "allow adding init procs to its configuration" do
-      new_init_proc = proc{ Factory.string }
-      subject.init(&new_init_proc)
-      assert_includes new_init_proc, subject.configuration.init_procs
-    end
-
-    should "allow adding error procs to its configuration" do
-      new_error_proc = proc{ Factory.string }
-      subject.error(&new_error_proc)
-      assert_includes new_error_proc, subject.configuration.error_procs
-    end
-
-    should "allow reading/writing its configuration router" do
-      new_router = Factory.string
-      subject.router(new_router)
-      assert_equal new_router, subject.configuration.router
-      assert_equal new_router, subject.router
+      new_router = Sanford::Router.new
+      subject.router new_router
+      assert_same new_router, subject.config.router
+      assert_same new_router, subject.router
     end
 
     should "allow configuring the router by passing a block to `router`" do
-      new_router = Factory.string
-
       block_scope = nil
-      subject.router(new_router){ block_scope = self }
-      assert_equal new_router, subject.router
-      assert_equal new_router, block_scope
-    end
-
-    should "allow setting the configuration template source" do
-      new_template_source = Factory.string
-      subject.template_source(new_template_source)
-      assert_equal new_template_source, subject.configuration.template_source
-      assert_equal new_template_source, subject.template_source
+      subject.router{ block_scope = self }
+      assert_equal subject.router, block_scope
     end
 
   end
@@ -171,10 +120,6 @@ module Sanford::Server
 
       @error_procs = Factory.integer(3).times.map{ proc{} }
       @error_procs.each{ |p| @server_class.error(&p) }
-
-      @server_class.router do
-        service Factory.string, TestHandler.to_s
-      end
 
       @dtcp_spy = nil
       Assert.stub(DatTCP::Server, :new) do |*args|
@@ -193,26 +138,26 @@ module Sanford::Server
     should have_imeths :listen, :start, :pause, :stop, :halt
     should have_imeths :paused?
 
-    should "have validated its configuration" do
-      assert_true subject.class.configuration.valid?
+    should "have validated its config" do
+      assert_true subject.class.config.valid?
     end
 
     should "know its server data" do
-      configuration = subject.class.configuration
-      data = subject.server_data
+      config = subject.class.config
+      data   = subject.server_data
 
       assert_instance_of Sanford::ServerData, data
-      assert_equal configuration.name,                data.name
-      assert_equal configuration.ip,                  data.ip
-      assert_equal configuration.port,                data.port
-      assert_equal configuration.worker_class,        data.worker_class
-      assert_equal configuration.worker_params,       data.worker_params
-      assert_equal configuration.verbose_logging,     data.verbose_logging
-      assert_equal configuration.receives_keep_alive, data.receives_keep_alive
-      assert_equal configuration.error_procs,         data.error_procs
-      assert_equal configuration.routes,              data.routes.values
+      assert_equal config.name,                data.name
+      assert_equal config.ip,                  data.ip
+      assert_equal config.port,                data.port
+      assert_equal config.worker_class,        data.worker_class
+      assert_equal config.worker_params,       data.worker_params
+      assert_equal config.verbose_logging,     data.verbose_logging
+      assert_equal config.receives_keep_alive, data.receives_keep_alive
+      assert_equal config.error_procs,         data.error_procs
+      assert_equal config.routes,              data.routes.values
 
-      assert_instance_of configuration.logger.class, data.logger
+      assert_instance_of config.logger.class, data.logger
     end
 
     should "know its dat tcp server" do
@@ -355,111 +300,85 @@ module Sanford::Server
 
   end
 
-  class ConfigurationTests < UnitTests
-    include NsOptions::AssertMacros
-
-    desc "Configuration"
+  class ConfigTests < UnitTests
+    desc "Config"
     setup do
-      @configuration = Configuration.new.tap do |c|
-        c.name Factory.string
-        c.ip   Factory.string
-        c.port Factory.integer
-      end
+      @config_class = Config
+      @config = Config.new
     end
-    subject{ @configuration }
+    subject{ @config }
 
-    should have_options :name, :ip, :port, :pid_file
-    should have_options :receives_keep_alive
-    should have_options :verbose_logging, :logger
-    should have_options :template_source
-    should have_accessors :init_procs, :error_procs
+    should have_accessors :name, :ip, :port, :pid_file, :shutdown_timeout
     should have_accessors :worker_class, :worker_params, :num_workers
-    should have_accessors :shutdown_timeout
-    should have_accessors :router
-    should have_imeths :routes
-    should have_imeths :to_hash
-    should have_imeths :valid?, :validate!
+    should have_accessors :init_procs, :error_procs, :template_source, :logger, :router
+    should have_accessors :receives_keep_alive, :verbose_logging
+    should have_imeths :routes, :valid?, :validate!
 
-    should "be an ns-options proxy" do
-      assert_includes NsOptions::Proxy, subject.class
+    should "know its default attr values" do
+      assert_equal 4,         @config_class::DEFAULT_NUM_WORKERS
+      assert_equal '0.0.0.0', @config_class::DEFAULT_IP_ADDRESS
     end
 
-    should "know its default num workers" do
-      assert_equal 4, Configuration::DEFAULT_NUM_WORKERS
+    should "default its attrs" do
+      assert_nil subject.name
+
+      exp = @config_class::DEFAULT_IP_ADDRESS
+      assert_equal exp, subject.ip
+
+      assert_nil subject.port
+      assert_nil subject.pid_file
+      assert_nil subject.shutdown_timeout
+
+      assert_equal DefaultWorker, subject.worker_class
+
+      assert_nil subject.worker_params
+
+      exp = @config_class::DEFAULT_NUM_WORKERS
+      assert_equal exp, subject.num_workers
+
+      assert_equal [], subject.init_procs
+      assert_equal [], subject.error_procs
+
+      assert_instance_of Sanford::NullTemplateSource, subject.template_source
+      assert_equal ENV['PWD'], subject.template_source.path
+
+      assert_instance_of Sanford::NullLogger, subject.logger
+      assert_instance_of Sanford::Router,     subject.router
+
+      assert_equal false, subject.receives_keep_alive
+      assert_equal true,  subject.verbose_logging
     end
 
-    should "default its options" do
-      config = Configuration.new
-      assert_nil config.name
-      assert_equal '0.0.0.0', config.ip
-      assert_nil config.port
-      assert_nil config.pid_file
-
-      assert_false config.receives_keep_alive
-
-      assert_true config.verbose_logging
-      assert_instance_of Sanford::NullLogger, config.logger
-      assert_instance_of Sanford::NullTemplateSource, config.template_source
-
-      assert_equal DefaultWorker, config.worker_class
-      assert_nil config.worker_params
-      assert_equal Configuration::DEFAULT_NUM_WORKERS, config.num_workers
-
-      assert_nil config.shutdown_timeout
-
-      assert_equal [], config.init_procs
-      assert_equal [], config.error_procs
-
-      assert_instance_of Sanford::Router, config.router
-      assert_empty config.router.routes
+    should "demeter its router" do
+      assert_equal subject.router.routes, subject.routes
     end
 
-    should "not be valid by default" do
+    should "not be valid until validate! has been run" do
       assert_false subject.valid?
-    end
 
-    should "know its routes" do
-      assert_equal subject.router.routes, subject.routes
-      subject.router.service(Factory.string, TestHandler.to_s)
-      assert_equal subject.router.routes, subject.routes
-    end
-
-    should "include its procs and router/routes in its `to_hash`" do
-      config_hash = subject.to_hash
-      assert_equal subject.worker_class,     config_hash[:worker_class]
-      assert_equal subject.worker_params,    config_hash[:worker_params]
-      assert_equal subject.num_workers,      config_hash[:num_workers]
-      assert_equal subject.shutdown_timeout, config_hash[:shutdown_timeout]
-      assert_equal subject.init_procs,       config_hash[:init_procs]
-      assert_equal subject.error_procs,      config_hash[:error_procs]
-      assert_equal subject.router,           config_hash[:router]
-      assert_equal subject.routes,           config_hash[:routes]
-    end
-
-    should "call its init procs when validated" do
-      called = false
-      subject.init_procs << proc{ called = true }
-      subject.validate!
-      assert_true called
-    end
-
-    should "ensure its required options have been set when validated" do
-      subject.name = nil
-      assert_raises(InvalidError){ subject.validate! }
       subject.name = Factory.string
-
-      subject.ip = nil
-      assert_raises(InvalidError){ subject.validate! }
-      subject.ip = Factory.string
-
-      subject.port = nil
-      assert_raises(InvalidError){ subject.validate! }
+      subject.ip   = Factory.string
       subject.port = Factory.integer
 
-      assert_nothing_raised{ subject.validate! }
+      subject.validate!
+      assert_true subject.valid?
     end
 
-    should "validate its worker class when validated" do
+    should "complain if validating and its name/ip/port is nil" do
+      subject.name = Factory.string
+      subject.ip   = Factory.string
+      subject.port = Factory.integer
+
+      a = [:name, :ip, :port].choice
+      subject.send("#{a}=", nil)
+      assert_raises(InvalidError){ subject.validate! }
+    end
+
+    should "complain if validating and its worker class isn't a Worker" do
+      subject.name = Factory.string
+      subject.ip   = Factory.string
+      subject.port = Factory.integer
+
       subject.worker_class = Module.new
       assert_raises(InvalidError){ subject.validate! }
 
@@ -467,17 +386,44 @@ module Sanford::Server
       assert_raises(InvalidError){ subject.validate! }
     end
 
-    should "validate its routes when validated" do
-      subject.router.service(Factory.string, TestHandler.to_s)
-      subject.routes.each{ |route| assert_nil route.handler_class }
-      subject.validate!
-      subject.routes.each{ |route| assert_not_nil route.handler_class }
+  end
+
+  class ValidationTests < ConfigTests
+    desc "when successfully validated"
+    setup do
+      @router = Sanford::Router.new
+      @router_validate_called = false
+      Assert.stub(@router, :validate!){ @router_validate_called = true }
+
+      @config = Config.new.tap do |c|
+        c.name   = Factory.string
+        c.ip     = Factory.string
+        c.port   = Factory.integer
+        c.router = @router
+      end
+
+      @initialized = false
+      @config.init_procs << proc{ @initialized = true }
+
+      @other_initialized = false
+      @config.init_procs << proc{ @other_initialized = true }
     end
 
-    should "be valid after being validated" do
-      assert_false subject.valid?
+    should "call its init procs" do
+      assert_equal false, @initialized
+      assert_equal false, @other_initialized
+
       subject.validate!
-      assert_true subject.valid?
+
+      assert_equal true, @initialized
+      assert_equal true, @other_initialized
+    end
+
+    should "call validate! on the router" do
+      assert_false @router_validate_called
+
+      subject.validate!
+      assert_true @router_validate_called
     end
 
     should "only be able to be validated once" do
@@ -490,8 +436,6 @@ module Sanford::Server
     end
 
   end
-
-  TestHandler = Class.new
 
   class TCPServerSpy
     attr_reader :set_socket_option_calls

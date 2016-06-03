@@ -62,8 +62,8 @@ module Sanford::ServiceHandler
     setup do
       @params = { 'message' => Factory.text }
       @runner = test_runner(AppHandlers::Template, {
-        :params => @params,
-        :template_source => AppServer.configuration.template_source
+        :params          => @params,
+        :template_source => AppServer.config.template_source
       })
       @handler = @runner.handler
     end

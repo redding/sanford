@@ -24,6 +24,11 @@ module Sanford
       @routes.push(Sanford::Route.new(name, handler_name))
     end
 
+    def validate!
+      self.routes.each(&:validate!)
+      true
+    end
+
     def inspect
       reference = '0x0%x' % (self.object_id << 1)
       "#<#{self.class}:#{reference} " \
