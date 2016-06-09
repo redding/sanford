@@ -13,6 +13,8 @@ ROOT_PATH = Pathname.new(File.expand_path('../..', __FILE__))
 
 require 'test/support/factory'
 
+JOIN_SECONDS = 0.1
+
 # 1.8.7 backfills
 
 # Array#sample
