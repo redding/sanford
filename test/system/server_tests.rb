@@ -346,6 +346,24 @@ module Sanford::Server
 
   end
 
+  class WithEnvProcessLabelTests < SystemTests
+    desc "with a process label env var"
+    setup do
+      ENV['SANFORD_PROCESS_LABEL'] = Factory.string
+
+      @server = AppServer.new
+    end
+    teardown do
+      ENV.delete('SANFORD_PROCESS_LABEL')
+    end
+    subject{ @server }
+
+    should "set the daemons process label to the env var" do
+      assert_equal ENV['SANFORD_PROCESS_LABEL'], subject.process_label
+    end
+
+  end
+
   class TestClient
     attr_accessor :delay, :bytes
 

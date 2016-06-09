@@ -10,8 +10,10 @@ module Sanford
     def initialize(server, options = nil)
       options ||= {}
       @server = server
+      @name   = "sanford: #{@server.process_label}"
       @logger = @server.logger
-      @pid_file = PIDFile.new(@server.pid_file)
+
+      @pid_file    = PIDFile.new(@server.pid_file)
       @restart_cmd = RestartCmd.new
 
       @server_ip   = @server.configured_ip
@@ -20,8 +22,6 @@ module Sanford
         ENV['SANFORD_SERVER_FD'].to_i
       end
       @listen_args = @server_fd ? [@server_fd] : [@server_ip, @server_port]
-
-      @name = "sanford-#{@server.name}-#{@server_ip}-#{@server_port}"
 
       @client_fds = ENV['SANFORD_CLIENT_FDS'].to_s.split(',').map(&:to_i)
 

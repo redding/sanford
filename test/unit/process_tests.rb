@@ -53,10 +53,9 @@ class Sanford::Process
     end
 
     should "know its name, pid file and restart cmd" do
-      expected = "sanford-#{@server_spy.name}-" \
-                 "#{@server_spy.configured_ip}-#{@server_spy.configured_port}"
-      assert_equal expected, subject.name
-      assert_equal @pid_file_spy, subject.pid_file
+      exp = "sanford: #{@server_spy.process_label}"
+      assert_equal exp,              subject.name
+      assert_equal @pid_file_spy,    subject.pid_file
       assert_equal @restart_cmd_spy, subject.restart_cmd
     end
 
@@ -372,6 +371,7 @@ class Sanford::Process
     port Factory.integer
     pid_file Factory.file_path
 
+    attr_accessor :process_label
     attr_reader :listen_called, :start_called
     attr_reader :stop_called, :halt_called, :pause_called
     attr_reader :listen_args, :start_args
@@ -379,6 +379,9 @@ class Sanford::Process
 
     def initialize(*args)
       super
+
+      @process_label = Factory.string
+
       @listen_called = false
       @start_called = false
       @stop_called = false
