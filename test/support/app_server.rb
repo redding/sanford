@@ -10,13 +10,16 @@ LOGGER = Logger.new(ROOT_PATH.join('log/app_server.log').to_s)
 LOGGER.datetime_format = "" # turn off the datetime in the logs
 
 class AppERBEngine < Sanford::TemplateEngine
-  RenderScope = Struct.new(:view)
+  RenderScope = Class.new(Struct.new(:view)) do
+    def get_binding; binding; end
+  end
 
   def render(path, service_handler, locals)
     require 'erb'
     full_path = ROOT_PATH.join("test/support/#{path}.erb")
-    binding = RenderScope.new(service_handler).send(:binding)
-    ERB.new(File.read(full_path)).result(binding)
+
+    b = RenderScope.new(service_handler).get_binding
+    ERB.new(File.read(full_path)).result(b)
   end
 end
 

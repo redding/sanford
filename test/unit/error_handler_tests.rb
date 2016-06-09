@@ -100,7 +100,7 @@ class Sanford::ErrorHandler
     subject{ @response }
 
     should "return a bad request response" do
-      exp = Sanford::Protocol::Response.new([:bad_request, @exception.message])
+      exp = Sanford::Protocol::Response.new([400, @exception.message])
       assert_equal exp, subject
     end
 
@@ -117,7 +117,7 @@ class Sanford::ErrorHandler
     subject{ @response }
 
     should "return a bad request response" do
-      exp = Sanford::Protocol::Response.new([:bad_request, @exception.message])
+      exp = Sanford::Protocol::Response.new([400, @exception.message])
       assert_equal exp, subject
     end
 
@@ -134,7 +134,7 @@ class Sanford::ErrorHandler
     subject{ @response }
 
     should "return a not found response" do
-      exp = Sanford::Protocol::Response.new(:not_found)
+      exp = Sanford::Protocol::Response.new(404)
       assert_equal exp, subject
     end
 
@@ -151,7 +151,7 @@ class Sanford::ErrorHandler
     subject{ @response }
 
     should "return a timeout response" do
-      exp = Sanford::Protocol::Response.new(:timeout)
+      exp = Sanford::Protocol::Response.new(408)
       assert_equal exp, subject
     end
 
@@ -168,7 +168,7 @@ class Sanford::ErrorHandler
     subject{ @response }
 
     should "return an error response" do
-      exp = Sanford::Protocol::Response.new([:error, "An unexpected error occurred."])
+      exp = Sanford::Protocol::Response.new([500, "An unexpected error occurred."])
       assert_equal exp, subject
     end
 
@@ -198,7 +198,7 @@ class Sanford::ErrorHandler
     end
 
     should "return an error response" do
-      exp = Sanford::Protocol::Response.new([:error, "An unexpected error occurred."])
+      exp = Sanford::Protocol::Response.new([500, "An unexpected error occurred."])
       assert_equal exp, @response
     end
 
@@ -240,15 +240,15 @@ class Sanford::ErrorHandler
   class RunWithSymbolFromErrorProcTests < RunSetupTests
     desc "with a response symbol returned from an error proc"
     setup do
-      @response_symbol = [:not_found, :bad_request, :error].sample
-      @error_proc_spies.sample.response = @response_symbol
+      @response_code = [400, 404, 500].sample
+      @error_proc_spies.sample.response = @response_code
 
       @response = @handler.run
     end
     subject{ @response }
 
     should "use the response symbol to build a response and return it" do
-      exp = Sanford::Protocol::Response.new(@response_symbol)
+      exp = Sanford::Protocol::Response.new(@response_code)
       assert_equal exp, subject
     end
 

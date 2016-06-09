@@ -45,13 +45,13 @@ module Sanford
     def response_from_exception(exception)
       if exception.kind_of?(Sanford::Protocol::BadMessageError) ||
          exception.kind_of?(Sanford::Protocol::Request::InvalidError)
-        build_response :bad_request, :message => exception.message
+        build_response 400, :message => exception.message # BAD REQUEST
       elsif exception.kind_of?(Sanford::NotFoundError)
-        build_response :not_found
+        build_response 404 # NOT FOUND
       elsif exception.kind_of?(Sanford::Protocol::TimeoutError)
-        build_response :timeout
+        build_response 408 # TIMEOUT
       else
-        build_response :error, :message => "An unexpected error occurred."
+        build_response 500, :message => "An unexpected error occurred." # ERROR
       end
     end
 
