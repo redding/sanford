@@ -131,9 +131,8 @@ module Sanford::Server
     subject{ @server }
 
     should have_readers :server_data
-    should have_imeths :name, :ip, :port
-    should have_imeths :file_descriptor, :client_file_descriptors
-    should have_imeths :configured_ip, :configured_port
+    should have_imeths :ip, :port, :file_descriptor, :client_file_descriptors
+    should have_imeths :name, :configured_ip, :configured_port, :process_label
     should have_imeths :pid_file, :logger, :router, :template_source
     should have_imeths :listen, :start, :pause, :stop, :halt
     should have_imeths :paused?
@@ -188,6 +187,7 @@ module Sanford::Server
       assert_equal data.name,            subject.name
       assert_equal data.ip,              subject.configured_ip
       assert_equal data.port,            subject.configured_port
+      assert_equal data.process_label,   subject.process_label
       assert_equal data.pid_file,        subject.pid_file
       assert_equal data.logger,          subject.logger
       assert_equal data.router,          subject.router

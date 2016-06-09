@@ -59,10 +59,6 @@ module Sanford
         })
       end
 
-      def name
-        @server_data.name
-      end
-
       def ip
         @dat_tcp_server.ip
       end
@@ -79,12 +75,20 @@ module Sanford
         @dat_tcp_server.client_file_descriptors
       end
 
+      def name
+        @server_data.name
+      end
+
       def configured_ip
         @server_data.ip
       end
 
       def configured_port
         @server_data.port
+      end
+
+      def process_label
+        @server_data.process_label
       end
 
       def pid_file

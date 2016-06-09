@@ -12,7 +12,7 @@ module Sanford
     attr_reader :worker_class, :worker_params, :num_workers
     attr_reader :error_procs, :template_source, :logger, :router
     attr_reader :receives_keep_alive, :verbose_logging
-    attr_reader :debug, :dtcp_logger, :routes
+    attr_reader :debug, :dtcp_logger, :routes, :process_label
 
     def initialize(args = nil)
       args ||= {}
@@ -37,6 +37,12 @@ module Sanford
       @debug       = !ENV['SANFORD_DEBUG'].to_s.empty?
       @dtcp_logger = @logger if @debug
       @routes      = build_routes(args[:routes] || [])
+
+      @process_label = if (label = ENV['SANFORD_PROCESS_LABEL'].to_s).empty?
+        "#{@name}-#{@ip}-#{@port}"
+      else
+        label
+      end
     end
 
     def route_for(name)

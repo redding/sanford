@@ -10,9 +10,10 @@ class Sanford::ServerData
     setup do
       @orig_ip_env_var    = ENV['SANFORD_IP']
       @orig_port_env_var  = ENV['SANFORD_PORT']
-      @orig_debug_env_var = ENV['SANFORD_DEBUG']
+      @orig_label_env_var = ENV['SANFORD_PROCESS_LABEL']
       ENV.delete('SANFORD_IP')
       ENV.delete('SANFORD_PORT')
+      ENV.delete('SANFORD_PROCESS_LABEL')
       ENV.delete('SANFORD_DEBUG')
 
       @route = Sanford::Route.new(Factory.string, TestHandler.to_s).tap(&:validate!)
@@ -37,9 +38,10 @@ class Sanford::ServerData
       @server_data = Sanford::ServerData.new(@config_hash)
     end
     teardown do
-      ENV['SANFORD_IP']    = @orig_ip_env_var
-      ENV['SANFORD_PORT']  = @orig_port_env_var
-      ENV['SANFORD_DEBUG'] = @orig_debug_env_var
+      ENV['SANFORD_IP']            = @orig_ip_env_var
+      ENV['SANFORD_PORT']          = @orig_port_env_var
+      ENV['SANFORD_PROCESS_LABEL'] = @orig_label_env_var
+      ENV['SANFORD_DEBUG']         = @orig_debug_env_var
     end
     subject{ @server_data }
 
@@ -48,7 +50,7 @@ class Sanford::ServerData
     should have_readers :worker_class, :worker_params, :num_workers
     should have_readers :error_procs, :template_source, :logger, :router
     should have_readers :receives_keep_alive, :verbose_logging
-    should have_readers :debug, :dtcp_logger, :routes
+    should have_readers :debug, :dtcp_logger, :routes, :process_label
     should have_imeths :route_for
 
     should "know its attrs" do
@@ -90,6 +92,23 @@ class Sanford::ServerData
       server_data = Sanford::ServerData.new(@config_hash)
       assert_equal @config_hash[:ip],   server_data.ip
       assert_equal @config_hash[:port], server_data.port
+    end
+
+    should "know its process label" do
+      ENV['SANFORD_PROCESS_LABEL'] = Factory.string
+      server_data = Sanford::ServerData.new(@config_hash)
+      exp = ENV['SANFORD_PROCESS_LABEL']
+      assert_equal exp, server_data.process_label
+
+      ENV['SANFORD_PROCESS_LABEL'] = ""
+      server_data = Sanford::ServerData.new(@config_hash)
+      exp = "#{@config_hash[:name]}-#{@config_hash[:ip]}-#{@config_hash[:port]}"
+      assert_equal exp, server_data.process_label
+
+      ENV.delete('SANFORD_PROCESS_LABEL')
+      server_data = Sanford::ServerData.new(@config_hash)
+      exp = "#{@config_hash[:name]}-#{@config_hash[:ip]}-#{@config_hash[:port]}"
+      assert_equal exp, server_data.process_label
     end
 
     should "use the debug env var if set" do
