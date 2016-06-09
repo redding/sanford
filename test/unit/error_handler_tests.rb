@@ -208,7 +208,7 @@ class Sanford::ErrorHandler
     desc "with a protocol response returned from an error proc"
     setup do
       @proc_response = Sanford::Protocol::Response.new(Factory.integer)
-      @error_proc_spies.choice.response = @proc_response
+      @error_proc_spies.sample.response = @proc_response
 
       @response = @handler.run
     end
@@ -224,7 +224,7 @@ class Sanford::ErrorHandler
     desc "with a response code returned from an error proc"
     setup do
       @response_code = Factory.integer
-      @error_proc_spies.choice.response = @response_code
+      @error_proc_spies.sample.response = @response_code
 
       @response = @handler.run
     end
@@ -240,8 +240,8 @@ class Sanford::ErrorHandler
   class RunWithSymbolFromErrorProcTests < RunSetupTests
     desc "with a response symbol returned from an error proc"
     setup do
-      @response_symbol = [:not_found, :bad_request, :error].choice
-      @error_proc_spies.choice.response = @response_symbol
+      @response_symbol = [:not_found, :bad_request, :error].sample
+      @error_proc_spies.sample.response = @response_symbol
 
       @response = @handler.run
     end

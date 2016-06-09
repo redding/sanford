@@ -70,7 +70,7 @@ class Sanford::TemplateEngine
     end
 
     should "read and return the given path in its source path on `render" do
-      exists_file = ['test/support/template', 'test/support/template.erb'].choice
+      exists_file = ['test/support/template', 'test/support/template.erb'].sample
       exp = File.read(Dir.glob("#{subject.source_path.join(exists_file)}*").first)
       assert_equal exp, subject.render(exists_file, @service_handler, @locals)
     end

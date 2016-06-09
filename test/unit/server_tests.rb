@@ -374,7 +374,7 @@ module Sanford::Server
       subject.ip   = Factory.string
       subject.port = Factory.integer
 
-      a = [:name, :ip, :port].choice
+      a = [:name, :ip, :port].sample
       subject.send("#{a}=", nil)
       assert_raises(InvalidError){ subject.validate! }
     end
