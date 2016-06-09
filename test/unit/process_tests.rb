@@ -61,7 +61,7 @@ class Sanford::Process
     end
 
     should "know its server ip, port and file descriptor" do
-      assert_equal @server_spy.configured_ip, subject.server_ip
+      assert_equal @server_spy.configured_ip,   subject.server_ip
       assert_equal @server_spy.configured_port, subject.server_port
       assert_nil subject.server_fd
     end
@@ -163,8 +163,8 @@ class Sanford::Process
 
     should "have started the server listening" do
       assert_true @server_spy.listen_called
-      expected = [ subject.server_ip, subject.server_port ]
-      assert_equal expected, @server_spy.listen_args
+      exp = [subject.server_ip, subject.server_port]
+      assert_equal exp, @server_spy.listen_args
     end
 
     should "have set the process name" do
@@ -233,8 +233,8 @@ class Sanford::Process
 
     should "have used the file descriptor when listening" do
       assert_true @server_spy.listen_called
-      expected = [ @process.server_fd ]
-      assert_equal expected, @server_spy.listen_args
+      exp = [@process.server_fd]
+      assert_equal exp, @server_spy.listen_args
     end
 
   end
@@ -270,8 +270,8 @@ class Sanford::Process
 
     should "set env vars for restarting and run the restart cmd" do
       assert_equal @server_spy.file_descriptor.to_s, ENV['SANFORD_SERVER_FD']
-      expected = @server_spy.client_file_descriptors.join(',')
-      assert_equal expected, ENV['SANFORD_CLIENT_FDS']
+      exp = @server_spy.client_file_descriptors.join(',')
+      assert_equal exp,   ENV['SANFORD_CLIENT_FDS']
       assert_equal 'yes', ENV['SANFORD_SKIP_DAEMONIZE']
       assert_true @restart_cmd_spy.run_called
     end

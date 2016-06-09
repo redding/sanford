@@ -161,19 +161,19 @@ class Sanford::ConnectionHandler
     should "have logged the service" do
       time_taken = @processed_service.time_taken
       status = @processed_service.response.status.to_s
-      expected = "[Sanford] ===== Received request =====" \
-                 "[Sanford]   Service: #{@request.name.inspect}" \
-                 "[Sanford]   Params:  #{@request.params.inspect}" \
-                 "[Sanford]   Handler: #{@route.handler_class}" \
-                 "[Sanford] ===== Completed in #{time_taken}ms #{status} ====="
-      assert_equal expected, subject.info_logged.join
+      exp = "[Sanford] ===== Received request =====" \
+            "[Sanford]   Service: #{@request.name.inspect}" \
+            "[Sanford]   Params:  #{@request.params.inspect}" \
+            "[Sanford]   Handler: #{@route.handler_class}" \
+            "[Sanford] ===== Completed in #{time_taken}ms #{status} ====="
+      assert_equal exp, subject.info_logged.join
     end
 
     should "log an exception when one is thrown" do
       err = @processed_service.exception
       backtrace = err.backtrace.join("\n")
-      expected = "[Sanford] #{err.class}: #{err.message}\n#{backtrace}"
-      assert_equal expected, subject.error_logged.join
+      exp = "[Sanford] #{err.class}: #{err.message}\n#{backtrace}"
+      assert_equal exp, subject.error_logged.join
     end
 
   end
@@ -198,14 +198,14 @@ class Sanford::ConnectionHandler
       time_taken = @processed_service.time_taken
       status = @processed_service.response.status.to_i
       exception_msg = "#{@exception.class}: #{@exception.message}"
-      expected = "[Sanford] " \
-                 "time=#{time_taken} " \
-                 "status=#{status} " \
-                 "handler=#{@route.handler_class} " \
-                 "service=#{@request.name.inspect} " \
-                 "params=#{@request.params.inspect} " \
-                 "error=#{exception_msg.inspect}"
-      assert_equal expected, subject.info_logged.join
+      exp = "[Sanford] " \
+            "time=#{time_taken} " \
+            "status=#{status} " \
+            "handler=#{@route.handler_class} " \
+            "service=#{@request.name.inspect} " \
+            "params=#{@request.params.inspect} " \
+            "error=#{exception_msg.inspect}"
+      assert_equal exp, subject.info_logged.join
     end
 
     should "not have logged the exception" do

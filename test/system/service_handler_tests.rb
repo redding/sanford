@@ -78,8 +78,8 @@ module Sanford::ServiceHandler
     should "return a 200 response and render the template when run" do
       response = @runner.run
       assert_equal 200, response.code
-      expected = "ERB Template Message: #{@params['message']}\n"
-      assert_equal expected, response.data
+      exp = "ERB Template Message: #{@params['message']}\n"
+      assert_equal exp, response.data
     end
 
   end

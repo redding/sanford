@@ -58,8 +58,8 @@ class Sanford::Router
       subject.service service_name, handler_name
 
       route = subject.routes.last
-      expected = "#{namespace}::#{handler_name}"
-      assert_equal expected, route.handler_class_name
+      exp = "#{namespace}::#{handler_name}"
+      assert_equal exp, route.handler_class_name
     end
 
     should "validate each route when validating" do
@@ -71,9 +71,9 @@ class Sanford::Router
 
     should "know its custom inspect" do
       reference = '0x0%x' % (subject.object_id << 1)
-      expected = "#<#{subject.class}:#{reference} " \
-                   "@service_handler_ns=#{subject.service_handler_ns.inspect}>"
-      assert_equal expected, subject.inspect
+      exp = "#<#{subject.class}:#{reference} " \
+            "@service_handler_ns=#{subject.service_handler_ns.inspect}>"
+      assert_equal exp, subject.inspect
     end
 
   end

@@ -129,8 +129,8 @@ class Sanford::CLI
     end
 
     should "output the error with the help" do
-      expected = "#{@command.inspect} is not a valid command"
-      assert_includes expected, @kernel_spy.output
+      exp = "#{@command.inspect} is not a valid command"
+      assert_includes exp, @kernel_spy.output
       assert_includes "Usage: sanford", @kernel_spy.output
     end
 
