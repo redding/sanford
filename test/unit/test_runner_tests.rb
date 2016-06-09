@@ -136,23 +136,4 @@ class Sanford::TestRunner
 
   end
 
-  class HaltServiceHandler
-    include Sanford::ServiceHandler
-
-    attr_reader :run_called
-    attr_accessor :response_code, :response_data
-
-    def init!
-      @run_called = false
-      @response_code ||= Factory.integer
-      @response_data ||= Factory.string
-      halt(@response_code, :data => @response_data)
-    end
-
-    def run!
-      @run_called = true
-    end
-
-  end
-
 end
