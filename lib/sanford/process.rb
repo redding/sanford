@@ -1,10 +1,17 @@
+require 'sanford/io_pipe'
 require 'sanford/pid_file'
 
 module Sanford
 
   class Process
 
-    attr_reader :server, :name, :pid_file, :restart_cmd
+    HALT    = 'H'.freeze
+    STOP    = 'S'.freeze
+    RESTART = 'R'.freeze
+
+    WAIT_FOR_SIGNALS_TIMEOUT = 15
+
+    attr_reader :server, :name, :pid_file, :signal_io, :restart_cmd
     attr_reader :server_ip, :server_port, :server_fd, :client_fds
 
     def initialize(server, options = nil)
@@ -14,6 +21,7 @@ module Sanford
       @logger = @server.logger
 
       @pid_file    = PIDFile.new(@server.pid_file)
+      @signal_io   = IOPipe.new
       @restart_cmd = RestartCmd.new
 
       @server_ip   = @server.configured_ip
@@ -25,8 +33,8 @@ module Sanford
 
       @client_fds = ENV['SANFORD_CLIENT_FDS'].to_s.split(',').map(&:to_i)
 
-      @daemonize      = !!options[:daemonize]
-      @skip_daemonize = !ENV['SANFORD_SKIP_DAEMONIZE'].to_s.empty?
+      skip_daemonize = ignore_if_blank(ENV['SANFORD_SKIP_DAEMONIZE'])
+      @daemonize = !!options[:daemonize] && !skip_daemonize
     end
 
     def run
@@ -40,29 +48,68 @@ module Sanford
       @pid_file.write
       log "PID: #{@pid_file.pid}"
 
-      ::Signal.trap("TERM"){ @server.stop }
-      ::Signal.trap("INT"){ @server.halt }
-      ::Signal.trap("USR2"){ @server.pause }
+      @signal_io.setup
+      trap_signals(@signal_io)
 
-      thread = @server.start(@client_fds)
-      log "#{@server.name} server started and ready."
-      thread.join
-      run_restart_cmd if @server.paused?
-    rescue StandardError => exception
-      log "Error: #{exception.message}"
-      log "#{@server.name} server never started."
+      start_server(@server, @client_fds)
+
+      signal = catch(:signal) do
+        wait_for_signals(@signal_io, @server)
+      end
+      @signal_io.teardown
+
+      run_restart_cmd if signal == RESTART
     ensure
       @pid_file.remove
     end
 
-    def daemonize?
-      @daemonize && !@skip_daemonize
-    end
+    def daemonize?; @daemonize; end
 
     private
 
-    def log(message)
-      @logger.info "[Sanford] #{message}"
+    def start_server(server, client_fds)
+      server.start(client_fds)
+      log "#{server.name} server started and ready."
+    rescue StandardError => exception
+      log "#{server.name} server never started."
+      raise exception
+    end
+
+    def trap_signals(signal_io)
+      trap_signal('INT'){  signal_io.write(HALT) }
+      trap_signal('TERM'){ signal_io.write(STOP) }
+      trap_signal('USR2'){ signal_io.write(RESTART) }
+    end
+
+    def trap_signal(signal, &block)
+      ::Signal.trap(signal, &block)
+    rescue ArgumentError
+      log "'#{signal}' signal not supported"
+    end
+
+    def wait_for_signals(signal_io, server)
+      loop do
+        ready = signal_io.wait(WAIT_FOR_SIGNALS_TIMEOUT)
+        handle_signal(signal_io.read, server) if ready
+
+        if !server.running?
+          log "Server crashed, restarting"
+          start_server(server, server.client_file_descriptors)
+        end
+      end
+    end
+
+    def handle_signal(signal, server)
+      log "Got '#{signal}' signal"
+      case signal
+      when HALT
+        server.halt(true)
+      when STOP
+        server.stop(true)
+      when RESTART
+        server.pause(true)
+      end
+      throw :signal, signal
     end
 
     def run_restart_cmd
@@ -71,6 +118,15 @@ module Sanford
       ENV['SANFORD_CLIENT_FDS'] = @server.client_file_descriptors.join(',')
       ENV['SANFORD_SKIP_DAEMONIZE'] = 'yes'
       @restart_cmd.run
+    end
+
+    def log(message)
+      @logger.info "[Sanford] #{message}"
+    end
+
+    def ignore_if_blank(value, &block)
+      block ||= proc{ |v| v }
+      block.call(value) if value && !value.empty?
     end
 
   end
