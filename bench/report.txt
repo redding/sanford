@@ -2,46 +2,37 @@ Running benchmark report...
 
 Hitting "simple" service with {}, 10000 times
 ....................................................................................................
-Total Time:   7600.3550ms
-Average Time:    0.7600ms
-Min Time:        0.3941ms
-Max Time:       38.5608ms
+Total Time:   7117.6994ms
+Average Time:    0.7117ms
+Min Time:        0.4079ms
+Max Time:       71.8839ms
 
 Distribution (number of requests):
-  0ms: 9812
-    0.3ms: 15
-    0.4ms: 2030
-    0.5ms: 2816
-    0.6ms: 3236
-    0.7ms: 1250
-    0.8ms: 327
-    0.9ms: 138
-  1ms: 134
-    1.0ms: 60
-    1.1ms: 24
-    1.2ms: 16
-    1.3ms: 11
-    1.4ms: 5
-    1.5ms: 6
-    1.6ms: 5
-    1.7ms: 4
-    1.8ms: 2
-    1.9ms: 1
-  2ms: 4
-  6ms: 1
-  7ms: 1
+  0ms: 9917
+    0.4ms: 2569
+    0.5ms: 2754
+    0.6ms: 2608
+    0.7ms: 1654
+    0.8ms: 262
+    0.9ms: 70
+  1ms: 62
+    1.0ms: 31
+    1.1ms: 17
+    1.2ms: 7
+    1.3ms: 5
+    1.5ms: 1
+    1.8ms: 1
+  3ms: 1
   8ms: 1
-  9ms: 1
   10ms: 1
-  28ms: 1
-  30ms: 5
-  31ms: 14
-  32ms: 9
-  33ms: 7
-  34ms: 4
-  35ms: 2
-  36ms: 1
-  37ms: 1
-  38ms: 1
+  27ms: 1
+  41ms: 1
+  47ms: 1
+  65ms: 4
+  66ms: 1
+  67ms: 5
+  68ms: 3
+  70ms: 1
+  71ms: 1
 
 Done running benchmark report

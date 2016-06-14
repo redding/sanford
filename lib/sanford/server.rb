@@ -132,8 +132,16 @@ module Sanford
         @dat_tcp_server.halt(*args)
       end
 
+      def listening?
+        @dat_tcp_server.listening?
+      end
+
+      def running?
+        @dat_tcp_server.running?
+      end
+
       def paused?
-        @dat_tcp_server.listening? && !@dat_tcp_server.running?
+        self.listening? && !self.running?
       end
 
       private

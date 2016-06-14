@@ -135,7 +135,7 @@ module Sanford::Server
     should have_imeths :name, :configured_ip, :configured_port, :process_label
     should have_imeths :pid_file, :logger, :router, :template_source
     should have_imeths :listen, :start, :pause, :stop, :halt
-    should have_imeths :paused?
+    should have_imeths :listening?, :running?, :paused?
 
     should "have validated its config" do
       assert_true @server_class.config.valid?
@@ -274,13 +274,21 @@ module Sanford::Server
       assert_equal wait, @dtcp_spy.waiting_for_halt
     end
 
-    should "know if its been paused" do
+    should "know if its listening, running or been paused" do
+      assert_false subject.listening?
+      assert_false subject.running?
       assert_false subject.paused?
       subject.listen
+      assert_true subject.listening?
+      assert_false subject.running?
       assert_true subject.paused?
       subject.start
+      assert_true subject.listening?
+      assert_true subject.running?
       assert_false subject.paused?
       subject.pause
+      assert_true subject.listening?
+      assert_false subject.running?
       assert_true subject.paused?
     end
 
