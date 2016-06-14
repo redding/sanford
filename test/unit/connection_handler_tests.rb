@@ -84,59 +84,99 @@ class Sanford::ConnectionHandler
 
   end
 
-  class RunWithExceptionTests < InitTests
-    desc "and run with a route that throws an exception"
+  class RunWithExceptionSetupTests < InitTests
     setup do
-      Assert.stub(@route, :run){ raise @exception }
+      @route_exception = Factory.exception
+      Assert.stub(@route, :run){ raise @route_exception }
+      Assert.stub(Sanford::ErrorHandler, :new) do |*args|
+        @error_handler_spy = ErrorHandlerSpy.new(*args)
+      end
+    end
 
-      error_handler = Sanford::ErrorHandler.new(@exception, {
-        :server_data => @server_data,
-        :request     => @request
-      })
-      @expected_response  = error_handler.run
-      @expected_exception = error_handler.exception
+  end
 
+  class RunWithExceptionTests < RunWithExceptionSetupTests
+    desc "and run with an exception"
+    setup do
       @processed_service = @connection_handler.run
     end
-    subject{ @processed_service }
 
-    should "return a processed service with an exception" do
-      assert_instance_of ProcessedService, subject
-      assert_equal @expected_response,  subject.response
-      assert_equal @expected_exception, subject.exception
+    should "run an error handler" do
+      assert_equal @route_exception, @error_handler_spy.passed_exception
+      exp = {
+        :server_data   => @server_data,
+        :request       => @processed_service.request,
+        :handler_class => @processed_service.handler_class,
+        :response      => nil
+      }
+      assert_equal exp, @error_handler_spy.context_hash
+      assert_true @error_handler_spy.run_called
     end
 
-    should "have written the error response to the connection" do
-      assert_equal @expected_response, @connection.response
+    should "store the error handler response and exception on the processed service" do
+      assert_equal @error_handler_spy.response,  @processed_service.response
+      assert_equal @error_handler_spy.exception, @processed_service.exception
+    end
+
+    should "write the error response to the connection" do
+      assert_equal @error_handler_spy.response, @connection.response
       assert_true @connection.write_closed
     end
 
   end
 
-  class RunWithExceptionWhileWritingTests < InitTests
+  class RunWithShutdownErrorTests < RunWithExceptionSetupTests
+    desc "and run with a dat worker pool shutdown error"
+    setup do
+      @shutdown_error = DatWorkerPool::ShutdownError.new(Factory.text)
+      Assert.stub(@route, :run){ raise @shutdown_error }
+    end
+
+    should "run an error handler" do
+      assert_raises{ @connection_handler.run }
+
+      passed_exception = @error_handler_spy.passed_exception
+      assert_instance_of Sanford::ShutdownError, passed_exception
+      assert_equal @shutdown_error.message, passed_exception.message
+      assert_equal @shutdown_error.backtrace, passed_exception.backtrace
+      assert_true @error_handler_spy.run_called
+    end
+
+    should "raise the shutdown error" do
+      assert_raises(@shutdown_error.class){ @connection_handler.run }
+    end
+
+  end
+
+  class RunWithExceptionWhileWritingTests < RunWithExceptionSetupTests
     desc "and run with an exception thrown while writing the response"
     setup do
+      Assert.stub(@route, :run){ @response }
       @connection.raise_on_write = true
-
-      error_handler = Sanford::ErrorHandler.new(@connection.write_exception, {
-        :server_data => @server_data,
-        :request     => @request
-      })
-      @expected_response  = error_handler.run
-      @expected_exception = error_handler.exception
 
       @processed_service = @connection_handler.run
     end
     subject{ @processed_service }
 
-    should "return a processed service with an exception" do
-      assert_instance_of ProcessedService, subject
-      assert_equal @expected_response,  subject.response
-      assert_equal @expected_exception, subject.exception
+    should "run an error handler" do
+      assert_equal @connection.write_exception, @error_handler_spy.passed_exception
+      exp = {
+        :server_data   => @server_data,
+        :request       => @processed_service.request,
+        :handler_class => @processed_service.handler_class,
+        :response      => @response
+      }
+      assert_equal exp, @error_handler_spy.context_hash
+      assert_true @error_handler_spy.run_called
     end
 
-    should "have written the error response to the connection" do
-      assert_equal @expected_response, @connection.response
+    should "store the error handler response and exception on the processed service" do
+      assert_equal @error_handler_spy.response,  @processed_service.response
+      assert_equal @error_handler_spy.exception, @processed_service.exception
+    end
+
+    should "write the error response to the connection" do
+      assert_equal @error_handler_spy.response, @connection.response
       assert_true @connection.write_closed
     end
 
@@ -171,9 +211,11 @@ class Sanford::ConnectionHandler
 
     should "log an exception when one is thrown" do
       err = @processed_service.exception
-      backtrace = err.backtrace.join("\n")
-      exp = "[Sanford] #{err.class}: #{err.message}\n#{backtrace}"
-      assert_equal exp, subject.error_logged.join
+      exp = "[Sanford] #{err.class}: #{err.message}"
+      assert_equal exp, subject.error_logged.first
+      err.backtrace.each do |l|
+        assert_includes "[Sanford] #{l}", subject.error_logged
+      end
     end
 
   end
@@ -215,6 +257,24 @@ class Sanford::ConnectionHandler
   end
 
   TestHandler = Class.new
+
+  class ErrorHandlerSpy
+    attr_reader :passed_exception, :context_hash, :exception, :response
+    attr_reader :run_called
+
+    def initialize(exception, context_hash)
+      @passed_exception = exception
+      @context_hash     = context_hash
+      @exception        = Factory.exception
+      @response         = Factory.protocol_response
+      @run_called       = false
+    end
+
+    def run
+      @run_called = true
+      @response
+    end
+  end
 
   class SpyLogger
     attr_reader :info_logged, :error_logged

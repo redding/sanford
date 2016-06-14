@@ -1,4 +1,5 @@
 require 'benchmark'
+require 'dat-worker-pool'
 require 'sanford-protocol'
 require 'sanford/error_handler'
 require 'sanford/logger'
@@ -45,6 +46,11 @@ module Sanford
 
         response = route.run(request, @server_data)
         processed_service.response = response
+      rescue DatWorkerPool::ShutdownError => exception
+        error = ShutdownError.new(exception.message)
+        error.set_backtrace(exception.backtrace)
+        self.handle_exception(error, @server_data, processed_service)
+        raise exception
       rescue StandardError => exception
         self.handle_exception(exception, @server_data, processed_service)
       ensure
@@ -101,9 +107,8 @@ module Sanford
     end
 
     def log_exception(exception)
-      backtrace = exception.backtrace.join("\n")
-      message = "#{exception.class}: #{exception.message}\n#{backtrace}"
-      log_verbose(message, :error)
+      log_verbose("#{exception.class}: #{exception.message}", :error)
+      (exception.backtrace || []).each{ |l| log_verbose(l, :error) }
     end
 
     def log_verbose(message, level = :info)
@@ -153,5 +158,7 @@ module Sanford
     )
 
   end
+
+  ShutdownError = Class.new(DatWorkerPool::ShutdownError)
 
 end
