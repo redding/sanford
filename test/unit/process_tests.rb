@@ -10,7 +10,19 @@ class Sanford::Process
   class UnitTests < Assert::Context
     desc "Sanford::Process"
     setup do
+      @current_env_server_fd      = ENV['SANFORD_SERVER_FD']
+      @current_env_client_fds     = ENV['SANFORD_CLIENT_FDS']
+      @current_env_skip_daemonize = ENV['SANFORD_SKIP_DAEMONIZE']
+      ENV.delete('SANFORD_SERVER_FD')
+      ENV.delete('SANFORD_CLIENT_FDS')
+      ENV.delete('SANFORD_SKIP_DAEMONIZE')
+
       @process_class = Sanford::Process
+    end
+    teardown do
+      ENV['SANFORD_SKIP_DAEMONIZE'] = @current_env_skip_daemonize
+      ENV['SANFORD_CLIENT_FDS']     = @current_env_client_fds
+      ENV['SANFORD_SERVER_FD']      = @current_env_server_fd
     end
     subject{ @process_class }
 
@@ -29,13 +41,6 @@ class Sanford::Process
   class InitTests < UnitTests
     desc "when init"
     setup do
-      @current_env_server_fd      = ENV['SANFORD_SERVER_FD']
-      @current_env_client_fds     = ENV['SANFORD_CLIENT_FDS']
-      @current_env_skip_daemonize = ENV['SANFORD_SKIP_DAEMONIZE']
-      ENV.delete('SANFORD_SERVER_FD')
-      ENV.delete('SANFORD_CLIENT_FDS')
-      ENV.delete('SANFORD_SKIP_DAEMONIZE')
-
       @server_spy = ServerSpy.new
 
       @pid_file_spy = PIDFileSpy.new(Factory.integer)
@@ -47,11 +52,6 @@ class Sanford::Process
       Assert.stub(Sanford::RestartCmd, :new){ @restart_cmd_spy }
 
       @process = @process_class.new(@server_spy)
-    end
-    teardown do
-      ENV['SANFORD_SKIP_DAEMONIZE'] = @current_env_skip_daemonize
-      ENV['SANFORD_CLIENT_FDS']     = @current_env_client_fds
-      ENV['SANFORD_SERVER_FD']      = @current_env_server_fd
     end
     subject{ @process }
 
@@ -200,7 +200,7 @@ class Sanford::Process
     end
 
     should "not run the restart cmd" do
-      assert_false @restart_cmd_spy.run_called
+      assert_nil @restart_cmd_spy.run_called_for
     end
 
   end
@@ -291,7 +291,7 @@ class Sanford::Process
     end
 
     should "not run the restart cmd" do
-      assert_false @restart_cmd_spy.run_called
+      assert_nil @restart_cmd_spy.run_called_for
     end
 
     should "remove the PID file" do
@@ -319,7 +319,7 @@ class Sanford::Process
     end
 
     should "not run the restart cmd" do
-      assert_false @restart_cmd_spy.run_called
+      assert_nil @restart_cmd_spy.run_called_for
     end
 
     should "remove the PID file" do
@@ -331,11 +331,6 @@ class Sanford::Process
   class RunAndRestartTests < RunSetupTests
     desc "and run with a restart signal"
     setup do
-      server_fd = Factory.integer
-      Assert.stub(@server_spy, :file_descriptor){ server_fd }
-      client_fds = [ Factory.integer, Factory.integer ]
-      Assert.stub(@server_spy, :client_file_descriptors){ client_fds }
-
       @thread = Thread.new{ @process.run }
       @thread.join(JOIN_SECONDS)
       @process.signal_io.write(RESTART)
@@ -347,17 +342,8 @@ class Sanford::Process
       assert_equal [true], @server_spy.pause_args
     end
 
-    should "set the env vars to skip daemonize and for restarting" do
-      assert_equal @server_spy.file_descriptor.to_s, ENV['SANFORD_SERVER_FD']
-
-      exp = @server_spy.client_file_descriptors.join(',')
-      assert_equal exp, ENV['SANFORD_CLIENT_FDS']
-
-      assert_equal 'yes', ENV['SANFORD_SKIP_DAEMONIZE']
-    end
-
     should "run the restart cmd" do
-      assert_true @restart_cmd_spy.run_called
+      assert_equal @server_spy, @restart_cmd_spy.run_called_for
     end
 
   end
@@ -415,6 +401,12 @@ class Sanford::Process
       Assert.stub(File, :stat).with(Dir.pwd){ @ruby_pwd_stat }
       Assert.stub(File, :stat).with(ENV['PWD']){ env_pwd_stat }
 
+      @server_spy = ServerSpy.new
+      server_fd = Factory.integer
+      Assert.stub(@server_spy, :file_descriptor){ server_fd }
+      client_fds = Factory.integer(3).times.map{ Factory.integer }
+      Assert.stub(@server_spy, :client_file_descriptors){ client_fds }
+
       @chdir_called_with = nil
       Assert.stub(Dir, :chdir){ |*args| @chdir_called_with = args }
 
@@ -443,10 +435,38 @@ class Sanford::Process
       assert_equal [Gem.ruby, $0, ARGV].flatten, subject.argv
     end
 
-    should "change the dir and run a kernel exec when run" do
-      subject.run
-      assert_equal [subject.dir], @chdir_called_with
-      assert_equal subject.argv,  @exec_called_with
+    if RUBY_VERSION == '1.8.7'
+
+      should "set env vars, change the dir and kernel exec when run" do
+        subject.run(@server_spy)
+
+        assert_equal @server_spy.file_descriptor.to_s, ENV['SANFORD_SERVER_FD']
+        exp = @server_spy.client_file_descriptors.join(',')
+        assert_equal exp, ENV['SANFORD_CLIENT_FDS']
+        assert_equal 'yes', ENV['SANFORD_SKIP_DAEMONIZE']
+
+        assert_equal [subject.dir], @chdir_called_with
+        assert_equal subject.argv,  @exec_called_with
+      end
+
+    else
+
+      should "kernel exec when run" do
+        subject.run(@server_spy)
+
+        env = {
+          'SANFORD_SERVER_FD'      => @server_spy.file_descriptor.to_s,
+          'SANFORD_CLIENT_FDS'     => @server_spy.client_file_descriptors.join(','),
+          'SANFORD_SKIP_DAEMONIZE' => 'yes'
+        }
+        fd_redirects = (
+          [@server_spy.file_descriptor] +
+          @server_spy.client_file_descriptors
+        ).inject({}){ |h, fd| h.merge!(fd => fd) }
+        options = { :chdir => subject.dir }.merge!(fd_redirects)
+        assert_equal ([env] + subject.argv + [options]), @exec_called_with
+      end
+
     end
 
   end
@@ -495,16 +515,14 @@ class Sanford::Process
   class ServerSpy
     include Sanford::Server
 
-    name Factory.string
-    ip Factory.string
-    port Factory.integer
+    name     Factory.string
+    ip       Factory.string
+    port     Factory.integer
     pid_file Factory.file_path
 
     attr_accessor :process_label, :listen_called
     attr_accessor :start_called, :stop_called, :halt_called, :pause_called
     attr_reader :listen_args, :start_args, :stop_args, :halt_args, :pause_args
-
-    attr_reader :thread
 
     def initialize(*args)
       super
@@ -555,14 +573,14 @@ class Sanford::Process
   end
 
   class RestartCmdSpy
-    attr_reader :run_called
+    attr_reader :run_called_for
 
     def initialize
-      @run_called = false
+      @run_called_for = nil
     end
 
-    def run
-      @run_called = true
+    def run(server)
+      @run_called_for = server
     end
   end
 

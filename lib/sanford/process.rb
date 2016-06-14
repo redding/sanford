@@ -58,7 +58,7 @@ module Sanford
       end
       @signal_io.teardown
 
-      run_restart_cmd if signal == RESTART
+      run_restart_cmd(@restart_cmd, @server) if signal == RESTART
     ensure
       @pid_file.remove
     end
@@ -112,12 +112,9 @@ module Sanford
       throw :signal, signal
     end
 
-    def run_restart_cmd
-      log "Restarting #{@server.name} daemon..."
-      ENV['SANFORD_SERVER_FD'] = @server.file_descriptor.to_s
-      ENV['SANFORD_CLIENT_FDS'] = @server.client_file_descriptors.join(',')
-      ENV['SANFORD_SKIP_DAEMONIZE'] = 'yes'
-      @restart_cmd.run
+    def run_restart_cmd(restart_cmd, server)
+      log "Restarting #{server.name} daemon..."
+      restart_cmd.run(server)
     end
 
     def log(message)
@@ -140,9 +137,36 @@ module Sanford
       @argv = [Gem.ruby, $0, ARGV.dup].flatten
     end
 
-    def run
-      Dir.chdir self.dir
-      Kernel.exec(*self.argv)
+    if RUBY_VERSION == '1.8.7'
+
+      def run(server)
+        ENV['SANFORD_SERVER_FD']      = server.file_descriptor.to_s
+        ENV['SANFORD_CLIENT_FDS']     = server.client_file_descriptors.join(',')
+        ENV['SANFORD_SKIP_DAEMONIZE'] = 'yes'
+        Dir.chdir self.dir
+        Kernel.exec(*self.argv)
+      end
+
+    else
+
+      def run(server)
+        env = {
+          'SANFORD_SERVER_FD'      => server.file_descriptor.to_s,
+          'SANFORD_CLIENT_FDS'     => server.client_file_descriptors.join(','),
+          'SANFORD_SKIP_DAEMONIZE' => 'yes'
+        }
+        # in ruby 1.9+ the `Kernel.exec` method is passed file descriptor
+        # redirects, this makes it so the child process that we are running via
+        # the `exec` has access to the file descriptors and can open them
+        fd_redirects = (
+          [server.file_descriptor] +
+          server.client_file_descriptors
+        ).inject({}){ |h, fd| h.merge!(fd => fd) }
+        options = { :chdir => self.dir }.merge!(fd_redirects)
+
+        Kernel.exec(*([env] + self.argv + [options]))
+      end
+
     end
 
     private
