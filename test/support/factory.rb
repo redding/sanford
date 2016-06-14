@@ -12,4 +12,11 @@ module Factory
     exception
   end
 
+  def self.protocol_response
+    Sanford::Protocol::Response.new(
+      [Factory.integer(999), Factory.text],
+      { Factory.string => Factory.string }
+    )
+  end
+
 end
