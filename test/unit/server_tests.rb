@@ -19,7 +19,8 @@ module Sanford::Server
     should have_imeths :config
     should have_imeths :name, :ip, :port, :pid_file, :shutdown_timeout
     should have_imeths :worker_class, :worker_params, :num_workers, :workers
-    should have_imeths :init, :error, :template_source, :logger, :router
+    should have_imeths :init, :init_procs, :error, :error_procs
+    should have_imeths :template_source, :logger, :router
     should have_imeths :receives_keep_alive, :verbose_logging
 
     should "use much-plugin" do
@@ -89,6 +90,11 @@ module Sanford::Server
       exp = Factory.boolean
       subject.verbose_logging exp
       assert_equal exp, config.verbose_logging
+    end
+
+    should "demeter its config values that aren't directly set" do
+      assert_equal subject.config.init_procs,  subject.init_procs
+      assert_equal subject.config.error_procs, subject.error_procs
     end
 
     should "have a router by default and allow overriding it" do
