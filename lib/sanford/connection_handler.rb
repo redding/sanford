@@ -51,7 +51,7 @@ module Sanford
         error.set_backtrace(exception.backtrace)
         self.handle_exception(error, @server_data, processed_service)
         raise exception
-      rescue StandardError => exception
+      rescue *Sanford::ErrorHandler::STANDARD_ERROR_CLASSES => exception
         self.handle_exception(exception, @server_data, processed_service)
       ensure
         self.write_response(processed_service)
@@ -62,7 +62,7 @@ module Sanford
     def write_response(processed_service)
       begin
         @connection.write_data processed_service.response.to_hash
-      rescue StandardError => exception
+      rescue *Sanford::ErrorHandler::STANDARD_ERROR_CLASSES => exception
         processed_service = self.handle_exception(
           exception,
           @server_data,

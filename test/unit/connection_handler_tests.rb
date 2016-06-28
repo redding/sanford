@@ -86,7 +86,7 @@ class Sanford::ConnectionHandler
 
   class RunWithExceptionSetupTests < InitTests
     setup do
-      @route_exception = Factory.exception
+      @route_exception = Factory.sanford_std_error
       Assert.stub(@route, :run){ raise @route_exception }
       Assert.stub(Sanford::ErrorHandler, :new) do |*args|
         @error_handler_spy = ErrorHandlerSpy.new(*args)
@@ -265,7 +265,7 @@ class Sanford::ConnectionHandler
     def initialize(exception, context_hash)
       @passed_exception = exception
       @context_hash     = context_hash
-      @exception        = Factory.exception
+      @exception        = Factory.sanford_std_error
       @response         = Factory.protocol_response
       @run_called       = false
     end
