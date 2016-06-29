@@ -20,7 +20,7 @@ Gem::Specification.new do |gem|
 
   gem.add_development_dependency("assert", ["~> 2.16.1"])
 
-  gem.add_dependency("dat-tcp",          ["~> 0.8.1"])
+  gem.add_dependency("dat-tcp",          ["~> 0.8.2"])
   gem.add_dependency("much-plugin",      ["~> 0.2.0"])
   gem.add_dependency("sanford-protocol", ["~> 0.12.0"])
 end

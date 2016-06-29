@@ -1,8 +1,14 @@
+require 'dat-worker-pool/worker'
 require 'sanford-protocol'
 
 module Sanford
 
   class ErrorHandler
+
+    # these are standard error classes that we rescue and run through any
+    # configured error procs; use the same standard error classes that
+    # dat-worker-pool rescues
+    STANDARD_ERROR_CLASSES = DatWorkerPool::Worker::STANDARD_ERROR_CLASSES
 
     attr_reader :exception, :context, :error_procs
 
@@ -24,7 +30,7 @@ module Sanford
         result = nil
         begin
           result = error_proc.call(@exception, @context)
-        rescue StandardError => proc_exception
+        rescue *STANDARD_ERROR_CLASSES => proc_exception
           @exception = proc_exception
         end
         response ||= response_from_proc(result)

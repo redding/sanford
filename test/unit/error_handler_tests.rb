@@ -9,7 +9,7 @@ class Sanford::ErrorHandler
   class UnitTests < Assert::Context
     desc "Sanford::ErrorHandler"
     setup do
-      @exception   = Factory.exception
+      @exception   = Factory.sanford_std_error
       @server_data = Sanford::ServerData.new
       @request     = Sanford::Protocol::Request.new(Factory.string, {
         Factory.string => Factory.string
@@ -160,7 +160,7 @@ class Sanford::ErrorHandler
   class RunWithGenericErrorTests < RunWithNoResponseFromErrorProcSetupTests
     desc "but with a generic error"
     setup do
-      @exception = Factory.exception
+      @exception = Factory.sanford_std_error
 
       @handler  = @handler_class.new(@exception, @context_hash)
       @response = @handler.run
@@ -178,7 +178,7 @@ class Sanford::ErrorHandler
     desc "and run with error procs that throw exceptions"
     setup do
       @proc_exceptions = @error_proc_spies.reverse.map do |spy|
-        exception = Factory.exception(RuntimeError, @error_proc_spies.index(spy).to_s)
+        exception = Factory.sanford_std_error(@error_proc_spies.index(spy).to_s)
         spy.raise_exception = exception
         exception
       end
