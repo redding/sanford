@@ -292,7 +292,12 @@ class Sanford::ErrorHandler
       exp = Sanford::ErrorContext.new(@context_hash)
       assert_equal exp, subject
 
-      exp = Sanford::ErrorContext.new({})
+      exp = Sanford::ErrorContext.new({
+        :server_data   => Sanford::ServerData.new,
+        :request       => Factory.string,
+        :handler_class => Factory.string,
+        :response      => Factory.string
+      })
       assert_not_equal exp, subject
     end
 

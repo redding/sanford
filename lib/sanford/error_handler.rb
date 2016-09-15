@@ -76,16 +76,16 @@ module Sanford
     attr_reader :request, :handler_class, :response
 
     def initialize(args)
-      @server_data   = args[:server_data]
-      @request       = args[:request]
-      @handler_class = args[:handler_class]
-      @response      = args[:response]
+      @server_data   = args.fetch(:server_data)
+      @request       = args.fetch(:request)
+      @handler_class = args.fetch(:handler_class)
+      @response      = args.fetch(:response)
     end
 
     def ==(other)
       if other.kind_of?(self.class)
-        self.server_data   == other.server_data &&
-        self.request       == other.request &&
+        self.server_data   == other.server_data   &&
+        self.request       == other.request       &&
         self.handler_class == other.handler_class &&
         self.response      == other.response
       else
