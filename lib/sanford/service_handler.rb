@@ -62,10 +62,11 @@ module Sanford
       def params;  @sanford_runner.params;  end
 
       # response
-      def status(*args); @sanford_runner.status(*args); end
-      def data(*args);   @sanford_runner.data(*args);   end
-      def halt(*args);   @sanford_runner.halt(*args);   end
-      def render(*args); @sanford_runner.render(*args); end
+      def status(*args);  @sanford_runner.status(*args);  end
+      def data(*args);    @sanford_runner.data(*args);    end
+      def halt(*args);    @sanford_runner.halt(*args);    end
+      def render(*args);  @sanford_runner.render(*args);  end
+      def partial(*args); @sanford_runner.partial(*args); end
 
     end
 

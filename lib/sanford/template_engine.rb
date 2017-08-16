@@ -17,6 +17,10 @@ module Sanford
       raise NotImplementedError
     end
 
+    def partial(name, locals)
+      raise NotImplementedError
+    end
+
     def ==(other_engine)
       if other_engine.kind_of?(TemplateEngine)
         self.source_path == other_engine.source_path &&
@@ -31,6 +35,10 @@ module Sanford
   class NullTemplateEngine < TemplateEngine
 
     def render(template_name, service_handler, locals)
+      self.partial(template_name, locals)
+    end
+
+    def partial(template_name, locals)
       paths = Dir.glob(self.source_path.join("#{template_name}*"))
       if paths.size > 1
         raise ArgumentError, "#{template_name.inspect} matches more than one " \

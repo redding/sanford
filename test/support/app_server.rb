@@ -21,6 +21,14 @@ class AppERBEngine < Sanford::TemplateEngine
     b = RenderScope.new(service_handler).get_binding
     ERB.new(File.read(full_path)).result(b)
   end
+
+  def partial(path, locals)
+    require 'erb'
+    full_path = ROOT_PATH.join("test/support/#{path}.erb")
+
+    b = RenderScope.new(nil).get_binding
+    ERB.new(File.read(full_path)).result(b)
+  end
 end
 
 class AppServer
@@ -38,12 +46,13 @@ class AppServer
   router do
     service_handler_ns 'AppHandlers'
 
-    service 'echo',         'Echo'
-    service 'raise',        'Raise'
-    service 'bad_response', 'BadResponse'
-    service 'template',     'Template'
-    service 'halt',         'Halt'
-    service 'custom_error', 'CustomError'
+    service 'echo',             'Echo'
+    service 'raise',            'Raise'
+    service 'bad_response',     'BadResponse'
+    service 'render_template',  'RenderTemplate'
+    service 'partial_template', 'PartialTemplate'
+    service 'halt',             'Halt'
+    service 'custom_error',     'CustomError'
   end
 
   Sanford::TemplateSource.new(ROOT_PATH.join('test/support').to_s).tap do |s|
@@ -96,9 +105,15 @@ module AppHandlers
     def init!
       @message = params['message']
     end
-
+  end
+  class RenderTemplate < Template
     def run!
       render "template"
+    end
+  end
+  class PartialTemplate < Template
+    def run!
+      partial "template"
     end
   end
 

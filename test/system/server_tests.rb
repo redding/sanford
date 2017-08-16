@@ -166,11 +166,11 @@ module Sanford::Server
 
   end
 
-  class TemplateTests < RunningAppServerTests
+  class RenderTemplateTests < RunningAppServerTests
     desc "calling a service that renders a template"
     setup do
       @message = Factory.text
-      @client.set_request('template', :message => @message)
+      @client.set_request('render_template', :message => @message)
       @response = @client.call
     end
 
@@ -178,6 +178,22 @@ module Sanford::Server
       assert_equal 200, subject.code
       assert_nil subject.status.message
       assert_equal "ERB Template Message: #{@message}\n", subject.data
+    end
+
+  end
+
+  class PartialTemplateTests < RunningAppServerTests
+    desc "calling a service that renders a partial template"
+    setup do
+      @message = Factory.text
+      @client.set_request('partial_template', :message => @message)
+      @response = @client.call
+    end
+
+    should "return a success response with the rendered data" do
+      assert_equal 200, subject.code
+      assert_nil subject.status.message
+      assert_equal "ERB Template Message: \n", subject.data
     end
 
   end

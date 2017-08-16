@@ -19,7 +19,7 @@ class Sanford::TemplateEngine
     subject{ @engine }
 
     should have_readers :source_path, :logger, :opts
-    should have_imeths :render
+    should have_imeths :render, :partial
 
     should "default its source path" do
       assert_equal Pathname.new(nil.to_s), subject.source_path
@@ -56,6 +56,12 @@ class Sanford::TemplateEngine
       end
     end
 
+    should "raise NotImplementedError on `partial`" do
+      assert_raises NotImplementedError do
+        subject.partial(@path, @locals)
+      end
+    end
+
   end
 
   class NullTemplateEngineTests < Assert::Context
@@ -69,10 +75,11 @@ class Sanford::TemplateEngine
       assert_kind_of Sanford::TemplateEngine, subject
     end
 
-    should "read and return the given path in its source path on `render" do
+    should "read and return the given path in its source path" do
       exists_file = ['test/support/template', 'test/support/template.erb'].sample
       exp = File.read(Dir.glob("#{subject.source_path.join(exists_file)}*").first)
       assert_equal exp, subject.render(exists_file, @service_handler, @locals)
+      assert_equal exp, subject.partial(exists_file, @locals)
     end
 
     should "complain if given a path that matches multiple files" do
@@ -80,12 +87,18 @@ class Sanford::TemplateEngine
       assert_raises ArgumentError do
         subject.render(conflict_file, @service_handler, @locals)
       end
+      assert_raises ArgumentError do
+        subject.partial(conflict_file, @locals)
+      end
     end
 
     should "complain if given a path that does not exist in its source path" do
       no_exists_file = '/does/not/exists'
       assert_raises ArgumentError do
         subject.render(no_exists_file, @service_handler, @locals)
+      end
+      assert_raises ArgumentError do
+        subject.partial(no_exists_file, @locals)
       end
     end
 

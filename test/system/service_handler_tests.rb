@@ -57,11 +57,11 @@ module Sanford::ServiceHandler
 
   end
 
-  class TemplateHandlerTests < SystemTests
-    desc "AppHandlers::Template"
+  class RenderTemplateHandlerTests < SystemTests
+    desc "AppHandlers::RenderTemplate"
     setup do
       @params = { 'message' => Factory.text }
-      @runner = test_runner(AppHandlers::Template, {
+      @runner = test_runner(AppHandlers::RenderTemplate, {
         :params          => @params,
         :template_source => AppServer.config.template_source
       })
@@ -78,7 +78,36 @@ module Sanford::ServiceHandler
     should "return a 200 response and render the template when run" do
       response = @runner.run
       assert_equal 200, response.code
+
       exp = "ERB Template Message: #{@params['message']}\n"
+      assert_equal exp, response.data
+    end
+
+  end
+
+  class PartialTemplateHandlerTests < SystemTests
+    desc "AppHandlers::PartialTemplate"
+    setup do
+      @params = { 'message' => Factory.text }
+      @runner = test_runner(AppHandlers::PartialTemplate, {
+        :params          => @params,
+        :template_source => AppServer.config.template_source
+      })
+      @handler = @runner.handler
+    end
+    subject{ @handler }
+
+    should have_readers :message
+
+    should "know its message" do
+      assert_equal @params['message'], subject.message
+    end
+
+    should "return a 200 response and render the template when run" do
+      response = @runner.run
+      assert_equal 200, response.code
+
+      exp = "ERB Template Message: \n"
       assert_equal exp, response.data
     end
 

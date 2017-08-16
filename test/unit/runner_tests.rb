@@ -41,8 +41,8 @@ class Sanford::Runner
     should have_readers :handler_class, :handler
     should have_readers :logger, :router, :template_source
     should have_readers :request, :params
-    should have_imeths :run, :to_response
-    should have_imeths :halt
+    should have_imeths :run, :to_response, :status, :data
+    should have_imeths :halt, :render, :partial
 
     should "know its handler class and handler" do
       assert_equal @handler_class, subject.handler_class
@@ -180,19 +180,28 @@ class Sanford::Runner
 
   end
 
-  class RenderTests < InitTests
-    desc "the `render` method"
+  class RenderPartialTests < InitTests
     setup do
       @template_name = Factory.path
-      @locals = { Factory.string => Factory.string }
-      data = @data = Factory.text
-      @render_called_with = nil
+      @locals        = { Factory.string => Factory.string }
+      @data          = Factory.text
+
       @source = @runner.template_source
+    end
+
+  end
+
+  class RenderTests < RenderPartialTests
+    desc "the `render` method"
+    setup do
+      data                = @data
+      @render_called_with = nil
       Assert.stub(@source, :render){ |*args| @render_called_with = args; data }
     end
 
     should "call to the template source's render method and set the return value as data" do
       subject.render(@template_name, @locals)
+
       exp = [@template_name, subject.handler, @locals]
       assert_equal exp,   @render_called_with
       assert_equal @data, subject.data
@@ -200,8 +209,33 @@ class Sanford::Runner
 
     should "default the locals if none given" do
       subject.render(@template_name)
+
       exp = [@template_name, subject.handler, {}]
       assert_equal exp, @render_called_with
+    end
+
+  end
+
+  class PartialTests < RenderPartialTests
+    desc "the `partial` method"
+    setup do
+      data                 = @data
+      @partial_called_with = nil
+      Assert.stub(@source, :partial){ |*args| @partial_called_with = args; data }
+    end
+
+    should "call to the template source's partial method and set the return value as data" do
+      subject.partial(@template_name, @locals)
+
+      exp = [@template_name, @locals]
+      assert_equal exp,   @partial_called_with
+      assert_equal @data, subject.data
+    end
+
+    should "default the locals if none given" do
+      subject.partial(@template_name)
+      exp = [@template_name, {}]
+      assert_equal exp, @partial_called_with
     end
 
   end
