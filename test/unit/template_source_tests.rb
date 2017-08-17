@@ -22,7 +22,7 @@ class Sanford::TemplateSource
 
     should have_readers :path, :engines
     should have_imeths :engine, :engine_for?, :engine_for_template?
-    should have_imeths :render
+    should have_imeths :render, :partial
 
     should "know its path" do
       assert_equal @source_path.to_s, subject.path
@@ -94,20 +94,24 @@ class Sanford::TemplateSource
 
   end
 
-  class RenderTests < InitTests
-    desc "when rendering a template"
+  class TemplateTests < InitTests
     setup do
       @source.engine('test', TestEngine)
       @source.engine('json', JsonEngine)
     end
 
+  end
+
+  class RenderTemplateTests < TemplateTests
+    desc "when rendering a template"
+
     should "render a matching template using the configured engine" do
       locals = { :something => Factory.string }
       result = subject.render('test_template', TestServiceHandler, locals)
-      assert_equal 'test-engine', result
+      assert_equal 'test-engine-render', result
 
       result = subject.render('test_template.test', TestServiceHandler, locals)
-      assert_equal 'test-engine', result
+      assert_equal 'test-engine-render', result
     end
 
     should "use the null template engine when an engine can't be found" do
@@ -121,6 +125,34 @@ class Sanford::TemplateSource
       # with diff extensions
       assert_raises(ArgumentError) do
         subject.render('conflict_template', TestServiceHandler, {})
+      end
+    end
+
+  end
+
+  class PartialTemplateTests < TemplateTests
+    desc "when rendering a partial template"
+
+    should "render a matching partial template using the configured engine" do
+      locals = { :something => Factory.string }
+      result = subject.partial('test_template', locals)
+      assert_equal 'test-engine-partial', result
+
+      result = subject.partial('test_template.test', locals)
+      assert_equal 'test-engine-partial', result
+    end
+
+    should "use the null template engine when an engine can't be found" do
+      assert_raises(ArgumentError) do
+        subject.partial(Factory.string, {})
+      end
+    end
+
+    should "complain if the given template name matches multiple templates" do
+      # there should be 2 files called "conflict_template" in `test/support`
+      # with diff extensions
+      assert_raises(ArgumentError) do
+        subject.partial('conflict_template', {})
       end
     end
 
@@ -151,13 +183,19 @@ class Sanford::TemplateSource
 
   class TestEngine < Sanford::TemplateEngine
     def render(path, service_handler, locals)
-      'test-engine'
+      'test-engine-render'
+    end
+    def partial(path, locals)
+      'test-engine-partial'
     end
   end
 
   class JsonEngine < Sanford::TemplateEngine
     def render(path, service_handler, locals)
-      'json-engine'
+      'json-engine-render'
+    end
+    def partial(path, locals)
+      'json-engine-partial'
     end
   end
 

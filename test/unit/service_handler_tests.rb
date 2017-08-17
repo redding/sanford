@@ -255,6 +255,14 @@ module Sanford::ServiceHandler
       assert_equal exp_args, @meth_args
     end
 
+    should "call to the runner for its partial helper" do
+      capture_runner_meth_args_for(:partial)
+      exp_args = @args
+      subject.instance_eval{ partial(*exp_args) }
+
+      assert_equal exp_args, @meth_args
+    end
+
     private
 
     def stub_runner_with_something_for(meth)

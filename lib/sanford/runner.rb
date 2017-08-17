@@ -68,6 +68,10 @@ module Sanford
       self.data(self.template_source.render(path, self.handler, locals || {}))
     end
 
+    def partial(path, locals = nil)
+      self.data(self.template_source.partial(path, locals || {}))
+    end
+
   end
 
 end
